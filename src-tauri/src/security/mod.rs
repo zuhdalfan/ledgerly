@@ -75,9 +75,8 @@ pub fn verify(conn: &Connection, passphrase: &str) -> AppResult<bool> {
         return Ok(false);
     };
 
-    let parsed = PasswordHash::new(&stored).map_err(|_| {
-        AppError::Validation("The stored lock verifier is unreadable.".to_string())
-    })?;
+    let parsed = PasswordHash::new(&stored)
+        .map_err(|_| AppError::Validation("The stored lock verifier is unreadable.".to_string()))?;
 
     Ok(Argon2::default()
         .verify_password(passphrase.as_bytes(), &parsed)
@@ -160,7 +159,10 @@ mod tests {
         let stored: Option<String> = verifier(&t.conn).unwrap();
         let stored = stored.expect("a verifier should be stored");
         assert!(!stored.contains("correct horse battery"));
-        assert!(stored.starts_with("$argon2"), "expected a PHC string, got {stored}");
+        assert!(
+            stored.starts_with("$argon2"),
+            "expected a PHC string, got {stored}"
+        );
     }
 
     #[test]
@@ -200,7 +202,10 @@ mod tests {
     fn the_auto_lock_delay_is_clamped() {
         let t = temp_db();
         assert_eq!(set_auto_lock(&t.conn, 0).unwrap().auto_lock_minutes, 1);
-        assert_eq!(set_auto_lock(&t.conn, 100_000).unwrap().auto_lock_minutes, 240);
+        assert_eq!(
+            set_auto_lock(&t.conn, 100_000).unwrap().auto_lock_minutes,
+            240
+        );
         assert_eq!(set_auto_lock(&t.conn, 30).unwrap().auto_lock_minutes, 30);
     }
 }

@@ -51,7 +51,10 @@ impl Entitlements {
             licensed: true,
             source: "trial".to_string(),
             plan: Some("trial".to_string()),
-            features: PRO_FEATURES.iter().map(|name| (*name).to_string()).collect(),
+            features: PRO_FEATURES
+                .iter()
+                .map(|name| (*name).to_string())
+                .collect(),
             expires_at: Some(ends_at),
         }
     }
@@ -63,14 +66,14 @@ impl Entitlements {
 }
 
 pub fn embedded_key() -> AppResult<VerifyingKey> {
-    let bytes = ledgerly_license::unhex(EMBEDDED_PUBLIC_KEY.trim()).ok_or_else(|| {
-        AppError::Validation("This build has no licence public key.".to_string())
-    })?;
+    let bytes = ledgerly_license::unhex(EMBEDDED_PUBLIC_KEY.trim())
+        .ok_or_else(|| AppError::Validation("This build has no licence public key.".to_string()))?;
     let key: [u8; 32] = bytes.try_into().map_err(|_| {
         AppError::Validation("The embedded licence public key is malformed.".to_string())
     })?;
-    VerifyingKey::from_bytes(&key)
-        .map_err(|_| AppError::Validation("The embedded licence public key is invalid.".to_string()))
+    VerifyingKey::from_bytes(&key).map_err(|_| {
+        AppError::Validation("The embedded licence public key is invalid.".to_string())
+    })
 }
 
 pub fn parse_file(text: &str) -> AppResult<LicenseFile> {
@@ -145,7 +148,12 @@ mod tests {
             version: FORMAT_VERSION,
             key_id: "test".to_string(),
             sku: "ledgerly".to_string(),
-            plan: if expires_at.is_some() { "term" } else { "perpetual" }.to_string(),
+            plan: if expires_at.is_some() {
+                "term"
+            } else {
+                "perpetual"
+            }
+            .to_string(),
             features: vec!["reports".to_string()],
             issued_at: "2026-01-01".to_string(),
             expires_at: expires_at.map(str::to_string),
@@ -162,8 +170,8 @@ mod tests {
     #[test]
     fn a_matching_licence_verifies() {
         let file = ticket("bind-1", None);
-        let license = verify_with_key(&file, &keypair().verifying_key(), "bind-1", "2026-10-09")
-            .unwrap();
+        let license =
+            verify_with_key(&file, &keypair().verifying_key(), "bind-1", "2026-10-09").unwrap();
         assert_eq!(license.features, vec!["reports"]);
     }
 
@@ -209,9 +217,7 @@ mod tests {
     fn a_signature_from_another_key_is_rejected() {
         let file = ticket("bind-1", None);
         let stranger = SigningKey::from_bytes(&[9u8; 32]);
-        assert!(
-            verify_with_key(&file, &stranger.verifying_key(), "bind-1", "2026-10-09").is_err()
-        );
+        assert!(verify_with_key(&file, &stranger.verifying_key(), "bind-1", "2026-10-09").is_err());
     }
 
     #[test]

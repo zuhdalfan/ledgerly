@@ -155,9 +155,11 @@ impl Painter {
     fn rect(&self, x: f32, y: f32, width: f32, height: f32, color: Color3) {
         let layer = self.layer();
         layer.set_fill_color(Color::Rgb(rgb(color)));
-        let _ = layer.add_rect(Rect::new(Mm(x), Mm(y), Mm(x + width), Mm(y + height)));
+        layer.add_rect(Rect::new(Mm(x), Mm(y), Mm(x + width), Mm(y + height)));
     }
 
+    // A drawing primitive: every argument is a distinct coordinate or style.
+    #[allow(clippy::too_many_arguments)]
     fn text_on(
         &self,
         layer: &PdfLayerReference,
@@ -174,7 +176,7 @@ impl Painter {
         } else {
             &self.font_regular
         };
-        let _ = layer.use_text(value, size, Mm(x), Mm(y), font);
+        layer.use_text(value, size, Mm(x), Mm(y), font);
     }
 
     fn text(&self, value: &str, size: f32, x: f32, y: f32, bold: bool, color: Color3) {
@@ -224,12 +226,23 @@ impl Painter {
         }
 
         let mut ry = PAGE_H - MARGIN - 2.0;
-        self.text_right(self.labels.invoice, theme.title_size, CONTENT_RIGHT, ry, true, theme.accent);
+        self.text_right(
+            self.labels.invoice,
+            theme.title_size,
+            CONTENT_RIGHT,
+            ry,
+            true,
+            theme.accent,
+        );
         ry -= 7.5;
         self.text_right(&invoice.number, 10.5, CONTENT_RIGHT, ry, true, theme.ink);
         ry -= 5.0;
         self.text_right(
-            &format!("{} {}", self.labels.issued, format_date(&invoice.issue_date)),
+            &format!(
+                "{} {}",
+                self.labels.issued,
+                format_date(&invoice.issue_date)
+            ),
             8.5,
             CONTENT_RIGHT,
             ry,
@@ -433,7 +446,14 @@ impl Painter {
         y -= 6.0;
 
         self.rect(label_x, y + 3.4, COL_TOTAL - label_x, 0.4, theme.rule);
-        self.text_right(self.labels.total_due, 11.0, label_x, y - 2.4, true, theme.ink);
+        self.text_right(
+            self.labels.total_due,
+            11.0,
+            label_x,
+            y - 2.4,
+            true,
+            theme.ink,
+        );
         self.text_right(
             &format_money(totals.total_minor, currency),
             11.0,
@@ -511,7 +531,12 @@ impl Painter {
 
         for (index, (page, layer_index)) in self.pages.iter().enumerate() {
             let layer = self.doc.get_page(*page).get_layer(*layer_index);
-            let page_label = format!("{} {} {} {total}", self.labels.page, index + 1, self.labels.of);
+            let page_label = format!(
+                "{} {} {} {total}",
+                self.labels.page,
+                index + 1,
+                self.labels.of
+            );
 
             self.text_on(
                 &layer,
@@ -632,7 +657,10 @@ fn client_lines(client: &Client) -> Vec<String> {
 }
 
 fn discount_label(item: &InvoiceItem, currency: &str) -> String {
-    match (item.discount_type.as_deref(), item.discount_value.as_deref()) {
+    match (
+        item.discount_type.as_deref(),
+        item.discount_value.as_deref(),
+    ) {
         (Some("percent"), Some(value)) => {
             if value.trim().is_empty() {
                 String::new()
@@ -662,8 +690,8 @@ pub fn render_invoice(
     client: Option<&Client>,
     options: PdfOptions,
 ) -> Result<Vec<u8>, String> {
-    let measure =
-        TextMeasure::new(FONT_REGULAR).ok_or_else(|| "could not read the regular font".to_string())?;
+    let measure = TextMeasure::new(FONT_REGULAR)
+        .ok_or_else(|| "could not read the regular font".to_string())?;
     let bold_measure =
         TextMeasure::new(FONT_BOLD).ok_or_else(|| "could not read the bold font".to_string())?;
 
@@ -707,7 +735,14 @@ pub fn render_invoice(
     }
 
     if invoice.items.is_empty() {
-        painter.text(painter.labels.no_items, 9.0, MARGIN, y, false, painter.theme.muted);
+        painter.text(
+            painter.labels.no_items,
+            9.0,
+            MARGIN,
+            y,
+            false,
+            painter.theme.muted,
+        );
         y -= 6.0;
     }
 
@@ -716,7 +751,10 @@ pub fn render_invoice(
     painter.watermark(invoice);
     painter.footers(business);
 
-    painter.doc.save_to_bytes().map_err(|error| error.to_string())
+    painter
+        .doc
+        .save_to_bytes()
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(test)]
@@ -973,7 +1011,8 @@ mod tests {
         invoice.payment_instructions = None;
         invoice.client_name = None;
 
-        let bytes = render_invoice(&invoice, &business(), None, options(Template::Minimal)).unwrap();
+        let bytes =
+            render_invoice(&invoice, &business(), None, options(Template::Minimal)).unwrap();
         assert_eq!(page_count(&bytes), 1);
     }
 }

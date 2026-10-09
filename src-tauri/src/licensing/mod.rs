@@ -141,7 +141,9 @@ fn build_status(
     let (trial_active, trial_ends_at, trial_available) = trial_state(conn)?;
 
     let stored: Option<String> = conn
-        .query_row("SELECT file_json FROM license LIMIT 1", [], |row| row.get(0))
+        .query_row("SELECT file_json FROM license LIMIT 1", [], |row| {
+            row.get(0)
+        })
         .ok();
 
     let mut problem = key_problem;
@@ -156,9 +158,9 @@ fn build_status(
     if let Some(file_json) = stored {
         match (|| -> AppResult<ledgerly_license::License> {
             let file = ticket::parse_file(&file_json)?;
-            let binding = binding
-                .as_deref()
-                .ok_or_else(|| AppError::Validation("The installation serial is unavailable.".to_string()))?;
+            let binding = binding.as_deref().ok_or_else(|| {
+                AppError::Validation("The installation serial is unavailable.".to_string())
+            })?;
             ticket::verify(&file, binding, &today)
         })() {
             Ok(license) => {
@@ -170,10 +172,7 @@ fn build_status(
                 days_remaining = remaining_days(conn, license.expires_at.as_deref())?;
                 features = license.features.clone();
 
-                conn.execute(
-                    "UPDATE license SET last_verified_at = datetime('now')",
-                    [],
-                )?;
+                conn.execute("UPDATE license SET last_verified_at = datetime('now')", [])?;
             }
             Err(error) => problem = Some(error.to_string()),
         }
@@ -186,7 +185,10 @@ fn build_status(
         plan = Some("trial".to_string());
         expires_at = trial_ends_at.clone();
         days_remaining = remaining_days(conn, trial_ends_at.as_deref())?;
-        features = PRO_FEATURES.iter().map(|name| (*name).to_string()).collect();
+        features = PRO_FEATURES
+            .iter()
+            .map(|name| (*name).to_string())
+            .collect();
     }
 
     Ok(LicenseStatus {
@@ -345,7 +347,7 @@ mod tests {
         let t = temp_db();
         let status = status_with_key(&t.conn, &KEY).unwrap();
 
-        assert!(status.licensed == false);
+        assert!(!status.licensed);
         assert_eq!(status.source, "free");
         assert!(status.trial_available);
         assert!(status.features.is_empty());
@@ -362,11 +364,18 @@ mod tests {
         let status = status_with_key(&t.conn, &KEY).unwrap();
         let sealed: String = t
             .conn
-            .query_row("SELECT serial_sealed FROM installation WHERE id = 'default'", [], |row| row.get(0))
+            .query_row(
+                "SELECT serial_sealed FROM installation WHERE id = 'default'",
+                [],
+                |row| row.get(0),
+            )
             .unwrap();
 
         let plain = status.serial.replace('-', "");
-        assert!(!sealed.contains(&plain), "the raw serial must not be readable");
+        assert!(
+            !sealed.contains(&plain),
+            "the raw serial must not be readable"
+        );
         assert_ne!(sealed, plain);
     }
 
@@ -402,7 +411,7 @@ mod tests {
         assert!(!status.licensed);
         assert!(!status.trial_active);
         assert!(!status.trial_available, "the trial was already used");
-        assert!(status.entitlements().allows("reports") == false);
+        assert!(!status.entitlements().allows("reports"));
     }
 
     // Signing/rejection details are covered in `ticket`; these check the storage
@@ -421,7 +430,10 @@ mod tests {
 
         let status = status_with_key(&t.conn, &KEY).unwrap();
         assert!(!status.licensed);
-        assert!(status.features.is_empty(), "an invalid licence grants nothing");
+        assert!(
+            status.features.is_empty(),
+            "an invalid licence grants nothing"
+        );
         assert!(status.problem.is_some(), "the reason should be reported");
     }
 

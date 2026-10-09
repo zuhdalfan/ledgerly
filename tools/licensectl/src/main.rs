@@ -145,7 +145,10 @@ fn issue(args: &[String]) -> Result<(), String> {
     let expires_at = flag(args, "--expires").map(str::to_string);
     let features: Vec<String> = match flag(args, "--features") {
         Some(list) => list.split(',').map(|f| f.trim().to_string()).collect(),
-        None => SUPPORTED_FEATURES.iter().map(|f| (*f).to_string()).collect(),
+        None => SUPPORTED_FEATURES
+            .iter()
+            .map(|f| (*f).to_string())
+            .collect(),
     };
 
     if plan == "perpetual" && expires_at.is_some() {
@@ -217,7 +220,9 @@ fn verify(args: &[String]) -> Result<(), String> {
     let file: LicenseFile = serde_json::from_str(&text).map_err(|error| format!("{error}\n"))?;
 
     let key_bytes = unhex(public).ok_or("--pubkey must be hex\n")?;
-    let key: [u8; 32] = key_bytes.try_into().map_err(|_| "--pubkey must be 32 bytes\n")?;
+    let key: [u8; 32] = key_bytes
+        .try_into()
+        .map_err(|_| "--pubkey must be 32 bytes\n")?;
     let verifying = VerifyingKey::from_bytes(&key).map_err(|error| format!("{error}\n"))?;
 
     let signature_bytes = unhex(&file.signature).ok_or("the signature is not hex\n")?;
@@ -226,7 +231,10 @@ fn verify(args: &[String]) -> Result<(), String> {
         .map_err(|_| "the signature must be 64 bytes\n")?;
 
     verifying
-        .verify(&file.license.signing_bytes(), &Signature::from_bytes(&signature))
+        .verify(
+            &file.license.signing_bytes(),
+            &Signature::from_bytes(&signature),
+        )
         .map_err(|_| "signature is NOT valid\n".to_string())?;
 
     println!("signature is valid");

@@ -226,10 +226,7 @@ pub fn get(conn: &Connection, id: &str) -> rusqlite::Result<Option<Estimate>> {
     }
 }
 
-pub fn preview_totals(
-    conn: &Connection,
-    input: &EstimateInput,
-) -> rusqlite::Result<InvoiceTotals> {
+pub fn preview_totals(conn: &Connection, input: &EstimateInput) -> rusqlite::Result<InvoiceTotals> {
     line_items::preview_totals(
         conn,
         &input.discount_type,
@@ -373,16 +370,15 @@ pub fn set_status(conn: &Connection, id: &str, status: &str) -> Result<Estimate,
         return Err(AppError::Validation("Estimate not found.".to_string()));
     }
 
-    get(conn, id)?
-        .ok_or_else(|| AppError::Validation("Estimate not found.".to_string()))
+    get(conn, id)?.ok_or_else(|| AppError::Validation("Estimate not found.".to_string()))
 }
 
 /// Create an invoice from an estimate and link the two. Refuses to convert twice.
 pub fn convert(conn: &Connection, id: &str) -> Result<Invoice, AppError> {
     let tx = conn.unchecked_transaction()?;
 
-    let estimate = get(&tx, id)?
-        .ok_or_else(|| AppError::Validation("Estimate not found.".to_string()))?;
+    let estimate =
+        get(&tx, id)?.ok_or_else(|| AppError::Validation("Estimate not found.".to_string()))?;
 
     if estimate.converted_invoice_id.is_some() {
         return Err(AppError::Validation(
@@ -390,7 +386,8 @@ pub fn convert(conn: &Connection, id: &str) -> Result<Invoice, AppError> {
         ));
     }
 
-    let issue_date: String = tx.query_row("SELECT date('now', 'localtime')", [], |row| row.get(0))?;
+    let issue_date: String =
+        tx.query_row("SELECT date('now', 'localtime')", [], |row| row.get(0))?;
 
     let input = InvoiceInput {
         client_id: estimate.client_id.clone(),
@@ -476,7 +473,11 @@ mod tests {
         let t = temp_db();
         let estimate = create(&t.conn, &input(vec![item("Work", 25_000)], None)).unwrap();
 
-        assert!(estimate.number.starts_with("EST-"), "number was {}", estimate.number);
+        assert!(
+            estimate.number.starts_with("EST-"),
+            "number was {}",
+            estimate.number
+        );
         assert_eq!(estimate.status, "draft");
         assert_eq!(estimate.total_minor, 25_000);
         assert_eq!(estimate.items.len(), 1);
@@ -514,11 +515,19 @@ mod tests {
     fn expiry_is_derived_but_accepted_estimates_stay_accepted() {
         let t = temp_db();
 
-        let expired = create(&t.conn, &input(vec![item("Work", 1_000)], Some("2020-01-01"))).unwrap();
+        let expired = create(
+            &t.conn,
+            &input(vec![item("Work", 1_000)], Some("2020-01-01")),
+        )
+        .unwrap();
         assert!(expired.days_until_expiry.unwrap() < 0);
         assert_eq!(expired.display_status, "expired");
 
-        let open = create(&t.conn, &input(vec![item("Work", 1_000)], Some("2099-01-01"))).unwrap();
+        let open = create(
+            &t.conn,
+            &input(vec![item("Work", 1_000)], Some("2099-01-01")),
+        )
+        .unwrap();
         assert_eq!(open.display_status, "draft");
 
         let accepted = set_status(&t.conn, &expired.id, "accepted").unwrap();
@@ -582,7 +591,10 @@ mod tests {
         let reloaded = get(&t.conn, &estimate.id).unwrap().unwrap();
         assert_eq!(reloaded.status, "converted");
         assert_eq!(reloaded.display_status, "converted");
-        assert_eq!(reloaded.converted_invoice_id.as_deref(), Some(invoice.id.as_str()));
+        assert_eq!(
+            reloaded.converted_invoice_id.as_deref(),
+            Some(invoice.id.as_str())
+        );
         assert!(reloaded.converted_at.is_some());
 
         // And it cannot happen twice.

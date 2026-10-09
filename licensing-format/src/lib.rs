@@ -182,7 +182,10 @@ mod tests {
         // Field order is part of the contract: a regression here breaks every
         // licence ever issued.
         let text = String::from_utf8(license.signing_bytes()).unwrap();
-        assert!(text.starts_with("{\"version\":"), "unexpected field order: {text}");
+        assert!(
+            text.starts_with("{\"version\":"),
+            "unexpected field order: {text}"
+        );
     }
 
     #[test]

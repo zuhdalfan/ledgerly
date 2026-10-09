@@ -130,11 +130,7 @@ pub fn update(
     get(conn, id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)
 }
 
-pub fn set_archived(
-    conn: &Connection,
-    id: &str,
-    archived: bool,
-) -> rusqlite::Result<CatalogItem> {
+pub fn set_archived(conn: &Connection, id: &str, archived: bool) -> rusqlite::Result<CatalogItem> {
     let changed = conn.execute(
         "UPDATE catalog_item
          SET archived_at = CASE WHEN ?2 = 1 THEN datetime('now') ELSE NULL END,

@@ -78,7 +78,10 @@ pub(crate) fn preview_totals(
     items: &[LineItemInput],
 ) -> rusqlite::Result<InvoiceTotals> {
     let rates = tax_rates::rate_map(conn)?;
-    let lines: Vec<LineInput> = items.iter().map(|item| to_line_input(item, &rates)).collect();
+    let lines: Vec<LineInput> = items
+        .iter()
+        .map(|item| to_line_input(item, &rates))
+        .collect();
     Ok(totals::compute(
         &lines,
         discount_from(discount_type, discount_value),

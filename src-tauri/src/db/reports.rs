@@ -87,7 +87,8 @@ pub struct MethodRow {
     pub amount_minor: i64,
 }
 
-const PAID_EXPR: &str = "(SELECT IFNULL(SUM(p.amount_minor), 0) FROM payment p WHERE p.invoice_id = i.id)";
+const PAID_EXPR: &str =
+    "(SELECT IFNULL(SUM(p.amount_minor), 0) FROM payment p WHERE p.invoice_id = i.id)";
 
 /// Invoiced and received amounts per period. Invoiced is grouped by issue date,
 /// received by payment date.
@@ -191,7 +192,8 @@ pub fn revenue_by_client(
 
 /// Issued invoices that are still unpaid, bucketed by how long they are past due.
 pub fn aged_receivables(conn: &Connection) -> rusqlite::Result<Vec<AgedRow>> {
-    const DAYS: &str = "CAST(julianday(date('now', 'localtime')) - julianday(i.due_date) AS INTEGER)";
+    const DAYS: &str =
+        "CAST(julianday(date('now', 'localtime')) - julianday(i.due_date) AS INTEGER)";
 
     let sql = format!(
         "SELECT
@@ -315,10 +317,10 @@ pub fn payments_by_method(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db::invoices::{InvoiceInput, LineItemInput};
     use crate::db::payments::{self, PaymentInput};
     use crate::db::tax_rates::{self, TaxRateInput};
     use crate::db::tests_support::temp_db;
-    use crate::db::invoices::{InvoiceInput, LineItemInput};
 
     fn line(description: &str, price: i64, tax_rate_id: Option<String>) -> LineItemInput {
         LineItemInput {
@@ -374,7 +376,8 @@ mod tests {
         )
         .unwrap();
 
-        let rows = revenue_by_period(&t.conn, "2026-01-01", "2026-12-31", Granularity::Month).unwrap();
+        let rows =
+            revenue_by_period(&t.conn, "2026-01-01", "2026-12-31", Granularity::Month).unwrap();
         assert_eq!(rows.len(), 2);
 
         assert_eq!(rows[0].period, "2026-01");
@@ -384,7 +387,10 @@ mod tests {
 
         assert_eq!(rows[1].period, "2026-02");
         assert_eq!(rows[1].invoiced_minor, 25_000);
-        assert_eq!(rows[1].paid_minor, 4_000, "payment lands in the month it was received");
+        assert_eq!(
+            rows[1].paid_minor, 4_000,
+            "payment lands in the month it was received"
+        );
     }
 
     #[test]
@@ -393,11 +399,17 @@ mod tests {
         let id = invoice(&t.conn, "2026-01-15", vec![line("A", 10_000, None)]);
         invoices::set_void(&t.conn, &id, true).unwrap();
 
-        assert!(revenue_by_period(&t.conn, "2026-01-01", "2026-12-31", Granularity::Month)
+        assert!(
+            revenue_by_period(&t.conn, "2026-01-01", "2026-12-31", Granularity::Month)
+                .unwrap()
+                .is_empty()
+        );
+        assert!(revenue_by_client(&t.conn, "2026-01-01", "2026-12-31")
             .unwrap()
             .is_empty());
-        assert!(revenue_by_client(&t.conn, "2026-01-01", "2026-12-31").unwrap().is_empty());
-        assert!(tax_collected(&t.conn, "2026-01-01", "2026-12-31").unwrap().is_empty());
+        assert!(tax_collected(&t.conn, "2026-01-01", "2026-12-31")
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
@@ -436,7 +448,9 @@ mod tests {
             .sum();
 
         assert_eq!(total_tax, invoice_tax, "tax report must equal the invoices");
-        assert!(rows.iter().any(|row| row.rate_bp == 2_000 && row.tax_minor > 0));
+        assert!(rows
+            .iter()
+            .any(|row| row.rate_bp == 2_000 && row.tax_minor > 0));
         assert!(rows.iter().any(|row| row.name == "No tax"));
     }
 

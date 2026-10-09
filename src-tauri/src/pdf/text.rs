@@ -113,6 +113,9 @@ mod tests {
     fn keeps_long_words_whole() {
         let measure = TextMeasure::new(FONT).unwrap();
         let lines = measure.wrap("supercalifragilisticexpialidocious", 9.0, 10.0);
-        assert_eq!(lines, vec!["supercalifragilisticexpialidocious".to_string()]);
+        assert_eq!(
+            lines,
+            vec!["supercalifragilisticexpialidocious".to_string()]
+        );
     }
 }

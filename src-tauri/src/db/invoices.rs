@@ -2,8 +2,8 @@ use rusqlite::{params, Connection, OptionalExtension, Row};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-pub use super::line_items::LineItemInput;
 use super::line_items;
+pub use super::line_items::LineItemInput;
 use super::{numbering, trim_opt};
 use crate::domain::totals::{InvoiceTotals, LineInput};
 
@@ -483,7 +483,11 @@ mod tests {
         )
         .unwrap();
 
-        assert!(invoice.number.starts_with("INV-"), "number was {}", invoice.number);
+        assert!(
+            invoice.number.starts_with("INV-"),
+            "number was {}",
+            invoice.number
+        );
         assert_eq!(invoice.status, "draft");
         assert_eq!(invoice.items.len(), 2);
         assert_eq!(invoice.subtotal_minor, 25_000);
@@ -629,7 +633,10 @@ mod tests {
         let partial = get(&t.conn, &invoice.id).unwrap().unwrap();
         assert_eq!(partial.paid_minor, 4_000);
         assert_eq!(partial.balance_minor, 6_000);
-        assert_eq!(partial.display_status, "overdue", "overdue outranks partial");
+        assert_eq!(
+            partial.display_status, "overdue",
+            "overdue outranks partial"
+        );
 
         payments::create(&t.conn, &invoice.id, &payment(6_000)).unwrap();
         let paid = get(&t.conn, &invoice.id).unwrap().unwrap();

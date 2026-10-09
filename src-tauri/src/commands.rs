@@ -86,7 +86,10 @@ mod tests {
         assert!(require_unlocked(&locked).is_ok());
 
         locked.set_unlocked(false);
-        assert!(require_unlocked(&locked).is_err(), "locking again must re-arm");
+        assert!(
+            require_unlocked(&locked).is_err(),
+            "locking again must re-arm"
+        );
     }
 
     #[test]
@@ -435,11 +438,7 @@ pub fn open_in_viewer(app: tauri::AppHandle, path: String) -> AppResult<()> {
 }
 
 #[tauri::command]
-pub fn invoices_set_sent(
-    state: State<'_, AppState>,
-    id: String,
-    sent: bool,
-) -> AppResult<Invoice> {
+pub fn invoices_set_sent(state: State<'_, AppState>, id: String, sent: bool) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
     Ok(invoices::set_sent(&conn, &id, sent)?)
@@ -474,10 +473,7 @@ pub fn estimates_totals(
 }
 
 #[tauri::command]
-pub fn estimates_create(
-    state: State<'_, AppState>,
-    input: EstimateInput,
-) -> AppResult<Estimate> {
+pub fn estimates_create(state: State<'_, AppState>, input: EstimateInput) -> AppResult<Estimate> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
     Ok(estimates::create(&conn, &input)?)
@@ -509,7 +505,7 @@ pub fn estimates_set_status(
 ) -> AppResult<Estimate> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    Ok(estimates::set_status(&conn, &id, &status)?)
+    estimates::set_status(&conn, &id, &status)
 }
 
 /// Create an invoice from an estimate and link them.
@@ -517,7 +513,7 @@ pub fn estimates_set_status(
 pub fn estimates_convert(state: State<'_, AppState>, id: String) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    Ok(estimates::convert(&conn, &id)?)
+    estimates::convert(&conn, &id)
 }
 
 #[tauri::command]
@@ -535,7 +531,7 @@ pub fn payments_create(
 ) -> AppResult<Payment> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    Ok(payments::create(&conn, &invoice_id, &input)?)
+    payments::create(&conn, &invoice_id, &input)
 }
 
 #[tauri::command]
@@ -546,14 +542,14 @@ pub fn payments_update(
 ) -> AppResult<Payment> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    Ok(payments::update(&conn, &id, &input)?)
+    payments::update(&conn, &id, &input)
 }
 
 #[tauri::command]
 pub fn payments_delete(state: State<'_, AppState>, id: String) -> AppResult<()> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    Ok(payments::delete(&conn, &id)?)
+    payments::delete(&conn, &id)
 }
 
 #[tauri::command]
@@ -595,11 +591,7 @@ pub fn reports_aged_receivables(state: State<'_, AppState>) -> AppResult<Vec<Age
 }
 
 #[tauri::command]
-pub fn reports_tax(
-    state: State<'_, AppState>,
-    from: String,
-    to: String,
-) -> AppResult<Vec<TaxRow>> {
+pub fn reports_tax(state: State<'_, AppState>, from: String, to: String) -> AppResult<Vec<TaxRow>> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
     ensure(&state, &conn, "reports")?;
@@ -620,11 +612,7 @@ pub fn reports_payments_by_method(
 
 /// Write a report the frontend already holds to a CSV file.
 #[tauri::command]
-pub fn export_csv(
-    path: String,
-    headers: Vec<String>,
-    rows: Vec<Vec<String>>,
-) -> AppResult<String> {
+pub fn export_csv(path: String, headers: Vec<String>, rows: Vec<Vec<String>>) -> AppResult<String> {
     export::write_csv(&path, &headers, &rows)?;
     Ok(path)
 }
@@ -685,7 +673,10 @@ pub fn backup_restore(state: State<'_, AppState>, path: String) -> AppResult<Str
     *guard = crate::db::open(&database)?;
 
     if let Ok(manifest) = &result {
-        eprintln!("restored backup with schema version {}", manifest.schema_version);
+        eprintln!(
+            "restored backup with schema version {}",
+            manifest.schema_version
+        );
     }
     result?;
 

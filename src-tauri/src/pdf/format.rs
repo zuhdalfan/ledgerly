@@ -44,7 +44,7 @@ fn group_digits(value: i64) -> String {
     let digits = value.to_string();
     let mut out = String::with_capacity(digits.len() + digits.len() / 3);
     for (index, character) in digits.chars().enumerate() {
-        if index > 0 && (digits.len() - index) % 3 == 0 {
+        if index > 0 && (digits.len() - index).is_multiple_of(3) {
             out.push(',');
         }
         out.push(character);
@@ -65,7 +65,11 @@ pub fn format_money(minor: i64, currency: &str) -> String {
     let body = if decimals == 0 {
         whole
     } else {
-        format!("{whole}.{:0width$}", absolute % scale, width = decimals as usize)
+        format!(
+            "{whole}.{:0width$}",
+            absolute % scale,
+            width = decimals as usize
+        )
     };
 
     match symbol_for(&code) {
@@ -89,11 +93,7 @@ pub fn format_date(value: &str) -> String {
         .map(|month| MONTHS[month - 1]);
 
     match month {
-        Some(month) => format!(
-            "{} {month} {}",
-            parts[2].trim_start_matches('0'),
-            parts[0]
-        ),
+        Some(month) => format!("{} {month} {}", parts[2].trim_start_matches('0'), parts[0]),
         None => value.to_string(),
     }
 }

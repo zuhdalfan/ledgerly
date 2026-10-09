@@ -48,10 +48,7 @@ fn map_row(row: &Row) -> rusqlite::Result<Numbering> {
 
 /// Read a sequence, creating a default row on first use.
 pub fn get(conn: &Connection, kind: &str) -> rusqlite::Result<Numbering> {
-    conn.execute(
-        "INSERT OR IGNORE INTO numbering (kind) VALUES (?1)",
-        [kind],
-    )?;
+    conn.execute("INSERT OR IGNORE INTO numbering (kind) VALUES (?1)", [kind])?;
     conn.query_row(
         &format!("SELECT {COLUMNS} FROM numbering WHERE kind = ?1"),
         [kind],
@@ -59,7 +56,11 @@ pub fn get(conn: &Connection, kind: &str) -> rusqlite::Result<Numbering> {
     )
 }
 
-pub fn update(conn: &Connection, kind: &str, input: &NumberingInput) -> rusqlite::Result<Numbering> {
+pub fn update(
+    conn: &Connection,
+    kind: &str,
+    input: &NumberingInput,
+) -> rusqlite::Result<Numbering> {
     get(conn, kind)?;
     conn.execute(
         "UPDATE numbering SET prefix = ?2, next_value = ?3, padding = ?4, reset_yearly = ?5
@@ -132,9 +133,18 @@ mod tests {
         let t = temp_db();
         update(&t.conn, "invoice", &config("INV-", true)).unwrap();
 
-        assert_eq!(next_number(&t.conn, "invoice", 2026).unwrap(), "INV-2026-0001");
-        assert_eq!(next_number(&t.conn, "invoice", 2026).unwrap(), "INV-2026-0002");
-        assert_eq!(next_number(&t.conn, "invoice", 2027).unwrap(), "INV-2027-0001");
+        assert_eq!(
+            next_number(&t.conn, "invoice", 2026).unwrap(),
+            "INV-2026-0001"
+        );
+        assert_eq!(
+            next_number(&t.conn, "invoice", 2026).unwrap(),
+            "INV-2026-0002"
+        );
+        assert_eq!(
+            next_number(&t.conn, "invoice", 2027).unwrap(),
+            "INV-2027-0001"
+        );
     }
 
     #[test]

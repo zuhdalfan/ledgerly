@@ -140,12 +140,16 @@ pub fn create_backup(conn: &Connection, destination: &Path) -> AppResult<Manifes
         let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
         let mut writer = ZipWriter::new(File::create(destination)?);
 
-        writer.start_file(MANIFEST_NAME, options).map_err(archive_error)?;
+        writer
+            .start_file(MANIFEST_NAME, options)
+            .map_err(archive_error)?;
         let json =
             serde_json::to_vec_pretty(&manifest).map_err(|e| AppError::Archive(e.to_string()))?;
         writer.write_all(&json)?;
 
-        writer.start_file(DATABASE_NAME, options).map_err(archive_error)?;
+        writer
+            .start_file(DATABASE_NAME, options)
+            .map_err(archive_error)?;
         io::copy(&mut File::open(&staged)?, &mut writer)?;
 
         writer.finish().map_err(archive_error)?;
@@ -433,7 +437,10 @@ mod tests {
         drop(conn); // restore requires the connection to be closed
 
         let manifest = restore_database(&archive, &db_path).unwrap();
-        assert_eq!(manifest.schema_version, crate::db::migrations::MIGRATIONS.len() as i64);
+        assert_eq!(
+            manifest.schema_version,
+            crate::db::migrations::MIGRATIONS.len() as i64
+        );
 
         let reopened = db::open(&db_path).unwrap();
         let names: Vec<String> = clients::list(&reopened, None, false)
@@ -442,7 +449,11 @@ mod tests {
             .map(|client| client.display_name)
             .collect();
 
-        assert_eq!(names, vec!["Before backup"], "restore must undo later changes");
+        assert_eq!(
+            names,
+            vec!["Before backup"],
+            "restore must undo later changes"
+        );
     }
 
     #[test]
@@ -481,7 +492,10 @@ mod tests {
         writer.finish().unwrap();
 
         let error = read_manifest(&archive).unwrap_err().to_string();
-        assert!(error.contains("not a Ledgerly backup"), "unexpected error: {error}");
+        assert!(
+            error.contains("not a Ledgerly backup"),
+            "unexpected error: {error}"
+        );
     }
 
     #[test]
@@ -494,12 +508,17 @@ mod tests {
         }
 
         assert_eq!(list_backups(&dir.0).unwrap().len(), 3);
-        assert_eq!(list_backups(&dir.0).unwrap()[0].name, "ledgerly-20260103-090000.ledgerly");
+        assert_eq!(
+            list_backups(&dir.0).unwrap()[0].name,
+            "ledgerly-20260103-090000.ledgerly"
+        );
 
         assert_eq!(prune(&dir.0, 2).unwrap(), 1);
         let remaining = list_backups(&dir.0).unwrap();
         assert_eq!(remaining.len(), 2);
-        assert!(remaining.iter().all(|info| info.name != "ledgerly-20260101-090000.ledgerly"));
+        assert!(remaining
+            .iter()
+            .all(|info| info.name != "ledgerly-20260101-090000.ledgerly"));
     }
 
     #[test]

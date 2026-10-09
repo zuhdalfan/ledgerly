@@ -9,10 +9,9 @@ pub enum Locale {
 
 impl Locale {
     /// Unknown locales fall back to English rather than failing.
-    pub fn parse(value: &str) -> Locale {
-        match value.trim().to_ascii_lowercase().as_str() {
-            _ => Locale::En,
-        }
+    pub fn parse(_tag: &str) -> Locale {
+        // Only English ships today; add arms here as translations arrive.
+        Locale::En
     }
 
     pub fn labels(self) -> &'static Labels {

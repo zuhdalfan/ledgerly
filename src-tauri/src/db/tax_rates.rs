@@ -116,10 +116,16 @@ mod tests {
         create(&t.conn, &input("GST", 900)).unwrap();
 
         assert_eq!(list(&t.conn, false).unwrap().len(), 2);
-        assert_eq!(rate_map(&t.conn).unwrap().get(&vat.id).copied(), Some(2_000));
+        assert_eq!(
+            rate_map(&t.conn).unwrap().get(&vat.id).copied(),
+            Some(2_000)
+        );
 
         update(&t.conn, &vat.id, &input("VAT (reduced)", 1_200)).unwrap();
-        assert_eq!(rate_map(&t.conn).unwrap().get(&vat.id).copied(), Some(1_200));
+        assert_eq!(
+            rate_map(&t.conn).unwrap().get(&vat.id).copied(),
+            Some(1_200)
+        );
 
         set_archived(&t.conn, &vat.id, true).unwrap();
         assert_eq!(list(&t.conn, false).unwrap().len(), 1);

@@ -142,7 +142,8 @@ pub fn compute(lines: &[LineInput], invoice_discount: Option<Discount>) -> Invoi
         }
 
         if let Some(index) = last {
-            allocation[index] = (invoice_discount_total - allocated).clamp(0, staged[index].net_minor);
+            allocation[index] =
+                (invoice_discount_total - allocated).clamp(0, staged[index].net_minor);
         }
     }
 
@@ -157,7 +158,8 @@ pub fn compute(lines: &[LineInput], invoice_discount: Option<Discount>) -> Invoi
             let rate = Decimal::from(line.tax_rate_bp);
             if line.tax_inclusive {
                 round_minor(
-                    Decimal::from(taxable_minor) * rate / Decimal::from(BP_PER_UNIT + line.tax_rate_bp),
+                    Decimal::from(taxable_minor) * rate
+                        / Decimal::from(BP_PER_UNIT + line.tax_rate_bp),
                 )
             } else {
                 round_minor(Decimal::from(taxable_minor) * rate / Decimal::from(BP_PER_UNIT))
@@ -285,7 +287,11 @@ mod tests {
     fn invoice_discount_is_allocated_exactly() {
         // Three lines of 10.00; a 5.00 invoice discount cannot split evenly,
         // so the shares must still sum to exactly 5.00.
-        let lines = [line("1", 1_000, 0), line("1", 1_000, 0), line("1", 1_000, 0)];
+        let lines = [
+            line("1", 1_000, 0),
+            line("1", 1_000, 0),
+            line("1", 1_000, 0),
+        ];
         let totals = compute(&lines, fixed(500));
 
         let taxable: i64 = totals.lines.iter().map(|l| l.taxable_minor).sum();

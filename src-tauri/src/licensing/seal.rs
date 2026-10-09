@@ -19,8 +19,8 @@ fn invalid(message: impl Into<String>) -> AppError {
 
 /// Encrypt with a caller-supplied key; returns hex of `nonce || ciphertext`.
 pub fn seal(key: &[u8; 32], plaintext: &str) -> AppResult<String> {
-    let cipher =
-        Aes256Gcm::new_from_slice(key).map_err(|error| invalid(format!("bad sealing key: {error}")))?;
+    let cipher = Aes256Gcm::new_from_slice(key)
+        .map_err(|error| invalid(format!("bad sealing key: {error}")))?;
 
     let mut nonce = [0u8; NONCE_LEN];
     getrandom::fill(&mut nonce).map_err(|error| invalid(format!("no randomness: {error}")))?;
@@ -35,14 +35,15 @@ pub fn seal(key: &[u8; 32], plaintext: &str) -> AppResult<String> {
 }
 
 pub fn open(key: &[u8; 32], sealed: &str) -> AppResult<String> {
-    let bytes = ledgerly_license::unhex(sealed).ok_or_else(|| invalid("sealed value is not hex"))?;
+    let bytes =
+        ledgerly_license::unhex(sealed).ok_or_else(|| invalid("sealed value is not hex"))?;
     if bytes.len() <= NONCE_LEN {
         return Err(invalid("sealed value is too short"));
     }
 
     let (nonce, body) = bytes.split_at(NONCE_LEN);
-    let cipher =
-        Aes256Gcm::new_from_slice(key).map_err(|error| invalid(format!("bad sealing key: {error}")))?;
+    let cipher = Aes256Gcm::new_from_slice(key)
+        .map_err(|error| invalid(format!("bad sealing key: {error}")))?;
 
     let nonce = Nonce::try_from(nonce).map_err(|_| invalid("sealed value is too short"))?;
     let plaintext = cipher
