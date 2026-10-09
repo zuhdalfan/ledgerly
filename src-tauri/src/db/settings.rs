@@ -40,30 +40,7 @@ pub fn set(conn: &Connection, key: &str, value: &str) -> rusqlite::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use std::path::PathBuf;
-
-    struct TempDb {
-        dir: PathBuf,
-        conn: Connection,
-    }
-
-    impl Drop for TempDb {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.dir);
-        }
-    }
-
-    fn temp_db() -> TempDb {
-        let nanos = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let dir = std::env::temp_dir().join(format!("ledgerly-test-{nanos}"));
-        std::fs::create_dir_all(&dir).unwrap();
-        let conn = db::open(&dir.join("ledgerly.db")).unwrap();
-        TempDb { dir, conn }
-    }
+    use crate::db::{migrations, tests_support::temp_db};
 
     #[test]
     fn migrations_are_applied() {
@@ -72,7 +49,7 @@ mod tests {
             .conn
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(version as usize, db::migrations::MIGRATIONS.len());
+        assert_eq!(version as usize, migrations::MIGRATIONS.len());
     }
 
     #[test]

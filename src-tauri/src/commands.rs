@@ -1,3 +1,6 @@
+use crate::db::business::{self, Business, BusinessInput};
+use crate::db::catalog::{self, CatalogItem, CatalogItemInput};
+use crate::db::clients::{self, Client, ClientInput};
 use crate::db::settings::{self, Setting};
 use crate::error::AppResult;
 use crate::AppState;
@@ -40,4 +43,111 @@ pub fn settings_set(state: State<'_, AppState>, key: String, value: String) -> A
     let conn = state.db.lock().unwrap();
     settings::set(&conn, &key, &value)?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn business_get(state: State<'_, AppState>) -> AppResult<Business> {
+    let conn = state.db.lock().unwrap();
+    Ok(business::get(&conn)?)
+}
+
+#[tauri::command]
+pub fn business_update(state: State<'_, AppState>, input: BusinessInput) -> AppResult<Business> {
+    let conn = state.db.lock().unwrap();
+    Ok(business::update(&conn, &input)?)
+}
+
+#[tauri::command]
+pub fn clients_list(
+    state: State<'_, AppState>,
+    query: Option<String>,
+    include_archived: Option<bool>,
+) -> AppResult<Vec<Client>> {
+    let conn = state.db.lock().unwrap();
+    Ok(clients::list(
+        &conn,
+        query.as_deref(),
+        include_archived.unwrap_or(false),
+    )?)
+}
+
+#[tauri::command]
+pub fn clients_get(state: State<'_, AppState>, id: String) -> AppResult<Option<Client>> {
+    let conn = state.db.lock().unwrap();
+    Ok(clients::get(&conn, &id)?)
+}
+
+#[tauri::command]
+pub fn clients_create(state: State<'_, AppState>, input: ClientInput) -> AppResult<Client> {
+    let conn = state.db.lock().unwrap();
+    Ok(clients::create(&conn, &input)?)
+}
+
+#[tauri::command]
+pub fn clients_update(
+    state: State<'_, AppState>,
+    id: String,
+    input: ClientInput,
+) -> AppResult<Client> {
+    let conn = state.db.lock().unwrap();
+    Ok(clients::update(&conn, &id, &input)?)
+}
+
+#[tauri::command]
+pub fn clients_set_archived(
+    state: State<'_, AppState>,
+    id: String,
+    archived: bool,
+) -> AppResult<Client> {
+    let conn = state.db.lock().unwrap();
+    Ok(clients::set_archived(&conn, &id, archived)?)
+}
+
+#[tauri::command]
+pub fn catalog_list(
+    state: State<'_, AppState>,
+    query: Option<String>,
+    include_archived: Option<bool>,
+) -> AppResult<Vec<CatalogItem>> {
+    let conn = state.db.lock().unwrap();
+    Ok(catalog::list(
+        &conn,
+        query.as_deref(),
+        include_archived.unwrap_or(false),
+    )?)
+}
+
+#[tauri::command]
+pub fn catalog_get(state: State<'_, AppState>, id: String) -> AppResult<Option<CatalogItem>> {
+    let conn = state.db.lock().unwrap();
+    Ok(catalog::get(&conn, &id)?)
+}
+
+#[tauri::command]
+pub fn catalog_create(
+    state: State<'_, AppState>,
+    input: CatalogItemInput,
+) -> AppResult<CatalogItem> {
+    let conn = state.db.lock().unwrap();
+    Ok(catalog::create(&conn, &input)?)
+}
+
+#[tauri::command]
+pub fn catalog_update(
+    state: State<'_, AppState>,
+    id: String,
+    input: CatalogItemInput,
+) -> AppResult<CatalogItem> {
+    let conn = state.db.lock().unwrap();
+    Ok(catalog::update(&conn, &id, &input)?)
+}
+
+#[tauri::command]
+pub fn catalog_set_archived(
+    state: State<'_, AppState>,
+    id: String,
+    archived: bool,
+) -> AppResult<CatalogItem> {
+    let conn = state.db.lock().unwrap();
+    Ok(catalog::set_archived(&conn, &id, archived)?)
 }
