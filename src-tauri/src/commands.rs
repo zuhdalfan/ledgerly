@@ -1,7 +1,11 @@
 use crate::db::business::{self, Business, BusinessInput};
 use crate::db::catalog::{self, CatalogItem, CatalogItemInput};
 use crate::db::clients::{self, Client, ClientInput};
+use crate::db::invoices::{self, Invoice, InvoiceInput};
+use crate::db::numbering::{self, Numbering, NumberingInput};
 use crate::db::settings::{self, Setting};
+use crate::db::tax_rates::{self, TaxRate, TaxRateInput};
+use crate::domain::totals::InvoiceTotals;
 use crate::error::AppResult;
 use crate::AppState;
 use serde::Serialize;
@@ -150,4 +154,112 @@ pub fn catalog_set_archived(
 ) -> AppResult<CatalogItem> {
     let conn = state.db.lock().unwrap();
     Ok(catalog::set_archived(&conn, &id, archived)?)
+}
+
+#[tauri::command]
+pub fn tax_rates_list(
+    state: State<'_, AppState>,
+    include_archived: Option<bool>,
+) -> AppResult<Vec<TaxRate>> {
+    let conn = state.db.lock().unwrap();
+    Ok(tax_rates::list(&conn, include_archived.unwrap_or(false))?)
+}
+
+#[tauri::command]
+pub fn tax_rates_create(state: State<'_, AppState>, input: TaxRateInput) -> AppResult<TaxRate> {
+    let conn = state.db.lock().unwrap();
+    Ok(tax_rates::create(&conn, &input)?)
+}
+
+#[tauri::command]
+pub fn tax_rates_update(
+    state: State<'_, AppState>,
+    id: String,
+    input: TaxRateInput,
+) -> AppResult<TaxRate> {
+    let conn = state.db.lock().unwrap();
+    Ok(tax_rates::update(&conn, &id, &input)?)
+}
+
+#[tauri::command]
+pub fn tax_rates_set_archived(
+    state: State<'_, AppState>,
+    id: String,
+    archived: bool,
+) -> AppResult<TaxRate> {
+    let conn = state.db.lock().unwrap();
+    Ok(tax_rates::set_archived(&conn, &id, archived)?)
+}
+
+#[tauri::command]
+pub fn numbering_get(state: State<'_, AppState>, kind: String) -> AppResult<Numbering> {
+    let conn = state.db.lock().unwrap();
+    Ok(numbering::get(&conn, &kind)?)
+}
+
+#[tauri::command]
+pub fn numbering_update(
+    state: State<'_, AppState>,
+    kind: String,
+    input: NumberingInput,
+) -> AppResult<Numbering> {
+    let conn = state.db.lock().unwrap();
+    Ok(numbering::update(&conn, &kind, &input)?)
+}
+
+#[tauri::command]
+pub fn invoices_list(
+    state: State<'_, AppState>,
+    query: Option<String>,
+    status: Option<String>,
+) -> AppResult<Vec<Invoice>> {
+    let conn = state.db.lock().unwrap();
+    Ok(invoices::list(&conn, query.as_deref(), status.as_deref())?)
+}
+
+#[tauri::command]
+pub fn invoices_get(state: State<'_, AppState>, id: String) -> AppResult<Option<Invoice>> {
+    let conn = state.db.lock().unwrap();
+    Ok(invoices::get(&conn, &id)?)
+}
+
+#[tauri::command]
+pub fn invoices_totals(
+    state: State<'_, AppState>,
+    input: InvoiceInput,
+) -> AppResult<InvoiceTotals> {
+    let conn = state.db.lock().unwrap();
+    Ok(invoices::preview_totals(&conn, &input)?)
+}
+
+#[tauri::command]
+pub fn invoices_create(state: State<'_, AppState>, input: InvoiceInput) -> AppResult<Invoice> {
+    let conn = state.db.lock().unwrap();
+    Ok(invoices::create(&conn, &input)?)
+}
+
+#[tauri::command]
+pub fn invoices_update(
+    state: State<'_, AppState>,
+    id: String,
+    input: InvoiceInput,
+) -> AppResult<Invoice> {
+    let conn = state.db.lock().unwrap();
+    Ok(invoices::update(&conn, &id, &input)?)
+}
+
+#[tauri::command]
+pub fn invoices_duplicate(state: State<'_, AppState>, id: String) -> AppResult<Invoice> {
+    let conn = state.db.lock().unwrap();
+    Ok(invoices::duplicate(&conn, &id)?)
+}
+
+#[tauri::command]
+pub fn invoices_set_void(
+    state: State<'_, AppState>,
+    id: String,
+    voided: bool,
+) -> AppResult<Invoice> {
+    let conn = state.db.lock().unwrap();
+    Ok(invoices::set_void(&conn, &id, voided)?)
 }

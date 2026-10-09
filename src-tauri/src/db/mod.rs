@@ -1,8 +1,11 @@
 pub mod business;
 pub mod catalog;
 pub mod clients;
+pub mod invoices;
 pub mod migrations;
+pub mod numbering;
 pub mod settings;
+pub mod tax_rates;
 
 use rusqlite::Connection;
 use std::path::Path;

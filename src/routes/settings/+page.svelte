@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { api } from "$lib/api";
   import { emptyToNull, nullToEmpty } from "$lib/format";
-  import type { AppInfo, BusinessInput } from "$lib/types";
+  import type { AppInfo, BusinessInput, TaxRate } from "$lib/types";
 
   type Form = Record<keyof BusinessInput, string>;
 
@@ -31,9 +31,38 @@
   let saved = $state(false);
   let saving = $state(false);
 
+  // Tax rates
+  let taxRates = $state<TaxRate[]>([]);
+  let taxName = $state("");
+  let taxPercent = $state("");
+  let taxError = $state("");
+
+  // Numbering
+  let prefix = $state("INV-");
+  let nextValue = $state(1);
+  let padding = $state(4);
+  let resetYearly = $state(false);
+  let numberError = $state("");
+  let numberSaved = $state(false);
+
+  const numberPreview = $derived(
+    `${prefix}${resetYearly ? `${new Date().getFullYear()}-` : ""}${String(nextValue).padStart(
+      Math.min(Math.max(padding, 1), 12),
+      "0"
+    )}`
+  );
+
+  async function loadTaxRates() {
+    taxRates = await api.taxRates.list(true);
+  }
+
   onMount(async () => {
     try {
-      const [business, appInfo] = await Promise.all([api.business.get(), api.appInfo()]);
+      const [business, appInfo, numbering] = await Promise.all([
+        api.business.get(),
+        api.appInfo(),
+        api.numbering.get("invoice"),
+      ]);
       info = appInfo;
       form = {
         displayName: business.displayName,
@@ -53,6 +82,13 @@
         defaultNotes: nullToEmpty(business.defaultNotes),
         defaultPaymentInstructions: nullToEmpty(business.defaultPaymentInstructions),
       };
+
+      prefix = numbering.prefix;
+      nextValue = numbering.nextValue;
+      padding = numbering.padding;
+      resetYearly = numbering.resetYearly;
+
+      await loadTaxRates();
     } catch (e) {
       error = String(e);
     }
@@ -86,6 +122,52 @@
       error = String(e);
     } finally {
       saving = false;
+    }
+  }
+
+  async function addTaxRate() {
+    if (!taxName.trim()) return;
+    taxError = "";
+    try {
+      const percent = Number.parseFloat(taxPercent);
+      await api.taxRates.create({
+        name: taxName.trim(),
+        rateBp: Number.isFinite(percent) ? Math.round(percent * 100) : 0,
+      });
+      taxName = "";
+      taxPercent = "";
+      await loadTaxRates();
+    } catch (e) {
+      taxError = String(e);
+    }
+  }
+
+  async function toggleTaxRate(rate: TaxRate) {
+    try {
+      await api.taxRates.setArchived(rate.id, rate.archivedAt === null);
+      await loadTaxRates();
+    } catch (e) {
+      taxError = String(e);
+    }
+  }
+
+  async function saveNumbering() {
+    numberError = "";
+    numberSaved = false;
+    try {
+      const updated = await api.numbering.update("invoice", {
+        prefix,
+        nextValue: Number(nextValue) || 1,
+        padding: Number(padding) || 4,
+        resetYearly,
+      });
+      prefix = updated.prefix;
+      nextValue = updated.nextValue;
+      padding = updated.padding;
+      resetYearly = updated.resetYearly;
+      numberSaved = true;
+    } catch (e) {
+      numberError = String(e);
     }
   }
 </script>
@@ -178,6 +260,83 @@
     </button>
     {#if saved}<span class="ok">Saved</span>{/if}
     {#if error}<span class="error">{error}</span>{/if}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Tax rates</h2>
+
+  <div class="toolbar">
+    <input bind:value={taxName} placeholder="Name (e.g. VAT)" />
+    <input
+      bind:value={taxPercent}
+      inputmode="decimal"
+      placeholder="Rate %"
+      style="width: 110px;"
+    />
+    <button class="btn" onclick={addTaxRate} disabled={!taxName.trim()}>Add</button>
+  </div>
+
+  {#if taxRates.length === 0}
+    <p class="muted">No tax rates yet.</p>
+  {:else}
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Rate</th><th></th></tr>
+      </thead>
+      <tbody>
+        {#each taxRates as rate (rate.id)}
+          <tr>
+            <td>
+              {rate.name}
+              {#if rate.archivedAt}<span class="muted"> (archived)</span>{/if}
+            </td>
+            <td>{(rate.rateBp / 100).toFixed(2)}%</td>
+            <td>
+              <button class="btn secondary" onclick={() => toggleTaxRate(rate)}>
+                {rate.archivedAt ? "Restore" : "Archive"}
+              </button>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  {/if}
+
+  {#if taxError}<p class="error">{taxError}</p>{/if}
+</div>
+
+<div class="card">
+  <h2>Invoice numbering</h2>
+
+  <div class="grid-2">
+    <div class="field">
+      <label for="prefix">Prefix</label>
+      <input id="prefix" bind:value={prefix} placeholder="INV-" />
+    </div>
+    <div class="field">
+      <label for="nextValue">Next number</label>
+      <input id="nextValue" type="number" min="1" bind:value={nextValue} />
+    </div>
+    <div class="field">
+      <label for="padding">Zero padding</label>
+      <input id="padding" type="number" min="1" max="12" bind:value={padding} />
+    </div>
+    <div class="field">
+      <label for="reset">Reset yearly</label>
+      <label class="row muted">
+        <input id="reset" type="checkbox" bind:checked={resetYearly} style="width: auto;" />
+        Include the year and restart at 1 each January
+      </label>
+    </div>
+  </div>
+
+  <p class="muted">Next invoice will be <code style="display: inline;">{numberPreview}</code></p>
+
+  <div class="row wrap">
+    <button class="btn" onclick={saveNumbering}>Save numbering</button>
+    {#if numberSaved}<span class="ok">Saved</span>{/if}
+    {#if numberError}<span class="error">{numberError}</span>{/if}
   </div>
 </div>
 

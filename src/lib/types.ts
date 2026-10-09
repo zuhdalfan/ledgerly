@@ -68,3 +68,114 @@ export type CatalogItemInput = Omit<
   CatalogItem,
   "id" | "archivedAt" | "createdAt" | "updatedAt"
 >;
+
+export type TaxRate = {
+  id: string;
+  name: string;
+  rateBp: number;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TaxRateInput = {
+  name: string;
+  rateBp: number;
+};
+
+export type Numbering = {
+  kind: string;
+  prefix: string;
+  nextValue: number;
+  padding: number;
+  resetYearly: boolean;
+  lastYear: number | null;
+};
+
+export type NumberingInput = {
+  prefix: string;
+  nextValue: number;
+  padding: number;
+  resetYearly: boolean;
+};
+
+export type InvoiceItem = {
+  id: string;
+  sortOrder: number;
+  description: string;
+  quantity: string;
+  unit: string | null;
+  unitPriceMinor: number;
+  discountType: string | null;
+  discountValue: string | null;
+  taxRateId: string | null;
+  taxRateName: string | null;
+  taxInclusive: boolean;
+};
+
+export type Invoice = {
+  id: string;
+  number: string;
+  clientId: string | null;
+  clientName: string | null;
+  status: string;
+  issueDate: string;
+  dueDate: string | null;
+  currency: string;
+  poReference: string | null;
+  discountType: string | null;
+  discountValue: string | null;
+  subtotalMinor: number;
+  discountMinor: number;
+  taxMinor: number;
+  totalMinor: number;
+  notes: string | null;
+  terms: string | null;
+  paymentInstructions: string | null;
+  voidedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: InvoiceItem[];
+};
+
+export type InvoiceItemInput = {
+  description: string;
+  quantity: string;
+  unit: string | null;
+  unitPriceMinor: number;
+  discountType: string | null;
+  discountValue: string | null;
+  taxRateId: string | null;
+  taxInclusive: boolean;
+};
+
+export type InvoiceInput = {
+  clientId: string | null;
+  issueDate: string;
+  dueDate: string | null;
+  currency: string;
+  poReference: string | null;
+  discountType: string | null;
+  discountValue: string | null;
+  notes: string | null;
+  terms: string | null;
+  paymentInstructions: string | null;
+  items: InvoiceItemInput[];
+};
+
+export type LineTotals = {
+  grossMinor: number;
+  discountMinor: number;
+  netMinor: number;
+  taxableMinor: number;
+  taxMinor: number;
+  totalMinor: number;
+};
+
+export type InvoiceTotals = {
+  lines: LineTotals[];
+  subtotalMinor: number;
+  discountMinor: number;
+  taxMinor: number;
+  totalMinor: number;
+};

@@ -7,6 +7,13 @@ import type {
   CatalogItemInput,
   Client,
   ClientInput,
+  Invoice,
+  InvoiceInput,
+  InvoiceTotals,
+  Numbering,
+  NumberingInput,
+  TaxRate,
+  TaxRateInput,
 } from "./types";
 
 export const api = {
@@ -35,5 +42,32 @@ export const api = {
       invoke<CatalogItem>("catalog_update", { id, input }),
     setArchived: (id: string, archived: boolean) =>
       invoke<CatalogItem>("catalog_set_archived", { id, archived }),
+  },
+
+  taxRates: {
+    list: (includeArchived = false) =>
+      invoke<TaxRate[]>("tax_rates_list", { includeArchived }),
+    create: (input: TaxRateInput) => invoke<TaxRate>("tax_rates_create", { input }),
+    update: (id: string, input: TaxRateInput) =>
+      invoke<TaxRate>("tax_rates_update", { id, input }),
+    setArchived: (id: string, archived: boolean) =>
+      invoke<TaxRate>("tax_rates_set_archived", { id, archived }),
+  },
+
+  numbering: {
+    get: (kind: string) => invoke<Numbering>("numbering_get", { kind }),
+    update: (kind: string, input: NumberingInput) =>
+      invoke<Numbering>("numbering_update", { kind, input }),
+  },
+
+  invoices: {
+    list: (query?: string, status?: string) =>
+      invoke<Invoice[]>("invoices_list", { query: query ?? null, status: status ?? null }),
+    get: (id: string) => invoke<Invoice | null>("invoices_get", { id }),
+    totals: (input: InvoiceInput) => invoke<InvoiceTotals>("invoices_totals", { input }),
+    create: (input: InvoiceInput) => invoke<Invoice>("invoices_create", { input }),
+    update: (id: string, input: InvoiceInput) => invoke<Invoice>("invoices_update", { id, input }),
+    duplicate: (id: string) => invoke<Invoice>("invoices_duplicate", { id }),
+    setVoid: (id: string, voided: boolean) => invoke<Invoice>("invoices_set_void", { id, voided }),
   },
 };

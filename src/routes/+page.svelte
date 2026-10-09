@@ -1,26 +1,35 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "$lib/api";
-  import type { AppInfo, Business } from "$lib/types";
+  import { fromMinor } from "$lib/format";
+  import type { AppInfo, Business, Invoice } from "$lib/types";
 
   let info = $state<AppInfo | null>(null);
   let business = $state<Business | null>(null);
   let clientCount = $state(0);
   let catalogCount = $state(0);
+  let invoices = $state<Invoice[]>([]);
   let error = $state("");
+
+  const outstanding = $derived(
+    invoices.filter((i) => i.status !== "void").reduce((sum, i) => sum + i.totalMinor, 0)
+  );
+  const currency = $derived(business?.defaultCurrency ?? "USD");
 
   onMount(async () => {
     try {
-      const [appInfo, biz, clients, catalog] = await Promise.all([
+      const [appInfo, biz, clients, catalog, allInvoices] = await Promise.all([
         api.appInfo(),
         api.business.get(),
         api.clients.list(),
         api.catalog.list(),
+        api.invoices.list(),
       ]);
       info = appInfo;
       business = biz;
       clientCount = clients.length;
       catalogCount = catalog.length;
+      invoices = allInvoices;
     } catch (e) {
       error = String(e);
     }
@@ -29,6 +38,7 @@
 
 <div class="page-head">
   <h1>Dashboard</h1>
+  <a class="btn" href="/invoices/new">New invoice</a>
 </div>
 
 {#if error}
@@ -36,6 +46,18 @@
 {/if}
 
 <div class="grid-2">
+  <div class="card">
+    <h2>Invoices</h2>
+    <p class="stat">{invoices.filter((i) => i.status !== "void").length}</p>
+    <a class="link" href="/invoices">View invoices</a>
+  </div>
+
+  <div class="card">
+    <h2>Billed</h2>
+    <p class="stat">{fromMinor(outstanding, currency)}</p>
+    <p class="muted">Across all non-void invoices</p>
+  </div>
+
   <div class="card">
     <h2>Clients</h2>
     <p class="stat">{clientCount}</p>
@@ -47,13 +69,13 @@
     <p class="stat">{catalogCount}</p>
     <a class="link" href="/catalog">Manage catalog</a>
   </div>
+</div>
 
-  <div class="card">
-    <h2>Business</h2>
-    <p>{business?.displayName || "Not set"}</p>
-    <p class="muted">Default currency: {business?.defaultCurrency ?? "—"}</p>
-    <a class="link" href="/settings">Business settings</a>
-  </div>
+<div class="card">
+  <h2>Business</h2>
+  <p>{business?.displayName || "Not set"}</p>
+  <p class="muted">Default currency: {business?.defaultCurrency ?? "—"}</p>
+  <a class="link" href="/settings">Business settings</a>
 </div>
 
 <div class="card">

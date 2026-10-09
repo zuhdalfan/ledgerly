@@ -1,5 +1,6 @@
 mod commands;
 mod db;
+mod domain;
 mod error;
 
 use std::path::{Path, PathBuf};
@@ -54,6 +55,19 @@ pub fn run() {
             commands::catalog_create,
             commands::catalog_update,
             commands::catalog_set_archived,
+            commands::tax_rates_list,
+            commands::tax_rates_create,
+            commands::tax_rates_update,
+            commands::tax_rates_set_archived,
+            commands::numbering_get,
+            commands::numbering_update,
+            commands::invoices_list,
+            commands::invoices_get,
+            commands::invoices_totals,
+            commands::invoices_create,
+            commands::invoices_update,
+            commands::invoices_duplicate,
+            commands::invoices_set_void,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

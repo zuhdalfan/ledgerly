@@ -6,6 +6,7 @@
 
   const nav = [
     { href: "/", label: "Dashboard" },
+    { href: "/invoices", label: "Invoices" },
     { href: "/clients", label: "Clients" },
     { href: "/catalog", label: "Catalog" },
     { href: "/settings", label: "Settings" },
