@@ -38,6 +38,7 @@ keyring = { version = "4.2.0", features = ["apple-native-keyring-store"] }
 getrandom = "0.4.3"
 machine-uid = "0.6.0"
 ledgerly-license = { path = "../licensing-format" }
+argon2 = "0.5"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

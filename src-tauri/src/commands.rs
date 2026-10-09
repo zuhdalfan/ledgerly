@@ -16,6 +16,7 @@ use crate::error::{AppError, AppResult};
 use crate::export;
 use crate::licensing::{self, LicenseStatus};
 use crate::pdf;
+use crate::security::{self, LockSettings, LockSettingsInput};
 use crate::AppState;
 use rusqlite::Connection;
 use serde::Serialize;
@@ -32,6 +33,18 @@ fn ensure(state: &AppState, conn: &Connection, feature: &str) -> AppResult<()> {
         "{} is a Ledgerly Pro feature.",
         feature_label(feature)
     )))
+}
+
+/// Everything that touches user data passes through this while the lock is on,
+/// so the check cannot be bypassed by talking to the IPC layer directly.
+fn require_unlocked(state: &AppState) -> AppResult<()> {
+    if state.is_unlocked() {
+        Ok(())
+    } else {
+        Err(AppError::Validation(
+            "Ledgerly is locked. Unlock to continue.".to_string(),
+        ))
+    }
 }
 
 fn feature_label(feature: &str) -> &'static str {
@@ -55,6 +68,40 @@ pub struct AppInfo {
     pub database_path: String,
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn state(locked: bool) -> AppState {
+        let conn = Connection::open_in_memory().unwrap();
+        AppState::new(conn, PathBuf::from("."), locked)
+    }
+
+    #[test]
+    fn a_locked_app_refuses_data_commands() {
+        let locked = state(true);
+        assert!(require_unlocked(&locked).is_err());
+
+        locked.set_unlocked(true);
+        assert!(require_unlocked(&locked).is_ok());
+
+        locked.set_unlocked(false);
+        assert!(require_unlocked(&locked).is_err(), "locking again must re-arm");
+    }
+
+    #[test]
+    fn an_unlocked_app_allows_them() {
+        assert!(require_unlocked(&state(false)).is_ok());
+    }
+
+    #[test]
+    fn pro_features_are_labelled_for_the_user() {
+        assert_eq!(feature_label("reports"), "Reports");
+        assert_eq!(feature_label("scheduled_backups"), "Scheduled backups");
+        assert_eq!(feature_label("something_new"), "That feature");
+    }
+}
+
 #[tauri::command]
 pub fn app_info(state: State<'_, AppState>) -> AppInfo {
     AppInfo {
@@ -68,18 +115,21 @@ pub fn app_info(state: State<'_, AppState>) -> AppInfo {
 #[tauri::command]
 pub fn settings_all(state: State<'_, AppState>) -> AppResult<Vec<Setting>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(settings::all(&conn)?)
 }
 
 #[tauri::command]
 pub fn settings_get(state: State<'_, AppState>, key: String) -> AppResult<Option<String>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(settings::get(&conn, &key)?)
 }
 
 #[tauri::command]
 pub fn settings_set(state: State<'_, AppState>, key: String, value: String) -> AppResult<()> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     settings::set(&conn, &key, &value)?;
     Ok(())
 }
@@ -87,12 +137,14 @@ pub fn settings_set(state: State<'_, AppState>, key: String, value: String) -> A
 #[tauri::command]
 pub fn business_get(state: State<'_, AppState>) -> AppResult<Business> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(business::get(&conn)?)
 }
 
 #[tauri::command]
 pub fn business_update(state: State<'_, AppState>, input: BusinessInput) -> AppResult<Business> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(business::update(&conn, &input)?)
 }
 
@@ -103,6 +155,7 @@ pub fn clients_list(
     include_archived: Option<bool>,
 ) -> AppResult<Vec<Client>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(clients::list(
         &conn,
         query.as_deref(),
@@ -113,12 +166,14 @@ pub fn clients_list(
 #[tauri::command]
 pub fn clients_get(state: State<'_, AppState>, id: String) -> AppResult<Option<Client>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(clients::get(&conn, &id)?)
 }
 
 #[tauri::command]
 pub fn clients_create(state: State<'_, AppState>, input: ClientInput) -> AppResult<Client> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(clients::create(&conn, &input)?)
 }
 
@@ -129,6 +184,7 @@ pub fn clients_update(
     input: ClientInput,
 ) -> AppResult<Client> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(clients::update(&conn, &id, &input)?)
 }
 
@@ -139,6 +195,7 @@ pub fn clients_set_archived(
     archived: bool,
 ) -> AppResult<Client> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(clients::set_archived(&conn, &id, archived)?)
 }
 
@@ -149,6 +206,7 @@ pub fn catalog_list(
     include_archived: Option<bool>,
 ) -> AppResult<Vec<CatalogItem>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(catalog::list(
         &conn,
         query.as_deref(),
@@ -159,6 +217,7 @@ pub fn catalog_list(
 #[tauri::command]
 pub fn catalog_get(state: State<'_, AppState>, id: String) -> AppResult<Option<CatalogItem>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(catalog::get(&conn, &id)?)
 }
 
@@ -168,6 +227,7 @@ pub fn catalog_create(
     input: CatalogItemInput,
 ) -> AppResult<CatalogItem> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(catalog::create(&conn, &input)?)
 }
 
@@ -178,6 +238,7 @@ pub fn catalog_update(
     input: CatalogItemInput,
 ) -> AppResult<CatalogItem> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(catalog::update(&conn, &id, &input)?)
 }
 
@@ -188,6 +249,7 @@ pub fn catalog_set_archived(
     archived: bool,
 ) -> AppResult<CatalogItem> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(catalog::set_archived(&conn, &id, archived)?)
 }
 
@@ -197,12 +259,14 @@ pub fn tax_rates_list(
     include_archived: Option<bool>,
 ) -> AppResult<Vec<TaxRate>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(tax_rates::list(&conn, include_archived.unwrap_or(false))?)
 }
 
 #[tauri::command]
 pub fn tax_rates_create(state: State<'_, AppState>, input: TaxRateInput) -> AppResult<TaxRate> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(tax_rates::create(&conn, &input)?)
 }
 
@@ -213,6 +277,7 @@ pub fn tax_rates_update(
     input: TaxRateInput,
 ) -> AppResult<TaxRate> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(tax_rates::update(&conn, &id, &input)?)
 }
 
@@ -223,12 +288,14 @@ pub fn tax_rates_set_archived(
     archived: bool,
 ) -> AppResult<TaxRate> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(tax_rates::set_archived(&conn, &id, archived)?)
 }
 
 #[tauri::command]
 pub fn numbering_get(state: State<'_, AppState>, kind: String) -> AppResult<Numbering> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(numbering::get(&conn, &kind)?)
 }
 
@@ -239,6 +306,7 @@ pub fn numbering_update(
     input: NumberingInput,
 ) -> AppResult<Numbering> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(numbering::update(&conn, &kind, &input)?)
 }
 
@@ -249,12 +317,14 @@ pub fn invoices_list(
     status: Option<String>,
 ) -> AppResult<Vec<Invoice>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(invoices::list(&conn, query.as_deref(), status.as_deref())?)
 }
 
 #[tauri::command]
 pub fn invoices_get(state: State<'_, AppState>, id: String) -> AppResult<Option<Invoice>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(invoices::get(&conn, &id)?)
 }
 
@@ -264,12 +334,14 @@ pub fn invoices_totals(
     input: InvoiceInput,
 ) -> AppResult<InvoiceTotals> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(invoices::preview_totals(&conn, &input)?)
 }
 
 #[tauri::command]
 pub fn invoices_create(state: State<'_, AppState>, input: InvoiceInput) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(invoices::create(&conn, &input)?)
 }
 
@@ -280,12 +352,14 @@ pub fn invoices_update(
     input: InvoiceInput,
 ) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(invoices::update(&conn, &id, &input)?)
 }
 
 #[tauri::command]
 pub fn invoices_duplicate(state: State<'_, AppState>, id: String) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(invoices::duplicate(&conn, &id)?)
 }
 
@@ -296,6 +370,7 @@ pub fn invoices_set_void(
     voided: bool,
 ) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(invoices::set_void(&conn, &id, voided)?)
 }
 
@@ -310,9 +385,12 @@ pub fn pdf_export_invoice(
 ) -> AppResult<String> {
     let template_name = template.as_deref().unwrap_or("classic").to_string();
 
-    let (invoice, business, client, entitlements) = {
+    let (invoice, business, client, entitlements, locale) = {
         let conn = state.db.lock().unwrap();
+        require_unlocked(&state)?;
         let entitlements = state.entitlements(&conn)?;
+        // Document language is independent of the app's UI language.
+        let locale = settings::get(&conn, "pdf.locale")?.unwrap_or_else(|| "en".to_string());
         if template_name != "classic" && !entitlements.allows("pdf_templates") {
             return Err(AppError::Validation(
                 "PDF templates other than Classic are a Ledgerly Pro feature.".to_string(),
@@ -326,16 +404,19 @@ pub fn pdf_export_invoice(
             Some(client_id) => clients::get(&conn, client_id)?,
             None => None,
         };
-        (invoice, business, client, entitlements)
+        (invoice, business, client, entitlements, locale)
     };
 
     let bytes = pdf::render_invoice(
         &invoice,
         &business,
         client.as_ref(),
-        pdf::Template::parse(&template_name),
-        // Free invoices carry a small footer; Pro removes it.
-        !entitlements.allows("branding"),
+        pdf::PdfOptions {
+            template: pdf::Template::parse(&template_name),
+            // Free invoices carry a small footer; Pro removes it.
+            promo_footer: !entitlements.allows("branding"),
+            locale: pdf::DocumentLocale::parse(&locale),
+        },
     )
     .map_err(AppError::Pdf)?;
 
@@ -360,6 +441,7 @@ pub fn invoices_set_sent(
     sent: bool,
 ) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(invoices::set_sent(&conn, &id, sent)?)
 }
 
@@ -370,12 +452,14 @@ pub fn estimates_list(
     status: Option<String>,
 ) -> AppResult<Vec<Estimate>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(estimates::list(&conn, query.as_deref(), status.as_deref())?)
 }
 
 #[tauri::command]
 pub fn estimates_get(state: State<'_, AppState>, id: String) -> AppResult<Option<Estimate>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(estimates::get(&conn, &id)?)
 }
 
@@ -385,6 +469,7 @@ pub fn estimates_totals(
     input: EstimateInput,
 ) -> AppResult<InvoiceTotals> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(estimates::preview_totals(&conn, &input)?)
 }
 
@@ -394,6 +479,7 @@ pub fn estimates_create(
     input: EstimateInput,
 ) -> AppResult<Estimate> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(estimates::create(&conn, &input)?)
 }
 
@@ -404,12 +490,14 @@ pub fn estimates_update(
     input: EstimateInput,
 ) -> AppResult<Estimate> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(estimates::update(&conn, &id, &input)?)
 }
 
 #[tauri::command]
 pub fn estimates_duplicate(state: State<'_, AppState>, id: String) -> AppResult<Estimate> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(estimates::duplicate(&conn, &id)?)
 }
 
@@ -420,6 +508,7 @@ pub fn estimates_set_status(
     status: String,
 ) -> AppResult<Estimate> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(estimates::set_status(&conn, &id, &status)?)
 }
 
@@ -427,12 +516,14 @@ pub fn estimates_set_status(
 #[tauri::command]
 pub fn estimates_convert(state: State<'_, AppState>, id: String) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(estimates::convert(&conn, &id)?)
 }
 
 #[tauri::command]
 pub fn payments_list(state: State<'_, AppState>, invoice_id: String) -> AppResult<Vec<Payment>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(payments::list(&conn, &invoice_id)?)
 }
 
@@ -443,6 +534,7 @@ pub fn payments_create(
     input: PaymentInput,
 ) -> AppResult<Payment> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(payments::create(&conn, &invoice_id, &input)?)
 }
 
@@ -453,12 +545,14 @@ pub fn payments_update(
     input: PaymentInput,
 ) -> AppResult<Payment> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(payments::update(&conn, &id, &input)?)
 }
 
 #[tauri::command]
 pub fn payments_delete(state: State<'_, AppState>, id: String) -> AppResult<()> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(payments::delete(&conn, &id)?)
 }
 
@@ -470,6 +564,7 @@ pub fn reports_revenue(
     granularity: Option<String>,
 ) -> AppResult<Vec<PeriodRow>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     ensure(&state, &conn, "reports")?;
     Ok(reports::revenue_by_period(
         &conn,
@@ -486,6 +581,7 @@ pub fn reports_revenue_by_client(
     to: String,
 ) -> AppResult<Vec<ClientRevenueRow>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     ensure(&state, &conn, "reports")?;
     Ok(reports::revenue_by_client(&conn, &from, &to)?)
 }
@@ -493,6 +589,7 @@ pub fn reports_revenue_by_client(
 #[tauri::command]
 pub fn reports_aged_receivables(state: State<'_, AppState>) -> AppResult<Vec<AgedRow>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     ensure(&state, &conn, "reports")?;
     Ok(reports::aged_receivables(&conn)?)
 }
@@ -504,6 +601,7 @@ pub fn reports_tax(
     to: String,
 ) -> AppResult<Vec<TaxRow>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     ensure(&state, &conn, "reports")?;
     Ok(reports::tax_collected(&conn, &from, &to)?)
 }
@@ -515,6 +613,7 @@ pub fn reports_payments_by_method(
     to: String,
 ) -> AppResult<Vec<MethodRow>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     ensure(&state, &conn, "reports")?;
     Ok(reports::payments_by_method(&conn, &from, &to)?)
 }
@@ -534,6 +633,7 @@ pub fn export_csv(
 #[tauri::command]
 pub fn export_json(state: State<'_, AppState>, path: String) -> AppResult<String> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     export::export_json(&conn, &path)?;
     Ok(path)
 }
@@ -542,6 +642,7 @@ pub fn export_json(state: State<'_, AppState>, path: String) -> AppResult<String
 #[tauri::command]
 pub fn backup_now(state: State<'_, AppState>, path: Option<String>) -> AppResult<String> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
 
     let destination = match path.filter(|value| !value.trim().is_empty()) {
         Some(value) => PathBuf::from(value),
@@ -561,6 +662,7 @@ pub fn backup_now(state: State<'_, AppState>, path: Option<String>) -> AppResult
 #[tauri::command]
 pub fn backup_restore(state: State<'_, AppState>, path: String) -> AppResult<String> {
     let database = state.database_path();
+    require_unlocked(&state)?;
     let mut guard = state.db.lock().unwrap();
 
     let stamp: String = guard.query_row(
@@ -593,6 +695,7 @@ pub fn backup_restore(state: State<'_, AppState>, path: String) -> AppResult<Str
 #[tauri::command]
 pub fn backup_list(state: State<'_, AppState>) -> AppResult<Vec<BackupInfo>> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     let settings = backup::load_settings(&conn, &state.data_dir)?;
     backup::list_backups(Path::new(&settings.folder))
 }
@@ -600,6 +703,7 @@ pub fn backup_list(state: State<'_, AppState>) -> AppResult<Vec<BackupInfo>> {
 #[tauri::command]
 pub fn backup_settings_get(state: State<'_, AppState>) -> AppResult<BackupSettings> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     Ok(backup::load_settings(&conn, &state.data_dir)?)
 }
 
@@ -609,27 +713,114 @@ pub fn backup_settings_set(
     input: BackupSettingsInput,
 ) -> AppResult<BackupSettings> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     if input.enabled {
         ensure(&state, &conn, "scheduled_backups")?;
     }
     Ok(backup::save_settings(&conn, &state.data_dir, &input)?)
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SecurityStatus {
+    pub locked: bool,
+    pub settings: LockSettings,
+    pub min_passphrase_length: usize,
+}
+
+fn security_status_for(state: &AppState, conn: &Connection) -> AppResult<SecurityStatus> {
+    Ok(SecurityStatus {
+        locked: !state.is_unlocked(),
+        settings: security::settings(conn)?,
+        min_passphrase_length: security::MIN_PASSPHRASE_LEN,
+    })
+}
+
+/// Safe to call while locked: the lock screen needs it.
+#[tauri::command]
+pub fn security_status(state: State<'_, AppState>) -> AppResult<SecurityStatus> {
+    let conn = state.db.lock().unwrap();
+    security_status_for(&state, &conn)
+}
+
+#[tauri::command]
+pub fn security_unlock(
+    state: State<'_, AppState>,
+    passphrase: String,
+) -> AppResult<SecurityStatus> {
+    let conn = state.db.lock().unwrap();
+
+    if security::settings(&conn)?.enabled && !security::verify(&conn, &passphrase)? {
+        return Err(AppError::Validation(
+            "That passphrase is not correct.".to_string(),
+        ));
+    }
+
+    state.set_unlocked(true);
+    security_status_for(&state, &conn)
+}
+
+#[tauri::command]
+pub fn security_lock(state: State<'_, AppState>) -> AppResult<SecurityStatus> {
+    let conn = state.db.lock().unwrap();
+    state.set_unlocked(false);
+    security_status_for(&state, &conn)
+}
+
+#[tauri::command]
+pub fn security_enable(
+    state: State<'_, AppState>,
+    input: LockSettingsInput,
+) -> AppResult<SecurityStatus> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+
+    security::enable(&conn, &input.passphrase, input.auto_lock_minutes)?;
+    state.set_unlocked(true);
+    security_status_for(&state, &conn)
+}
+
+#[tauri::command]
+pub fn security_disable(
+    state: State<'_, AppState>,
+    passphrase: String,
+) -> AppResult<SecurityStatus> {
+    let conn = state.db.lock().unwrap();
+    // Verifying the current passphrase is itself the permission check.
+    security::disable(&conn, &passphrase)?;
+    security_status_for(&state, &conn)
+}
+
+#[tauri::command]
+pub fn security_set_auto_lock(
+    state: State<'_, AppState>,
+    minutes: i64,
+) -> AppResult<SecurityStatus> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+
+    security::set_auto_lock(&conn, minutes)?;
+    security_status_for(&state, &conn)
+}
+
 #[tauri::command]
 pub fn license_status(state: State<'_, AppState>) -> AppResult<LicenseStatus> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     licensing::status(&conn)
 }
 
 #[tauri::command]
 pub fn license_request_code(state: State<'_, AppState>) -> AppResult<String> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     licensing::request_code_text(&conn)
 }
 
 #[tauri::command]
 pub fn license_save_request_file(state: State<'_, AppState>, path: String) -> AppResult<String> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     let text = licensing::request_code_text(&conn)?;
     std::fs::write(&path, format!("{text}\n"))?;
     Ok(path)
@@ -638,6 +829,7 @@ pub fn license_save_request_file(state: State<'_, AppState>, path: String) -> Ap
 #[tauri::command]
 pub fn license_import_key(state: State<'_, AppState>, text: String) -> AppResult<LicenseStatus> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     let status = licensing::activate(&conn, &text)?;
     state.forget_entitlements();
     Ok(status)
@@ -647,6 +839,7 @@ pub fn license_import_key(state: State<'_, AppState>, text: String) -> AppResult
 pub fn license_import_file(state: State<'_, AppState>, path: String) -> AppResult<LicenseStatus> {
     let text = std::fs::read_to_string(&path)?;
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     let status = licensing::activate(&conn, &text)?;
     state.forget_entitlements();
     Ok(status)
@@ -655,6 +848,7 @@ pub fn license_import_file(state: State<'_, AppState>, path: String) -> AppResul
 #[tauri::command]
 pub fn license_deactivate(state: State<'_, AppState>) -> AppResult<LicenseStatus> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     let status = licensing::deactivate(&conn)?;
     state.forget_entitlements();
     Ok(status)
@@ -663,6 +857,7 @@ pub fn license_deactivate(state: State<'_, AppState>) -> AppResult<LicenseStatus
 #[tauri::command]
 pub fn license_start_trial(state: State<'_, AppState>) -> AppResult<LicenseStatus> {
     let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
     let status = licensing::start_trial(&conn, licensing::DEFAULT_TRIAL_DAYS)?;
     state.forget_entitlements();
     Ok(status)

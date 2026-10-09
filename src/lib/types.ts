@@ -246,6 +246,17 @@ export type InvoiceInput = {
   items: LineItemInput[];
 };
 
+export type LockSettings = {
+  enabled: boolean;
+  autoLockMinutes: number;
+};
+
+export type SecurityStatus = {
+  locked: boolean;
+  settings: LockSettings;
+  minPassphraseLength: number;
+};
+
 export type LicenseStatus = {
   licensed: boolean;
   /** `free`, `license` or `trial`. */

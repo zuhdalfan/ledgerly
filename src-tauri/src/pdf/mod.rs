@@ -4,6 +4,7 @@
 //! identical on every machine and printer, and nothing needs the network.
 
 mod format;
+mod labels;
 mod text;
 
 use printpdf::*;
@@ -15,7 +16,20 @@ use crate::db::line_items;
 use crate::domain::totals::{self, InvoiceTotals, LineTotals};
 
 use format::{format_date, format_money, format_percent_bp};
+use labels::{Labels, Locale};
 use text::TextMeasure;
+
+pub use labels::Locale as DocumentLocale;
+
+/// What to render, and how.
+#[derive(Debug, Clone, Copy)]
+pub struct PdfOptions {
+    pub template: Template,
+    /// Free invoices carry a small "Made with Ledgerly" footer.
+    pub promo_footer: bool,
+    /// Language of the labels on the document itself.
+    pub locale: Locale,
+}
 
 static FONT_REGULAR: &[u8] = include_bytes!("../../assets/fonts/Inter-Regular.ttf");
 static FONT_BOLD: &[u8] = include_bytes!("../../assets/fonts/Inter-Bold.ttf");
@@ -127,6 +141,7 @@ struct Painter {
     bold_measure: TextMeasure,
     theme: Theme,
     promo: bool,
+    labels: &'static Labels,
     page: PdfPageIndex,
     layer: PdfLayerIndex,
     pages: Vec<(PdfPageIndex, PdfLayerIndex)>,
@@ -209,12 +224,12 @@ impl Painter {
         }
 
         let mut ry = PAGE_H - MARGIN - 2.0;
-        self.text_right("INVOICE", theme.title_size, CONTENT_RIGHT, ry, true, theme.accent);
+        self.text_right(self.labels.invoice, theme.title_size, CONTENT_RIGHT, ry, true, theme.accent);
         ry -= 7.5;
         self.text_right(&invoice.number, 10.5, CONTENT_RIGHT, ry, true, theme.ink);
         ry -= 5.0;
         self.text_right(
-            &format!("Issued {}", format_date(&invoice.issue_date)),
+            &format!("{} {}", self.labels.issued, format_date(&invoice.issue_date)),
             8.5,
             CONTENT_RIGHT,
             ry,
@@ -225,7 +240,7 @@ impl Painter {
 
         if let Some(due) = non_empty(&invoice.due_date) {
             self.text_right(
-                &format!("Due {}", format_date(due)),
+                &format!("{} {}", self.labels.due, format_date(due)),
                 8.5,
                 CONTENT_RIGHT,
                 ry,
@@ -237,7 +252,7 @@ impl Painter {
 
         if let Some(reference) = non_empty(&invoice.po_reference) {
             self.text_right(
-                &format!("Ref {reference}"),
+                &format!("{} {reference}", self.labels.reference),
                 8.5,
                 CONTENT_RIGHT,
                 ry,
@@ -252,7 +267,7 @@ impl Painter {
 
     fn client_block(&self, client: Option<&Client>, mut y: f32) -> f32 {
         let theme = self.theme;
-        self.text("BILL TO", 7.5, MARGIN, y, true, theme.muted);
+        self.text(self.labels.bill_to, 7.5, MARGIN, y, true, theme.muted);
         y -= 5.0;
 
         match client {
@@ -265,7 +280,7 @@ impl Painter {
                 }
             }
             None => {
-                self.text("No client selected", 10.0, MARGIN, y, false, theme.muted);
+                self.text(self.labels.no_client, 10.0, MARGIN, y, false, theme.muted);
                 y -= 5.0;
             }
         }
@@ -278,12 +293,12 @@ impl Painter {
         self.rect(MARGIN, y - 1.8, CONTENT_RIGHT - MARGIN, 0.4, theme.rule);
 
         let size = 7.5;
-        self.text("DESCRIPTION", size, MARGIN, y, true, theme.muted);
-        self.text_right("QTY", size, COL_QTY, y, true, theme.muted);
-        self.text_right("PRICE", size, COL_PRICE, y, true, theme.muted);
-        self.text_right("DISC", size, COL_DISC, y, true, theme.muted);
-        self.text_right("TAX", size, COL_TAX, y, true, theme.muted);
-        self.text_right("TOTAL", size, COL_TOTAL, y, true, theme.muted);
+        self.text(self.labels.description, size, MARGIN, y, true, theme.muted);
+        self.text_right(self.labels.quantity, size, COL_QTY, y, true, theme.muted);
+        self.text_right(self.labels.price, size, COL_PRICE, y, true, theme.muted);
+        self.text_right(self.labels.discount, size, COL_DISC, y, true, theme.muted);
+        self.text_right(self.labels.tax, size, COL_TAX, y, true, theme.muted);
+        self.text_right(self.labels.total, size, COL_TOTAL, y, true, theme.muted);
 
         y - 6.0
     }
@@ -382,7 +397,7 @@ impl Painter {
             );
         }
 
-        self.text_right("Subtotal", 9.0, label_x, y, false, theme.muted);
+        self.text_right(self.labels.subtotal, 9.0, label_x, y, false, theme.muted);
         self.text_right(
             &format_money(totals.subtotal_minor, currency),
             9.0,
@@ -394,7 +409,7 @@ impl Painter {
         y -= 5.0;
 
         if totals.discount_minor != 0 {
-            self.text_right("Discount", 9.0, label_x, y, false, theme.muted);
+            self.text_right(self.labels.discount, 9.0, label_x, y, false, theme.muted);
             self.text_right(
                 &format!("-{}", format_money(totals.discount_minor, currency)),
                 9.0,
@@ -406,7 +421,7 @@ impl Painter {
             y -= 5.0;
         }
 
-        self.text_right("Tax", 9.0, label_x, y, false, theme.muted);
+        self.text_right(self.labels.tax, 9.0, label_x, y, false, theme.muted);
         self.text_right(
             &format_money(totals.tax_minor, currency),
             9.0,
@@ -418,7 +433,7 @@ impl Painter {
         y -= 6.0;
 
         self.rect(label_x, y + 3.4, COL_TOTAL - label_x, 0.4, theme.rule);
-        self.text_right("Total due", 11.0, label_x, y - 2.4, true, theme.ink);
+        self.text_right(self.labels.total_due, 11.0, label_x, y - 2.4, true, theme.ink);
         self.text_right(
             &format_money(totals.total_minor, currency),
             11.0,
@@ -434,10 +449,10 @@ impl Painter {
     fn notes_block(&mut self, invoice: &Invoice, mut y: f32) -> f32 {
         let theme = self.theme;
         let sections: [(&str, Option<&str>); 3] = [
-            ("NOTES", non_empty(&invoice.notes)),
-            ("TERMS", non_empty(&invoice.terms)),
+            (self.labels.notes, non_empty(&invoice.notes)),
+            (self.labels.terms, non_empty(&invoice.terms)),
             (
-                "PAYMENT INSTRUCTIONS",
+                self.labels.payment_instructions,
                 non_empty(&invoice.payment_instructions),
             ),
         ];
@@ -479,10 +494,10 @@ impl Painter {
         let layer = self.doc.get_page(page).get_layer(layer_index);
 
         let size = 64.0;
-        let width = self.width_mm("VOID", size, true);
+        let width = self.width_mm(self.labels.void, size, true);
         self.text_on(
             &layer,
-            "VOID",
+            self.labels.void,
             size,
             (PAGE_W - width) / 2.0,
             PAGE_H / 2.0 - 10.0,
@@ -496,7 +511,7 @@ impl Painter {
 
         for (index, (page, layer_index)) in self.pages.iter().enumerate() {
             let layer = self.doc.get_page(*page).get_layer(*layer_index);
-            let page_label = format!("Page {} of {total}", index + 1);
+            let page_label = format!("{} {} {} {total}", self.labels.page, index + 1, self.labels.of);
 
             self.text_on(
                 &layer,
@@ -519,7 +534,7 @@ impl Painter {
             );
 
             if self.promo {
-                let promo = "Made with Ledgerly";
+                let promo = self.labels.promo;
                 let width = self.width_mm(promo, 7.0, false);
                 self.text_on(
                     &layer,
@@ -645,9 +660,7 @@ pub fn render_invoice(
     invoice: &Invoice,
     business: &Business,
     client: Option<&Client>,
-    template: Template,
-    // Free invoices carry a small "Made with Ledgerly" footer.
-    promo_footer: bool,
+    options: PdfOptions,
 ) -> Result<Vec<u8>, String> {
     let measure =
         TextMeasure::new(FONT_REGULAR).ok_or_else(|| "could not read the regular font".to_string())?;
@@ -671,8 +684,9 @@ pub fn render_invoice(
         font_bold,
         measure,
         bold_measure,
-        theme: Theme::for_template(template),
-        promo: promo_footer,
+        theme: Theme::for_template(options.template),
+        promo: options.promo_footer,
+        labels: options.locale.labels(),
         page,
         layer,
         pages: vec![(page, layer)],
@@ -693,7 +707,7 @@ pub fn render_invoice(
     }
 
     if invoice.items.is_empty() {
-        painter.text("No line items", 9.0, MARGIN, y, false, painter.theme.muted);
+        painter.text(painter.labels.no_items, 9.0, MARGIN, y, false, painter.theme.muted);
         y -= 6.0;
     }
 
@@ -785,6 +799,14 @@ mod tests {
         }
     }
 
+    fn options(template: Template) -> PdfOptions {
+        PdfOptions {
+            template,
+            promo_footer: false,
+            locale: Locale::En,
+        }
+    }
+
     fn page_count(bytes: &[u8]) -> usize {
         lopdf::Document::load_mem(bytes)
             .expect("rendered bytes should parse as a PDF")
@@ -798,8 +820,7 @@ mod tests {
             &invoice(vec![item("Design work", "2", 10_000)], "draft"),
             &business(),
             None,
-            Template::Classic,
-            false,
+            options(Template::Classic),
         )
         .unwrap();
 
@@ -824,8 +845,7 @@ mod tests {
             &invoice(items, "draft"),
             &business(),
             None,
-            Template::Classic,
-            false,
+            options(Template::Classic),
         )
         .unwrap();
 
@@ -839,8 +859,7 @@ mod tests {
                 &invoice(vec![item("Consulting", "1.5", 12_500)], "void"),
                 &business(),
                 None,
-                template,
-                false,
+                options(template),
             )
             .unwrap();
 
@@ -927,8 +946,7 @@ mod tests {
             &loaded,
             &business,
             Some(&client),
-            Template::Classic,
-            false,
+            options(Template::Classic),
         )
         .unwrap();
         assert_eq!(page_count(&bytes), 1);
@@ -955,7 +973,7 @@ mod tests {
         invoice.payment_instructions = None;
         invoice.client_name = None;
 
-        let bytes = render_invoice(&invoice, &business(), None, Template::Minimal, true).unwrap();
+        let bytes = render_invoice(&invoice, &business(), None, options(Template::Minimal)).unwrap();
         assert_eq!(page_count(&bytes), 1);
     }
 }

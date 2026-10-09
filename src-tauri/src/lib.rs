@@ -6,6 +6,7 @@ mod error;
 mod export;
 mod licensing;
 mod pdf;
+mod security;
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -21,15 +22,26 @@ pub struct AppState {
     /// Keychain access is not free, and entitlements only change when the user
     /// activates or deactivates, so they are cached for the session.
     entitlements: Mutex<Option<licensing::Entitlements>>,
+    /// False while the app lock is engaged; every data command checks this.
+    unlocked: Mutex<bool>,
 }
 
 impl AppState {
-    pub fn new(db: Connection, data_dir: PathBuf) -> Self {
+    pub fn new(db: Connection, data_dir: PathBuf, locked: bool) -> Self {
         Self {
             db: Mutex::new(db),
             data_dir,
             entitlements: Mutex::new(None),
+            unlocked: Mutex::new(!locked),
         }
+    }
+
+    pub fn is_unlocked(&self) -> bool {
+        *self.unlocked.lock().unwrap()
+    }
+
+    pub fn set_unlocked(&self, value: bool) {
+        *self.unlocked.lock().unwrap() = value;
     }
 
     pub fn database_path(&self) -> PathBuf {
@@ -73,7 +85,9 @@ pub fn run() {
                 eprintln!("automatic backup skipped: {error}");
             }
 
-            app.manage(AppState::new(conn, data_dir));
+            // If a passphrase is set, start locked.
+            let locked = security::is_enabled(&conn).unwrap_or(false);
+            app.manage(AppState::new(conn, data_dir, locked));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -140,6 +154,12 @@ pub fn run() {
             commands::license_import_file,
             commands::license_deactivate,
             commands::license_start_trial,
+            commands::security_status,
+            commands::security_unlock,
+            commands::security_lock,
+            commands::security_enable,
+            commands::security_disable,
+            commands::security_set_auto_lock,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

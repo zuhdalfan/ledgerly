@@ -9,6 +9,7 @@
     BackupSettings,
     BusinessInput,
     LicenseStatus,
+    SecurityStatus,
     TaxRate,
   } from "$lib/types";
 
@@ -389,6 +390,96 @@
   onMount(() => {
     void loadLicense();
   });
+
+  // ---- Security ----
+
+  let security = $state<SecurityStatus | null>(null);
+  let lockPassphrase = $state("");
+  let lockConfirm = $state("");
+  let lockCurrent = $state("");
+  let lockError = $state("");
+  let lockMessage = $state("");
+  let documentLocale = $state("en");
+  let localeMessage = $state("");
+
+  async function loadSecurity() {
+    try {
+      security = await api.security.status();
+      documentLocale = (await api.settings.get("pdf.locale")) ?? "en";
+    } catch (e) {
+      lockError = String(e);
+    }
+  }
+
+  async function enableLock() {
+    lockError = "";
+    lockMessage = "";
+    if (lockPassphrase !== lockConfirm) {
+      lockError = "The two passphrases do not match.";
+      return;
+    }
+
+    try {
+      security = await api.security.enable(
+        lockPassphrase,
+        security?.settings.autoLockMinutes ?? 15
+      );
+      lockPassphrase = "";
+      lockConfirm = "";
+      lockMessage = "App lock enabled — it will be asked for on next start.";
+    } catch (e) {
+      lockError = String(e);
+    }
+  }
+
+  async function disableLock() {
+    lockError = "";
+    lockMessage = "";
+    try {
+      security = await api.security.disable(lockCurrent);
+      lockCurrent = "";
+      lockPassphrase = "";
+      lockConfirm = "";
+      lockMessage = "App lock turned off.";
+    } catch (e) {
+      lockError = String(e);
+    }
+  }
+
+  async function saveAutoLock(minutes: number) {
+    lockError = "";
+    try {
+      security = await api.security.setAutoLock(minutes);
+    } catch (e) {
+      lockError = String(e);
+    }
+  }
+
+  async function lockNow() {
+    lockError = "";
+    try {
+      await api.security.lock();
+      // The shell owns the lock state, so reload to show the lock screen.
+      window.location.reload();
+    } catch (e) {
+      lockError = String(e);
+    }
+  }
+
+  async function saveDocumentLocale() {
+    localeMessage = "";
+    lockError = "";
+    try {
+      await api.settings.set("pdf.locale", documentLocale);
+      localeMessage = "Document language saved";
+    } catch (e) {
+      lockError = String(e);
+    }
+  }
+
+  onMount(() => {
+    void loadSecurity();
+  });
 </script>
 
 <div class="page-head">
@@ -556,6 +647,84 @@
     <button class="btn" onclick={saveNumbering}>Save numbering</button>
     {#if numberSaved}<span class="ok">Saved</span>{/if}
     {#if numberError}<span class="error">{numberError}</span>{/if}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Security</h2>
+
+  {#if security?.settings.enabled}
+    <p>
+      The app lock is on. Ledgerly asks for your passphrase at start and after
+      {security.settings.autoLockMinutes} minute(s) of inactivity.
+    </p>
+
+    <div class="field">
+      <label for="autoLock">Lock after (minutes of inactivity)</label>
+      <input
+        id="autoLock"
+        type="number"
+        min="1"
+        max="240"
+        value={security.settings.autoLockMinutes}
+        onchange={(e) => saveAutoLock(Number(e.currentTarget.value))}
+      />
+    </div>
+
+    <div class="row wrap">
+      <button class="btn secondary" onclick={lockNow}>Lock now</button>
+    </div>
+
+    <h2 style="margin-top: 1.5rem;">Turn the lock off</h2>
+    <div class="field">
+      <label for="lockCurrent">Current passphrase</label>
+      <input id="lockCurrent" type="password" bind:value={lockCurrent} />
+    </div>
+    <div class="row wrap">
+      <button class="btn danger" onclick={disableLock} disabled={!lockCurrent}>Turn off</button>
+    </div>
+  {:else}
+    <p class="muted">
+      Optional: require a passphrase to open Ledgerly, and re-lock automatically when you step
+      away. The passphrase is never stored — only a slow Argon2id verifier, so it cannot be read
+      back.
+    </p>
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="lockPassphrase">Passphrase</label>
+        <input id="lockPassphrase" type="password" bind:value={lockPassphrase} />
+      </div>
+      <div class="field">
+        <label for="lockConfirm">Confirm passphrase</label>
+        <input id="lockConfirm" type="password" bind:value={lockConfirm} />
+      </div>
+    </div>
+    <p class="muted">
+      At least {security?.minPassphraseLength ?? 8} characters. There is no recovery — a forgotten
+      passphrase means the data cannot be opened, so keep a backup.
+    </p>
+    <div class="row wrap">
+      <button class="btn" onclick={enableLock} disabled={!lockPassphrase || !lockConfirm}>
+        Enable app lock
+      </button>
+    </div>
+  {/if}
+
+  {#if lockMessage}<p class="ok">{lockMessage}</p>{/if}
+  {#if lockError}<p class="error">{lockError}</p>{/if}
+
+  <h2 style="margin-top: 1.5rem;">Document language</h2>
+  <p class="muted">
+    The language used for the labels printed on invoices and estimates. The app itself is in
+    English.
+  </p>
+  <div class="row wrap">
+    <select bind:value={documentLocale} style="width: auto;">
+      <option value="en">English</option>
+    </select>
+    <button class="btn secondary" onclick={saveDocumentLocale}>Save</button>
+    {#if localeMessage}<span class="ok">{localeMessage}</span>{/if}
   </div>
 </div>
 

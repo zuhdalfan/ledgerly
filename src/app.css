@@ -282,6 +282,19 @@ code {
   font-size: 0.8rem;
 }
 
+.lock-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 1.5rem;
+}
+
+.lock-screen .card {
+  width: 100%;
+  max-width: 360px;
+}
+
 .badge {
   display: inline-block;
   padding: 0.1rem 0.5rem;

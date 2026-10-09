@@ -8,6 +8,7 @@ import type {
   Business,
   BusinessInput,
   LicenseStatus,
+  SecurityStatus,
   ClientRevenueRow,
   MethodRow,
   PeriodRow,
@@ -101,6 +102,24 @@ export const api = {
   exportCsv: (path: string, headers: string[], rows: string[][]) =>
     invoke<string>("export_csv", { path, headers, rows }),
   exportJson: (path: string) => invoke<string>("export_json", { path }),
+
+  settings: {
+    get: (key: string) => invoke<string | null>("settings_get", { key }),
+    set: (key: string, value: string) => invoke<void>("settings_set", { key, value }),
+  },
+
+  security: {
+    status: () => invoke<SecurityStatus>("security_status"),
+    unlock: (passphrase: string) => invoke<SecurityStatus>("security_unlock", { passphrase }),
+    lock: () => invoke<SecurityStatus>("security_lock"),
+    enable: (passphrase: string, autoLockMinutes: number) =>
+      invoke<SecurityStatus>("security_enable", {
+        input: { passphrase, autoLockMinutes },
+      }),
+    disable: (passphrase: string) => invoke<SecurityStatus>("security_disable", { passphrase }),
+    setAutoLock: (minutes: number) =>
+      invoke<SecurityStatus>("security_set_auto_lock", { minutes }),
+  },
 
   license: {
     status: () => invoke<LicenseStatus>("license_status"),
