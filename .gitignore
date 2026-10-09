@@ -5,6 +5,11 @@ dist-ssr/
 *.local
 .vite/
 
+# SvelteKit
+.svelte-kit/
+build/
+vite.config.*.timestamp-*
+
 # Rust / Tauri
 target/
 src-tauri/target/
