@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "$lib/api";
-  import { formatDate, fromMinor } from "$lib/format";
+  import { formatDate, fromMinor, statusLabel } from "$lib/format";
   import type { Invoice } from "$lib/types";
 
   let invoices = $state<Invoice[]>([]);
@@ -46,6 +46,9 @@
     <option value="">All statuses</option>
     <option value="draft">Draft</option>
     <option value="sent">Sent</option>
+    <option value="unpaid">Unpaid</option>
+    <option value="overdue">Overdue</option>
+    <option value="paid">Paid</option>
     <option value="void">Void</option>
   </select>
 </div>
@@ -65,7 +68,8 @@
           <th>Client</th>
           <th>Issued</th>
           <th>Due</th>
-          <th>Total</th>
+          <th class="numeric">Total</th>
+          <th class="numeric">Balance</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -76,8 +80,13 @@
             <td>{invoice.clientName ?? "—"}</td>
             <td>{formatDate(invoice.issueDate)}</td>
             <td>{formatDate(invoice.dueDate)}</td>
-            <td>{fromMinor(invoice.totalMinor, invoice.currency)}</td>
-            <td>{invoice.status}</td>
+            <td class="numeric">{fromMinor(invoice.totalMinor, invoice.currency)}</td>
+            <td class="numeric">{fromMinor(invoice.balanceMinor, invoice.currency)}</td>
+            <td>
+              <span class={`badge ${invoice.displayStatus}`}>
+                {statusLabel(invoice.displayStatus)}
+              </span>
+            </td>
           </tr>
         {/each}
       </tbody>

@@ -4,6 +4,7 @@ pub mod clients;
 pub mod invoices;
 pub mod migrations;
 pub mod numbering;
+pub mod payments;
 pub mod settings;
 pub mod tax_rates;
 

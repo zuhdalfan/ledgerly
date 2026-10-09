@@ -7,11 +7,45 @@ use std::str::FromStr;
 use super::{numbering, tax_rates, trim_opt};
 use crate::domain::totals::{self, Discount, DiscountKind, InvoiceTotals, LineInput};
 
-const COLUMNS: &str = "i.id, i.number, i.client_id, i.status, i.issue_date, i.due_date, \
-                       i.currency, i.po_reference, i.discount_type, i.discount_value, \
-                       i.subtotal_minor, i.discount_minor, i.tax_minor, i.total_minor, \
-                       i.notes, i.terms, i.payment_instructions, i.voided_at, \
-                       i.created_at, i.updated_at, c.display_name";
+const PAID_EXPR: &str =
+    "(SELECT IFNULL(SUM(p.amount_minor), 0) FROM payment p WHERE p.invoice_id = i.id)";
+const DAYS_PAST_DUE_EXPR: &str =
+    "CAST(julianday(date('now', 'localtime')) - julianday(i.due_date) AS INTEGER)";
+
+fn columns() -> String {
+    format!(
+        "i.id, i.number, i.client_id, i.status, i.issue_date, i.due_date, \
+         i.currency, i.po_reference, i.discount_type, i.discount_value, \
+         i.subtotal_minor, i.discount_minor, i.tax_minor, i.total_minor, \
+         i.notes, i.terms, i.payment_instructions, i.voided_at, i.sent_at, \
+         i.created_at, i.updated_at, c.display_name, \
+         {PAID_EXPR} AS paid_minor, {DAYS_PAST_DUE_EXPR} AS days_past_due"
+    )
+}
+
+/// The lifecycle the user sees. Void and paid win; then an issued invoice that
+/// is past its due date reads as overdue, then a part-paid one, then the
+/// stored state. Drafts are never overdue because they were never issued.
+fn display_status(
+    status: &str,
+    balance_minor: i64,
+    paid_minor: i64,
+    days_past_due: Option<i64>,
+) -> String {
+    if status == "void" {
+        return "void".to_string();
+    }
+    if balance_minor <= 0 {
+        return "paid".to_string();
+    }
+    if status == "sent" && days_past_due.unwrap_or(0) > 0 {
+        return "overdue".to_string();
+    }
+    if paid_minor > 0 {
+        return "partially_paid".to_string();
+    }
+    status.to_string()
+}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -52,8 +86,14 @@ pub struct Invoice {
     pub terms: Option<String>,
     pub payment_instructions: Option<String>,
     pub voided_at: Option<String>,
+    pub sent_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    pub paid_minor: i64,
+    pub balance_minor: i64,
+    pub days_past_due: Option<i64>,
+    /// Derived from the stored lifecycle plus payments and the due date.
+    pub display_status: String,
     pub items: Vec<InvoiceItem>,
 }
 
@@ -109,11 +149,17 @@ fn default_quantity() -> String {
 }
 
 fn map_invoice(row: &Row, items: Vec<InvoiceItem>) -> rusqlite::Result<Invoice> {
+    let status: String = row.get(3)?;
+    let total_minor: i64 = row.get(13)?;
+    let paid_minor: i64 = row.get(22)?;
+    let days_past_due: Option<i64> = row.get(23)?;
+    let balance_minor = total_minor - paid_minor;
+
     Ok(Invoice {
         id: row.get(0)?,
         number: row.get(1)?,
         client_id: row.get(2)?,
-        status: row.get(3)?,
+        status: status.clone(),
         issue_date: row.get(4)?,
         due_date: row.get(5)?,
         currency: row.get(6)?,
@@ -123,14 +169,19 @@ fn map_invoice(row: &Row, items: Vec<InvoiceItem>) -> rusqlite::Result<Invoice> 
         subtotal_minor: row.get(10)?,
         discount_minor: row.get(11)?,
         tax_minor: row.get(12)?,
-        total_minor: row.get(13)?,
+        total_minor,
         notes: row.get(14)?,
         terms: row.get(15)?,
         payment_instructions: row.get(16)?,
         voided_at: row.get(17)?,
-        created_at: row.get(18)?,
-        updated_at: row.get(19)?,
-        client_name: row.get(20)?,
+        sent_at: row.get(18)?,
+        created_at: row.get(19)?,
+        updated_at: row.get(20)?,
+        client_name: row.get(21)?,
+        paid_minor,
+        balance_minor,
+        days_past_due,
+        display_status: display_status(&status, balance_minor, paid_minor, days_past_due),
         items,
     })
 }
@@ -213,11 +264,20 @@ pub fn list(
     let status = status.map(str::trim).filter(|value| !value.is_empty());
 
     let sql = format!(
-        "SELECT {COLUMNS} FROM invoice i
+        "SELECT {columns} FROM invoice i
          LEFT JOIN client c ON c.id = i.client_id
-         WHERE (?1 IS NULL OR i.status = ?1)
+         WHERE (?1 IS NULL
+                OR (?1 = 'void'    AND i.status = 'void')
+                OR (?1 = 'draft'   AND i.status = 'draft')
+                OR (?1 = 'sent'    AND i.status = 'sent')
+                OR (?1 = 'unpaid'  AND i.status <> 'void' AND (i.total_minor - {PAID_EXPR}) > 0)
+                OR (?1 = 'paid'    AND i.status <> 'void' AND (i.total_minor - {PAID_EXPR}) <= 0)
+                OR (?1 = 'overdue' AND i.status = 'sent'
+                                   AND {DAYS_PAST_DUE_EXPR} > 0
+                                   AND (i.total_minor - {PAID_EXPR}) > 0))
            AND (?2 IS NULL OR i.number LIKE ?2 OR IFNULL(c.display_name, '') LIKE ?2)
-         ORDER BY i.issue_date DESC, i.number DESC"
+         ORDER BY i.issue_date DESC, i.number DESC",
+        columns = columns()
     );
 
     let mut stmt = conn.prepare(&sql)?;
@@ -229,9 +289,10 @@ pub fn get(conn: &Connection, id: &str) -> rusqlite::Result<Option<Invoice>> {
     let invoice = conn
         .query_row(
             &format!(
-                "SELECT {COLUMNS} FROM invoice i
+                "SELECT {} FROM invoice i
                  LEFT JOIN client c ON c.id = i.client_id
-                 WHERE i.id = ?1"
+                 WHERE i.id = ?1",
+                columns()
             ),
             [id],
             |row| map_invoice(row, Vec::new()),
@@ -436,6 +497,19 @@ pub fn duplicate(conn: &Connection, id: &str) -> rusqlite::Result<Invoice> {
     create(conn, &input)
 }
 
+/// Move an invoice between draft and sent. Void invoices are left untouched.
+pub fn set_sent(conn: &Connection, id: &str, sent: bool) -> rusqlite::Result<Invoice> {
+    conn.execute(
+        "UPDATE invoice
+         SET status = CASE WHEN ?2 = 1 THEN 'sent' ELSE 'draft' END,
+             sent_at = CASE WHEN ?2 = 1 THEN IFNULL(sent_at, datetime('now')) ELSE NULL END,
+             updated_at = datetime('now')
+         WHERE id = ?1 AND status <> 'void'",
+        params![id, sent as i64],
+    )?;
+    get(conn, id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)
+}
+
 pub fn set_void(conn: &Connection, id: &str, voided: bool) -> rusqlite::Result<Invoice> {
     let changed = conn.execute(
         "UPDATE invoice
@@ -619,5 +693,120 @@ mod tests {
         assert_eq!(recomputed.discount_minor, invoice.discount_minor);
         assert_eq!(recomputed.tax_minor, invoice.tax_minor);
         assert_eq!(recomputed.total_minor, invoice.total_minor);
+    }
+
+    fn payment(amount_minor: i64) -> crate::db::payments::PaymentInput {
+        crate::db::payments::PaymentInput {
+            paid_on: "2026-03-20".to_string(),
+            amount_minor,
+            method: Some("bank".to_string()),
+            reference: None,
+            note: None,
+        }
+    }
+
+    #[test]
+    fn derived_status_follows_payments_and_due_date() {
+        use crate::db::payments;
+        let t = temp_db();
+
+        let mut overdue = input(vec![item("Work", 10_000, None)]);
+        overdue.due_date = Some("2020-01-01".to_string());
+        let invoice = create(&t.conn, &overdue).unwrap();
+
+        assert_eq!(invoice.display_status, "draft");
+        assert_eq!(invoice.balance_minor, 10_000);
+
+        let sent = set_sent(&t.conn, &invoice.id, true).unwrap();
+        assert_eq!(sent.status, "sent");
+        assert!(sent.sent_at.is_some());
+        assert_eq!(sent.display_status, "overdue");
+
+        payments::create(&t.conn, &invoice.id, &payment(4_000)).unwrap();
+        let partial = get(&t.conn, &invoice.id).unwrap().unwrap();
+        assert_eq!(partial.paid_minor, 4_000);
+        assert_eq!(partial.balance_minor, 6_000);
+        assert_eq!(partial.display_status, "overdue", "overdue outranks partial");
+
+        payments::create(&t.conn, &invoice.id, &payment(6_000)).unwrap();
+        let paid = get(&t.conn, &invoice.id).unwrap().unwrap();
+        assert_eq!(paid.balance_minor, 0);
+        assert_eq!(paid.display_status, "paid");
+    }
+
+    #[test]
+    fn a_future_due_date_reads_as_sent_not_overdue() {
+        let t = temp_db();
+        let mut future = input(vec![item("Work", 10_000, None)]);
+        future.due_date = Some("2099-01-01".to_string());
+
+        let invoice = create(&t.conn, &future).unwrap();
+        let sent = set_sent(&t.conn, &invoice.id, true).unwrap();
+
+        assert_eq!(sent.display_status, "sent");
+        assert!(sent.days_past_due.unwrap_or(0) < 0);
+    }
+
+    #[test]
+    fn a_draft_is_never_overdue_even_when_past_due() {
+        use crate::db::payments;
+        let t = temp_db();
+
+        let mut past = input(vec![item("Work", 5_000, None)]);
+        past.due_date = Some("2020-01-01".to_string());
+        let invoice = create(&t.conn, &past).unwrap();
+
+        assert!(invoice.days_past_due.unwrap_or(0) > 0);
+        assert_eq!(invoice.display_status, "draft");
+
+        payments::create(&t.conn, &invoice.id, &payment(2_000)).unwrap();
+        assert_eq!(
+            get(&t.conn, &invoice.id).unwrap().unwrap().display_status,
+            "partially_paid"
+        );
+    }
+
+    #[test]
+    fn void_outranks_paid() {
+        use crate::db::payments;
+        let t = temp_db();
+        let invoice = create(&t.conn, &input(vec![item("Work", 5_000, None)])).unwrap();
+        set_sent(&t.conn, &invoice.id, true).unwrap();
+        payments::create(&t.conn, &invoice.id, &payment(5_000)).unwrap();
+
+        let voided = set_void(&t.conn, &invoice.id, true).unwrap();
+        assert_eq!(voided.display_status, "void");
+    }
+
+    #[test]
+    fn set_sent_leaves_void_invoices_alone() {
+        let t = temp_db();
+        let invoice = create(&t.conn, &input(vec![item("Work", 5_000, None)])).unwrap();
+        set_void(&t.conn, &invoice.id, true).unwrap();
+
+        let after = set_sent(&t.conn, &invoice.id, true).unwrap();
+        assert_eq!(after.status, "void");
+    }
+
+    #[test]
+    fn list_filters_by_payment_state() {
+        use crate::db::payments;
+        let t = temp_db();
+
+        let mut past = input(vec![item("Work", 10_000, None)]);
+        past.due_date = Some("2020-01-01".to_string());
+        let overdue = create(&t.conn, &past).unwrap();
+        set_sent(&t.conn, &overdue.id, true).unwrap();
+
+        let mut future = input(vec![item("Work", 10_000, None)]);
+        future.due_date = Some("2099-01-01".to_string());
+        let settled = create(&t.conn, &future).unwrap();
+        set_sent(&t.conn, &settled.id, true).unwrap();
+        payments::create(&t.conn, &settled.id, &payment(10_000)).unwrap();
+
+        assert_eq!(list(&t.conn, None, Some("overdue")).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, Some("paid")).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, Some("unpaid")).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, Some("sent")).unwrap().len(), 2);
     }
 }

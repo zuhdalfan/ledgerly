@@ -281,3 +281,40 @@ code {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 0.8rem;
 }
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.badge.paid {
+  color: #16a34a;
+}
+
+.badge.overdue {
+  color: #ef4444;
+}
+
+.badge.partially_paid {
+  color: #f59e0b;
+}
+
+.badge.sent {
+  color: #3b82f6;
+}
+
+.badge.void {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

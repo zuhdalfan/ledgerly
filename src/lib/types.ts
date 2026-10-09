@@ -133,9 +133,34 @@ export type Invoice = {
   terms: string | null;
   paymentInstructions: string | null;
   voidedAt: string | null;
+  sentAt: string | null;
   createdAt: string;
   updatedAt: string;
+  paidMinor: number;
+  balanceMinor: number;
+  daysPastDue: number | null;
+  displayStatus: string;
   items: InvoiceItem[];
+};
+
+export type Payment = {
+  id: string;
+  invoiceId: string;
+  paidOn: string;
+  amountMinor: number;
+  method: string | null;
+  reference: string | null;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PaymentInput = {
+  paidOn: string;
+  amountMinor: number;
+  method: string | null;
+  reference: string | null;
+  note: string | null;
 };
 
 export type InvoiceItemInput = {

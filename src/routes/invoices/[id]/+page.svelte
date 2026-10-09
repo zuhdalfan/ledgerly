@@ -4,8 +4,22 @@
   import { page } from "$app/state";
   import { save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
-  import { emptyToNull, fromMinor, toMinor } from "$lib/format";
-  import type { Client, InvoiceInput, InvoiceTotals, TaxRate } from "$lib/types";
+  import {
+    emptyToNull,
+    formatDate,
+    fromMinor,
+    localDate,
+    statusLabel,
+    toMinor,
+  } from "$lib/format";
+  import type {
+    Client,
+    Invoice,
+    InvoiceInput,
+    InvoiceTotals,
+    Payment,
+    TaxRate,
+  } from "$lib/types";
 
   type ItemForm = {
     description: string;
@@ -63,6 +77,19 @@
   let exporting = $state(false);
   let exportMessage = $state("");
 
+  let displayStatus = $state("draft");
+  let paidMinor = $state(0);
+  let balanceMinor = $state(0);
+  let payments = $state<Payment[]>([]);
+
+  let payDate = $state("");
+  let payAmount = $state("");
+  let payMethod = $state("");
+  let payReference = $state("");
+  let payNote = $state("");
+  let paymentError = $state("");
+  let paymentBusy = $state(false);
+
   const id = $derived(page.params.id ?? "");
   const isNew = $derived(id === "new");
   const summary = $derived(totals ?? savedTotals);
@@ -72,6 +99,21 @@
 
   function moneyString(minor: number): string {
     return (minor / 100).toFixed(2);
+  }
+
+  /// Status and balance are derived on the Rust side, so take them from the
+  /// invoice the backend returns rather than recomputing them here.
+  function applyDerived(invoice: Invoice) {
+    status = invoice.status;
+    displayStatus = invoice.displayStatus;
+    paidMinor = invoice.paidMinor;
+    balanceMinor = invoice.balanceMinor;
+  }
+
+  async function reloadPayments() {
+    const refreshed = await api.invoices.get(id);
+    if (refreshed) applyDerived(refreshed);
+    payments = await api.payments.list(id);
   }
 
   function toInput(): InvoiceInput {
@@ -121,7 +163,8 @@
       currency = business.defaultCurrency;
 
       if (isNew) {
-        issueDate = new Date().toISOString().slice(0, 10);
+        issueDate = localDate();
+        payDate = localDate();
         notes = business.defaultNotes ?? "";
         terms = business.defaultTerms ?? "";
         paymentInstructions = business.defaultPaymentInstructions ?? "";
@@ -170,6 +213,8 @@
         taxMinor: invoice.taxMinor,
         totalMinor: invoice.totalMinor,
       };
+      applyDerived(invoice);
+      payments = await api.payments.list(id);
     } catch (e) {
       loadError = String(e);
     }
@@ -216,6 +261,7 @@
           taxMinor: updated.taxMinor,
           totalMinor: updated.totalMinor,
         };
+        applyDerived(updated);
         saved = true;
       }
     } catch (e) {
@@ -236,10 +282,51 @@
 
   async function toggleVoid() {
     try {
-      const updated = await api.invoices.setVoid(id, status !== "void");
-      status = updated.status;
+      applyDerived(await api.invoices.setVoid(id, status !== "void"));
     } catch (e) {
       saveError = String(e);
+    }
+  }
+
+  async function toggleSent() {
+    saveError = "";
+    try {
+      applyDerived(await api.invoices.setSent(id, status !== "sent"));
+    } catch (e) {
+      saveError = String(e);
+    }
+  }
+
+  async function addPayment() {
+    paymentError = "";
+    paymentBusy = true;
+    try {
+      await api.payments.create(id, {
+        paidOn: payDate || localDate(),
+        amountMinor: toMinor(payAmount),
+        method: emptyToNull(payMethod),
+        reference: emptyToNull(payReference),
+        note: emptyToNull(payNote),
+      });
+      payAmount = "";
+      payMethod = "";
+      payReference = "";
+      payNote = "";
+      await reloadPayments();
+    } catch (e) {
+      paymentError = String(e);
+    } finally {
+      paymentBusy = false;
+    }
+  }
+
+  async function removePayment(paymentId: string) {
+    paymentError = "";
+    try {
+      await api.payments.remove(paymentId);
+      await reloadPayments();
+    } catch (e) {
+      paymentError = String(e);
     }
   }
 
@@ -269,7 +356,12 @@
 </script>
 
 <div class="page-head">
-  <h1>{isNew ? "New invoice" : number || "Invoice"}</h1>
+  <div class="row">
+    <h1>{isNew ? "New invoice" : number || "Invoice"}</h1>
+    {#if !isNew}
+      <span class={`badge ${displayStatus}`}>{statusLabel(displayStatus)}</span>
+    {/if}
+  </div>
   <a class="link" href="/invoices">Back to invoices</a>
 </div>
 
@@ -305,7 +397,7 @@
     </div>
     <div class="field">
       <label for="status">Status</label>
-      <input id="status" value={status} disabled />
+      <input id="status" value={statusLabel(displayStatus)} disabled />
     </div>
   </div>
 </div>
@@ -406,11 +498,86 @@
             <td><strong>Total</strong></td>
             <td><strong>{fromMinor(summary.totalMinor, currency)}</strong></td>
           </tr>
+          {#if !isNew}
+            <tr><td>Paid</td><td>{fromMinor(paidMinor, currency)}</td></tr>
+            <tr>
+              <td><strong>Balance</strong></td>
+              <td><strong>{fromMinor(balanceMinor, currency)}</strong></td>
+            </tr>
+          {/if}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+
+{#if !isNew}
+  <div class="card">
+    <h2>Payments</h2>
+
+    {#if payments.length === 0}
+      <p class="muted">No payments recorded yet.</p>
+    {:else}
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Method</th>
+            <th>Reference</th>
+            <th class="numeric">Amount</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each payments as payment (payment.id)}
+            <tr>
+              <td>{formatDate(payment.paidOn)}</td>
+              <td>{payment.method ?? "—"}</td>
+              <td>{payment.reference ?? "—"}</td>
+              <td class="numeric">{fromMinor(payment.amountMinor, currency)}</td>
+              <td>
+                <button class="btn secondary" onclick={() => removePayment(payment.id)}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    {/if}
+
+    <h2 style="margin-top: 1.25rem;">Record a payment</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="payDate">Date</label>
+        <input id="payDate" type="date" bind:value={payDate} />
+      </div>
+      <div class="field">
+        <label for="payAmount">Amount ({currency})</label>
+        <input id="payAmount" bind:value={payAmount} inputmode="decimal" placeholder="0.00" />
+      </div>
+      <div class="field">
+        <label for="payMethod">Method</label>
+        <input id="payMethod" bind:value={payMethod} placeholder="bank / cash / card" />
+      </div>
+      <div class="field">
+        <label for="payReference">Reference</label>
+        <input id="payReference" bind:value={payReference} />
+      </div>
+    </div>
+    <div class="field">
+      <label for="payNote">Note</label>
+      <input id="payNote" bind:value={payNote} />
+    </div>
+
+    <div class="row wrap">
+      <button class="btn" onclick={addPayment} disabled={paymentBusy || !payAmount.trim()}>
+        {paymentBusy ? "Recording…" : "Record payment"}
+      </button>
+      {#if paymentError}<span class="error">{paymentError}</span>{/if}
+    </div>
+  </div>
+{/if}
 
 <div class="card">
   <h2>Notes &amp; terms</h2>
@@ -434,6 +601,11 @@
   </button>
   {#if !isNew}
     <button class="btn secondary" onclick={duplicate}>Duplicate</button>
+    {#if status !== "void"}
+      <button class="btn secondary" onclick={toggleSent}>
+        {status === "sent" ? "Move to draft" : "Mark as sent"}
+      </button>
+    {/if}
     <button class="btn danger" onclick={toggleVoid}>
       {status === "void" ? "Restore" : "Void"}
     </button>

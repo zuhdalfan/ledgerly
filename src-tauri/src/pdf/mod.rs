@@ -755,8 +755,13 @@ mod tests {
                 "Bank transfer to Zuhdi Studio, ref the invoice number.".to_string(),
             ),
             voided_at: None,
+            sent_at: None,
             created_at: "2026-03-15 00:00:00".to_string(),
             updated_at: "2026-03-15 00:00:00".to_string(),
+            paid_minor: 0,
+            balance_minor: totals.total_minor,
+            days_past_due: None,
+            display_status: status.to_string(),
             items,
         }
     }

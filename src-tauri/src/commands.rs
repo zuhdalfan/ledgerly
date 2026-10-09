@@ -3,6 +3,7 @@ use crate::db::catalog::{self, CatalogItem, CatalogItemInput};
 use crate::db::clients::{self, Client, ClientInput};
 use crate::db::invoices::{self, Invoice, InvoiceInput};
 use crate::db::numbering::{self, Numbering, NumberingInput};
+use crate::db::payments::{self, Payment, PaymentInput};
 use crate::db::settings::{self, Setting};
 use crate::db::tax_rates::{self, TaxRate, TaxRateInput};
 use crate::domain::totals::InvoiceTotals;
@@ -306,4 +307,46 @@ pub fn open_in_viewer(app: tauri::AppHandle, path: String) -> AppResult<()> {
         .open_path(path, None::<String>)
         .map_err(|error| AppError::Pdf(error.to_string()))?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn invoices_set_sent(
+    state: State<'_, AppState>,
+    id: String,
+    sent: bool,
+) -> AppResult<Invoice> {
+    let conn = state.db.lock().unwrap();
+    Ok(invoices::set_sent(&conn, &id, sent)?)
+}
+
+#[tauri::command]
+pub fn payments_list(state: State<'_, AppState>, invoice_id: String) -> AppResult<Vec<Payment>> {
+    let conn = state.db.lock().unwrap();
+    Ok(payments::list(&conn, &invoice_id)?)
+}
+
+#[tauri::command]
+pub fn payments_create(
+    state: State<'_, AppState>,
+    invoice_id: String,
+    input: PaymentInput,
+) -> AppResult<Payment> {
+    let conn = state.db.lock().unwrap();
+    Ok(payments::create(&conn, &invoice_id, &input)?)
+}
+
+#[tauri::command]
+pub fn payments_update(
+    state: State<'_, AppState>,
+    id: String,
+    input: PaymentInput,
+) -> AppResult<Payment> {
+    let conn = state.db.lock().unwrap();
+    Ok(payments::update(&conn, &id, &input)?)
+}
+
+#[tauri::command]
+pub fn payments_delete(state: State<'_, AppState>, id: String) -> AppResult<()> {
+    let conn = state.db.lock().unwrap();
+    Ok(payments::delete(&conn, &id)?)
 }

@@ -12,6 +12,8 @@ import type {
   InvoiceTotals,
   Numbering,
   NumberingInput,
+  Payment,
+  PaymentInput,
   TaxRate,
   TaxRateInput,
 } from "./types";
@@ -69,8 +71,18 @@ export const api = {
     update: (id: string, input: InvoiceInput) => invoke<Invoice>("invoices_update", { id, input }),
     duplicate: (id: string) => invoke<Invoice>("invoices_duplicate", { id }),
     setVoid: (id: string, voided: boolean) => invoke<Invoice>("invoices_set_void", { id, voided }),
+    setSent: (id: string, sent: boolean) => invoke<Invoice>("invoices_set_sent", { id, sent }),
     exportPdf: (id: string, path: string, template: string) =>
       invoke<string>("pdf_export_invoice", { id, path, template }),
+  },
+
+  payments: {
+    list: (invoiceId: string) => invoke<Payment[]>("payments_list", { invoiceId }),
+    create: (invoiceId: string, input: PaymentInput) =>
+      invoke<Payment>("payments_create", { invoiceId, input }),
+    update: (id: string, input: PaymentInput) =>
+      invoke<Payment>("payments_update", { id, input }),
+    remove: (id: string) => invoke<void>("payments_delete", { id }),
   },
 
   openInViewer: (path: string) => invoke<void>("open_in_viewer", { path }),

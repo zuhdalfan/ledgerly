@@ -72,6 +72,11 @@ pub fn run() {
             commands::invoices_set_void,
             commands::pdf_export_invoice,
             commands::open_in_viewer,
+            commands::invoices_set_sent,
+            commands::payments_list,
+            commands::payments_create,
+            commands::payments_update,
+            commands::payments_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
