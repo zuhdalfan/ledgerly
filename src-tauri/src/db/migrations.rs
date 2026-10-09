@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 
 /// Ordered schema migrations. Index 0 is migration version 1.
-const MIGRATIONS: &[&str] = &[include_str!("../../migrations/0001_init.sql")];
+pub(crate) const MIGRATIONS: &[&str] = &[include_str!("../../migrations/0001_init.sql")];
 
 /// Apply every migration newer than the database's current `user_version`.
 pub fn run(conn: &Connection) -> rusqlite::Result<()> {
