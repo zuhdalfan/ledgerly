@@ -1,8 +1,15 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { ask, message, open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
-  import { emptyToNull, nullToEmpty } from "$lib/format";
-  import type { AppInfo, BusinessInput, TaxRate } from "$lib/types";
+  import { emptyToNull, localDate, nullToEmpty } from "$lib/format";
+  import type {
+    AppInfo,
+    BackupInfo,
+    BackupSettings,
+    BusinessInput,
+    TaxRate,
+  } from "$lib/types";
 
   type Form = Record<keyof BusinessInput, string>;
 
@@ -170,6 +177,110 @@
       numberError = String(e);
     }
   }
+
+  // ---- Data & backups ----
+
+  let backupSettings = $state<BackupSettings>({
+    enabled: false,
+    folder: "",
+    keep: 7,
+    lastRun: null,
+  });
+  let backups = $state<BackupInfo[]>([]);
+  let backupMessage = $state("");
+  let backupError = $state("");
+  let backupBusy = $state(false);
+
+  function formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function formatWhen(epoch: number | null): string {
+    return epoch ? new Date(epoch * 1000).toLocaleString() : "—";
+  }
+
+  async function loadBackups() {
+    try {
+      backupSettings = await api.backup.getSettings();
+      backups = await api.backup.list();
+    } catch (e) {
+      backupError = String(e);
+    }
+  }
+
+  async function backupNow() {
+    backupMessage = "";
+    backupError = "";
+    try {
+      const path = await saveDialog({
+        defaultPath: `ledgerly-${localDate()}.ledgerly`,
+        filters: [{ name: "Ledgerly backup", extensions: ["ledgerly"] }],
+      });
+      if (!path) return;
+
+      backupBusy = true;
+      backupMessage = `Backup saved to ${await api.backup.now(path)}`;
+      await loadBackups();
+    } catch (e) {
+      backupError = String(e);
+    } finally {
+      backupBusy = false;
+    }
+  }
+
+  async function restore(path: string) {
+    backupMessage = "";
+    backupError = "";
+
+    const confirmed = await ask(
+      "Replace all current data with this backup?\n\nA safety copy of your current data is saved first.",
+      { title: "Restore backup", kind: "warning" }
+    );
+    if (!confirmed) return;
+
+    backupBusy = true;
+    try {
+      const safety = await api.backup.restore(path);
+      await message(
+        `Backup restored.\n\nYour previous data was saved to:\n${safety}`,
+        { title: "Restore complete" }
+      );
+      window.location.reload();
+    } catch (e) {
+      backupError = String(e);
+      backupBusy = false;
+    }
+  }
+
+  async function chooseBackupFile() {
+    const selected = await openDialog({
+      multiple: false,
+      filters: [{ name: "Ledgerly backup", extensions: ["ledgerly"] }],
+    });
+    if (typeof selected === "string") await restore(selected);
+  }
+
+  async function saveBackupSettings() {
+    backupMessage = "";
+    backupError = "";
+    try {
+      backupSettings = await api.backup.saveSettings({
+        enabled: backupSettings.enabled,
+        folder: backupSettings.folder,
+        keep: backupSettings.keep,
+      });
+      backupMessage = "Backup settings saved";
+      await loadBackups();
+    } catch (e) {
+      backupError = String(e);
+    }
+  }
+
+  onMount(() => {
+    void loadBackups();
+  });
 </script>
 
 <div class="page-head">
@@ -338,6 +449,92 @@
     {#if numberSaved}<span class="ok">Saved</span>{/if}
     {#if numberError}<span class="error">{numberError}</span>{/if}
   </div>
+</div>
+
+<div class="card">
+  <h2>Data &amp; backups</h2>
+
+  <p class="muted">Where your data lives — one folder, on this machine.</p>
+  <code>{info?.dataDir ?? "…"}</code>
+  <div class="row wrap" style="margin-top: 0.75rem;">
+    <button class="btn secondary" onclick={() => info && api.openInViewer(info.dataDir)}>
+      Open folder
+    </button>
+    <button class="btn" onclick={backupNow} disabled={backupBusy}>Back up now…</button>
+    <button class="btn secondary" onclick={chooseBackupFile} disabled={backupBusy}>
+      Restore from file…
+    </button>
+  </div>
+
+  <h2 style="margin-top: 1.5rem;">Automatic backups</h2>
+  <p class="muted">
+    When enabled, a backup is written at most once a day, and older ones are rotated away.
+  </p>
+  <div class="grid-2">
+    <div class="field">
+      <label for="autoBackup">Schedule</label>
+      <label class="row muted">
+        <input
+          id="autoBackup"
+          type="checkbox"
+          bind:checked={backupSettings.enabled}
+          style="width: auto;"
+        />
+        Back up once a day on start
+      </label>
+    </div>
+    <div class="field">
+      <label for="keep">Keep the newest</label>
+      <input id="keep" type="number" min="1" max="365" bind:value={backupSettings.keep} />
+    </div>
+  </div>
+  <div class="field">
+    <label for="backupFolder">Backup folder</label>
+    <input id="backupFolder" bind:value={backupSettings.folder} />
+  </div>
+
+  <div class="row wrap">
+    <button class="btn" onclick={saveBackupSettings}>Save backup settings</button>
+    {#if backupSettings.lastRun}
+      <span class="muted">Last automatic run {backupSettings.lastRun}</span>
+    {/if}
+    {#if backupMessage}<span class="ok">{backupMessage}</span>{/if}
+  </div>
+  {#if backupError}<p class="error">{backupError}</p>{/if}
+
+  <h2 style="margin-top: 1.5rem;">Recent backups</h2>
+  {#if backups.length === 0}
+    <p class="muted">No backups found in {backupSettings.folder || "the backup folder"}.</p>
+  {:else}
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th class="numeric">Size</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each backups as backup (backup.path)}
+          <tr>
+            <td>{backup.name}</td>
+            <td class="numeric">{formatSize(backup.sizeBytes)}</td>
+            <td>{formatWhen(backup.modifiedAt)}</td>
+            <td>
+              <button
+                class="btn secondary"
+                onclick={() => restore(backup.path)}
+                disabled={backupBusy}
+              >
+                Restore
+              </button>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  {/if}
 </div>
 
 <div class="card">

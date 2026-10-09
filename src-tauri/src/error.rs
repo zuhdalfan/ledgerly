@@ -10,6 +10,8 @@ pub enum AppError {
     Tauri(#[from] tauri::Error),
     #[error("pdf error: {0}")]
     Pdf(String),
+    #[error("backup error: {0}")]
+    Archive(String),
     #[error("{0}")]
     Validation(String),
 }

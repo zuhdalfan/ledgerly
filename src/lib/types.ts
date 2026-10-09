@@ -246,6 +246,26 @@ export type InvoiceInput = {
   items: LineItemInput[];
 };
 
+export type BackupInfo = {
+  path: string;
+  name: string;
+  sizeBytes: number;
+  modifiedAt: number | null;
+};
+
+export type BackupSettings = {
+  enabled: boolean;
+  folder: string;
+  keep: number;
+  lastRun: string | null;
+};
+
+export type BackupSettingsInput = {
+  enabled: boolean;
+  folder: string;
+  keep: number;
+};
+
 export type PeriodRow = {
   period: string;
   invoiceCount: number;

@@ -1,3 +1,4 @@
+use crate::backup::{self, BackupInfo, BackupSettings, BackupSettingsInput};
 use crate::db::business::{self, Business, BusinessInput};
 use crate::db::catalog::{self, CatalogItem, CatalogItemInput};
 use crate::db::clients::{self, Client, ClientInput};
@@ -15,7 +16,9 @@ use crate::error::{AppError, AppResult};
 use crate::export;
 use crate::pdf;
 use crate::AppState;
+use rusqlite::Connection;
 use serde::Serialize;
+use std::path::{Path, PathBuf};
 use tauri::State;
 
 #[derive(Serialize)]
@@ -492,4 +495,78 @@ pub fn export_json(state: State<'_, AppState>, path: String) -> AppResult<String
     let conn = state.db.lock().unwrap();
     export::export_json(&conn, &path)?;
     Ok(path)
+}
+
+/// Write a `.ledgerly` backup. With no path, it goes to the backup folder.
+#[tauri::command]
+pub fn backup_now(state: State<'_, AppState>, path: Option<String>) -> AppResult<String> {
+    let conn = state.db.lock().unwrap();
+
+    let destination = match path.filter(|value| !value.trim().is_empty()) {
+        Some(value) => PathBuf::from(value),
+        None => {
+            let folder = backup::default_folder(&state.data_dir);
+            std::fs::create_dir_all(&folder)?;
+            backup::suggested_path(&conn, &folder)?
+        }
+    };
+
+    backup::create_backup(&conn, &destination)?;
+    Ok(destination.to_string_lossy().to_string())
+}
+
+/// Replace the current data with a backup. A safety copy of the current data is
+/// taken first and its path returned.
+#[tauri::command]
+pub fn backup_restore(state: State<'_, AppState>, path: String) -> AppResult<String> {
+    let database = state.database_path();
+    let mut guard = state.db.lock().unwrap();
+
+    let stamp: String = guard.query_row(
+        "SELECT strftime('%Y%m%d-%H%M%S', 'now', 'localtime')",
+        [],
+        |row| row.get(0),
+    )?;
+    let safety = state.data_dir.join(format!("pre-restore-{stamp}.sqlite"));
+
+    // Consistent copy of what we are about to replace.
+    backup::snapshot_database(&guard, &safety)?;
+
+    // Close the live connection so the file can be swapped underneath it.
+    let previous = std::mem::replace(&mut *guard, Connection::open_in_memory()?);
+    drop(previous);
+
+    let result = backup::restore_database(Path::new(&path), &database);
+
+    // Always leave the app with a working connection, then report any failure.
+    *guard = crate::db::open(&database)?;
+
+    if let Ok(manifest) = &result {
+        eprintln!("restored backup with schema version {}", manifest.schema_version);
+    }
+    result?;
+
+    Ok(safety.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn backup_list(state: State<'_, AppState>) -> AppResult<Vec<BackupInfo>> {
+    let conn = state.db.lock().unwrap();
+    let settings = backup::load_settings(&conn, &state.data_dir)?;
+    backup::list_backups(Path::new(&settings.folder))
+}
+
+#[tauri::command]
+pub fn backup_settings_get(state: State<'_, AppState>) -> AppResult<BackupSettings> {
+    let conn = state.db.lock().unwrap();
+    Ok(backup::load_settings(&conn, &state.data_dir)?)
+}
+
+#[tauri::command]
+pub fn backup_settings_set(
+    state: State<'_, AppState>,
+    input: BackupSettingsInput,
+) -> AppResult<BackupSettings> {
+    let conn = state.db.lock().unwrap();
+    Ok(backup::save_settings(&conn, &state.data_dir, &input)?)
 }

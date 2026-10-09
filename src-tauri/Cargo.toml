@@ -29,6 +29,7 @@ rust_decimal = "1.43.0"
 printpdf = "0.7"
 tauri-plugin-dialog = "2.8.1"
 ttf-parser = "0.25.1"
+zip = { version = "9.0.0", default-features = false, features = ["deflate"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

@@ -2,6 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   AgedRow,
   AppInfo,
+  BackupInfo,
+  BackupSettings,
+  BackupSettingsInput,
   Business,
   BusinessInput,
   ClientRevenueRow,
@@ -97,6 +100,15 @@ export const api = {
   exportCsv: (path: string, headers: string[], rows: string[][]) =>
     invoke<string>("export_csv", { path, headers, rows }),
   exportJson: (path: string) => invoke<string>("export_json", { path }),
+
+  backup: {
+    now: (path?: string) => invoke<string>("backup_now", { path: path ?? null }),
+    restore: (path: string) => invoke<string>("backup_restore", { path }),
+    list: () => invoke<BackupInfo[]>("backup_list"),
+    getSettings: () => invoke<BackupSettings>("backup_settings_get"),
+    saveSettings: (input: BackupSettingsInput) =>
+      invoke<BackupSettings>("backup_settings_set", { input }),
+  },
 
   estimates: {
     list: (query?: string, status?: string) =>

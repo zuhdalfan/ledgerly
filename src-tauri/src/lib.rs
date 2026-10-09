@@ -1,3 +1,4 @@
+mod backup;
 mod commands;
 mod db;
 mod domain;
@@ -35,6 +36,13 @@ pub fn run() {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
             let conn = db::open(&db_path(&data_dir))?;
+
+            // Rotating automatic backup, at most once a day when enabled. A
+            // failure here must never stop the app from starting.
+            if let Err(error) = backup::auto_backup(&conn, &data_dir) {
+                eprintln!("automatic backup skipped: {error}");
+            }
+
             app.manage(AppState {
                 db: Mutex::new(conn),
                 data_dir,
@@ -93,6 +101,11 @@ pub fn run() {
             commands::reports_payments_by_method,
             commands::export_csv,
             commands::export_json,
+            commands::backup_now,
+            commands::backup_restore,
+            commands::backup_list,
+            commands::backup_settings_get,
+            commands::backup_settings_set,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
