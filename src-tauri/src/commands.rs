@@ -6,7 +6,8 @@ use crate::db::numbering::{self, Numbering, NumberingInput};
 use crate::db::settings::{self, Setting};
 use crate::db::tax_rates::{self, TaxRate, TaxRateInput};
 use crate::domain::totals::InvoiceTotals;
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
+use crate::pdf;
 use crate::AppState;
 use serde::Serialize;
 use tauri::State;
@@ -262,4 +263,47 @@ pub fn invoices_set_void(
 ) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
     Ok(invoices::set_void(&conn, &id, voided)?)
+}
+
+/// Render an invoice to PDF and write it to `path` (chosen by the user in the
+/// save dialog). Returns the path written.
+#[tauri::command]
+pub fn pdf_export_invoice(
+    state: State<'_, AppState>,
+    id: String,
+    path: String,
+    template: Option<String>,
+) -> AppResult<String> {
+    let (invoice, business, client) = {
+        let conn = state.db.lock().unwrap();
+        let invoice = invoices::get(&conn, &id)?
+            .ok_or_else(|| AppError::Pdf("invoice not found".to_string()))?;
+        let business = business::get(&conn)?;
+        let client = match invoice.client_id.as_deref() {
+            Some(client_id) => clients::get(&conn, client_id)?,
+            None => None,
+        };
+        (invoice, business, client)
+    };
+
+    let bytes = pdf::render_invoice(
+        &invoice,
+        &business,
+        client.as_ref(),
+        pdf::Template::parse(template.as_deref().unwrap_or("classic")),
+    )
+    .map_err(AppError::Pdf)?;
+
+    std::fs::write(&path, &bytes)?;
+    Ok(path)
+}
+
+/// Open a file (usually the PDF just exported) in the OS default viewer.
+#[tauri::command]
+pub fn open_in_viewer(app: tauri::AppHandle, path: String) -> AppResult<()> {
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_path(path, None::<String>)
+        .map_err(|error| AppError::Pdf(error.to_string()))?;
+    Ok(())
 }

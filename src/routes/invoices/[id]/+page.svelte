@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import { save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
   import { emptyToNull, fromMinor, toMinor } from "$lib/format";
   import type { Client, InvoiceInput, InvoiceTotals, TaxRate } from "$lib/types";
@@ -58,9 +59,16 @@
   let saved = $state(false);
   let saving = $state(false);
 
+  let template = $state("classic");
+  let exporting = $state(false);
+  let exportMessage = $state("");
+
   const id = $derived(page.params.id ?? "");
   const isNew = $derived(id === "new");
   const summary = $derived(totals ?? savedTotals);
+  const clientName = $derived(
+    clients.find((client) => client.id === clientId)?.displayName ?? ""
+  );
 
   function moneyString(minor: number): string {
     return (minor / 100).toFixed(2);
@@ -232,6 +240,30 @@
       status = updated.status;
     } catch (e) {
       saveError = String(e);
+    }
+  }
+
+  async function exportPdf() {
+    exportMessage = "";
+    exporting = true;
+    try {
+      const suggested = `${number || "invoice"}-${clientName || "client"}.pdf`.replace(
+        /[^\w.\-]+/g,
+        "-"
+      );
+      const path = await saveDialog({
+        defaultPath: suggested,
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+      if (!path) return;
+
+      await api.invoices.exportPdf(id, path, template);
+      await api.openInViewer(path);
+      exportMessage = `Saved to ${path}`;
+    } catch (e) {
+      exportMessage = String(e);
+    } finally {
+      exporting = false;
     }
   }
 </script>
@@ -409,3 +441,20 @@
   {#if saved}<span class="ok">Saved</span>{/if}
   {#if saveError}<span class="error">{saveError}</span>{/if}
 </div>
+
+{#if !isNew}
+  <div class="card">
+    <h2>PDF</h2>
+    <div class="row wrap">
+      <select bind:value={template} style="width: auto;">
+        <option value="classic">Classic</option>
+        <option value="modern">Modern</option>
+        <option value="minimal">Minimal</option>
+      </select>
+      <button class="btn" onclick={exportPdf} disabled={exporting}>
+        {exporting ? "Exporting…" : "Export PDF"}
+      </button>
+      {#if exportMessage}<span class="muted">{exportMessage}</span>{/if}
+    </div>
+  </div>
+{/if}

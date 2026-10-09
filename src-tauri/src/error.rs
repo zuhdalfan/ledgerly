@@ -8,6 +8,8 @@ pub enum AppError {
     Io(#[from] std::io::Error),
     #[error("tauri error: {0}")]
     Tauri(#[from] tauri::Error),
+    #[error("pdf error: {0}")]
+    Pdf(String),
 }
 
 impl Serialize for AppError {

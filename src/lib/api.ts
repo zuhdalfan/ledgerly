@@ -69,5 +69,9 @@ export const api = {
     update: (id: string, input: InvoiceInput) => invoke<Invoice>("invoices_update", { id, input }),
     duplicate: (id: string) => invoke<Invoice>("invoices_duplicate", { id }),
     setVoid: (id: string, voided: boolean) => invoke<Invoice>("invoices_set_void", { id, voided }),
+    exportPdf: (id: string, path: string, template: string) =>
+      invoke<string>("pdf_export_invoice", { id, path, template }),
   },
+
+  openInViewer: (path: string) => invoke<void>("open_in_viewer", { path }),
 };

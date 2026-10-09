@@ -26,6 +26,7 @@ pub struct InvoiceItem {
     pub discount_value: Option<String>,
     pub tax_rate_id: Option<String>,
     pub tax_rate_name: Option<String>,
+    pub tax_rate_bp: Option<i64>,
     pub tax_inclusive: bool,
 }
 
@@ -138,7 +139,7 @@ fn parse_decimal(value: &str, fallback: Decimal) -> Decimal {
     Decimal::from_str(value.trim()).unwrap_or(fallback)
 }
 
-fn parse_discount(kind: &Option<String>, value: &Option<String>) -> Option<Discount> {
+pub(crate) fn discount_from(kind: &Option<String>, value: &Option<String>) -> Option<Discount> {
     let kind = kind.as_deref()?.trim();
     let value = value.as_deref()?.trim();
     if value.is_empty() {
@@ -175,7 +176,7 @@ pub fn load_items(conn: &Connection, invoice_id: &str) -> rusqlite::Result<Vec<I
     let mut stmt = conn.prepare(
         "SELECT it.id, it.sort_order, it.description, it.quantity, it.unit,
                 it.unit_price_minor, it.discount_type, it.discount_value,
-                it.tax_rate_id, t.name, it.tax_inclusive
+                it.tax_rate_id, t.name, t.rate_bp, it.tax_inclusive
          FROM invoice_item it
          LEFT JOIN tax_rate t ON t.id = it.tax_rate_id
          WHERE it.invoice_id = ?1
@@ -193,7 +194,8 @@ pub fn load_items(conn: &Connection, invoice_id: &str) -> rusqlite::Result<Vec<I
             discount_value: row.get(7)?,
             tax_rate_id: row.get(8)?,
             tax_rate_name: row.get(9)?,
-            tax_inclusive: row.get::<_, i64>(10)? != 0,
+            tax_rate_bp: row.get(10)?,
+            tax_inclusive: row.get::<_, i64>(11)? != 0,
         })
     })?;
     rows.collect()
@@ -255,7 +257,7 @@ pub fn preview_totals(conn: &Connection, input: &InvoiceInput) -> rusqlite::Resu
         .collect();
     Ok(totals::compute(
         &lines,
-        parse_discount(&input.discount_type, &input.discount_value),
+        discount_from(&input.discount_type, &input.discount_value),
     ))
 }
 
@@ -263,7 +265,7 @@ fn to_line_input(item: &InvoiceItemInput, rates: &HashMap<String, i64>) -> LineI
     LineInput {
         quantity: parse_decimal(&item.quantity, Decimal::ONE),
         unit_price_minor: item.unit_price_minor,
-        discount: parse_discount(&item.discount_type, &item.discount_value),
+        discount: discount_from(&item.discount_type, &item.discount_value),
         tax_rate_bp: item
             .tax_rate_id
             .as_ref()
@@ -271,6 +273,20 @@ fn to_line_input(item: &InvoiceItemInput, rates: &HashMap<String, i64>) -> LineI
             .unwrap_or(0),
         tax_inclusive: item.tax_inclusive,
     }
+}
+
+/// Build totals inputs from stored line items (used for rendering and re-checks).
+pub fn stored_line_inputs(items: &[InvoiceItem]) -> Vec<LineInput> {
+    items
+        .iter()
+        .map(|item| LineInput {
+            quantity: parse_decimal(&item.quantity, Decimal::ONE),
+            unit_price_minor: item.unit_price_minor,
+            discount: discount_from(&item.discount_type, &item.discount_value),
+            tax_rate_bp: item.tax_rate_bp.unwrap_or(0),
+            tax_inclusive: item.tax_inclusive,
+        })
+        .collect()
 }
 
 fn normalized_quantity(value: &str) -> String {
@@ -570,5 +586,38 @@ mod tests {
     fn update_missing_invoice_errors() {
         let t = temp_db();
         assert!(update(&t.conn, "missing", &input(vec![])).is_err());
+    }
+
+    #[test]
+    fn cached_totals_match_the_totals_engine() {
+        let t = temp_db();
+        let vat = tax_rates::create(
+            &t.conn,
+            &TaxRateInput {
+                name: "VAT".to_string(),
+                rate_bp: 2_000,
+            },
+        )
+        .unwrap();
+
+        let mut with_discount = input(vec![
+            item("A", 19_999, Some(vat.id)),
+            item("B", 7_777, None),
+        ]);
+        with_discount.discount_type = Some("percent".to_string());
+        with_discount.discount_value = Some("12.5".to_string());
+
+        let invoice = create(&t.conn, &with_discount).unwrap();
+
+        // What the PDF renders must equal what the list view shows.
+        let recomputed = crate::domain::totals::compute(
+            &stored_line_inputs(&invoice.items),
+            discount_from(&invoice.discount_type, &invoice.discount_value),
+        );
+
+        assert_eq!(recomputed.subtotal_minor, invoice.subtotal_minor);
+        assert_eq!(recomputed.discount_minor, invoice.discount_minor);
+        assert_eq!(recomputed.tax_minor, invoice.tax_minor);
+        assert_eq!(recomputed.total_minor, invoice.total_minor);
     }
 }

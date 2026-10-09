@@ -2,6 +2,7 @@ mod commands;
 mod db;
 mod domain;
 mod error;
+mod pdf;
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -28,6 +29,7 @@ fn db_path(data_dir: &Path) -> PathBuf {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
@@ -68,6 +70,8 @@ pub fn run() {
             commands::invoices_update,
             commands::invoices_duplicate,
             commands::invoices_set_void,
+            commands::pdf_export_invoice,
+            commands::open_in_viewer,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
