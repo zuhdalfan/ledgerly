@@ -163,7 +163,8 @@ export type PaymentInput = {
   note: string | null;
 };
 
-export type InvoiceItemInput = {
+/** Line items are identical for invoices and estimates. */
+export type LineItemInput = {
   description: string;
   quantity: string;
   unit: string | null;
@@ -172,6 +173,63 @@ export type InvoiceItemInput = {
   discountValue: string | null;
   taxRateId: string | null;
   taxInclusive: boolean;
+};
+
+export type EstimateItem = {
+  id: string;
+  sortOrder: number;
+  description: string;
+  quantity: string;
+  unit: string | null;
+  unitPriceMinor: number;
+  discountType: string | null;
+  discountValue: string | null;
+  taxRateId: string | null;
+  taxRateName: string | null;
+  taxRateBp: number | null;
+  taxInclusive: boolean;
+};
+
+export type Estimate = {
+  id: string;
+  number: string;
+  clientId: string | null;
+  clientName: string | null;
+  status: string;
+  issueDate: string;
+  validUntil: string | null;
+  currency: string;
+  poReference: string | null;
+  discountType: string | null;
+  discountValue: string | null;
+  subtotalMinor: number;
+  discountMinor: number;
+  taxMinor: number;
+  totalMinor: number;
+  notes: string | null;
+  terms: string | null;
+  paymentInstructions: string | null;
+  convertedInvoiceId: string | null;
+  convertedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  daysUntilExpiry: number | null;
+  displayStatus: string;
+  items: EstimateItem[];
+};
+
+export type EstimateInput = {
+  clientId: string | null;
+  issueDate: string;
+  validUntil: string | null;
+  currency: string;
+  poReference: string | null;
+  discountType: string | null;
+  discountValue: string | null;
+  notes: string | null;
+  terms: string | null;
+  paymentInstructions: string | null;
+  items: LineItemInput[];
 };
 
 export type InvoiceInput = {
@@ -185,7 +243,7 @@ export type InvoiceInput = {
   notes: string | null;
   terms: string | null;
   paymentInstructions: string | null;
-  items: InvoiceItemInput[];
+  items: LineItemInput[];
 };
 
 export type LineTotals = {

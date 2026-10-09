@@ -1,11 +1,11 @@
 use rusqlite::{params, Connection, OptionalExtension, Row};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::str::FromStr;
 
-use super::{numbering, tax_rates, trim_opt};
-use crate::domain::totals::{self, Discount, DiscountKind, InvoiceTotals, LineInput};
+pub use super::line_items::LineItemInput;
+use super::line_items;
+use super::{numbering, trim_opt};
+use crate::domain::totals::{InvoiceTotals, LineInput};
 
 const PAID_EXPR: &str =
     "(SELECT IFNULL(SUM(p.amount_minor), 0) FROM payment p WHERE p.invoice_id = i.id)";
@@ -99,27 +99,6 @@ pub struct Invoice {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct InvoiceItemInput {
-    #[serde(default)]
-    pub description: String,
-    #[serde(default = "default_quantity")]
-    pub quantity: String,
-    #[serde(default)]
-    pub unit: Option<String>,
-    #[serde(default)]
-    pub unit_price_minor: i64,
-    #[serde(default)]
-    pub discount_type: Option<String>,
-    #[serde(default)]
-    pub discount_value: Option<String>,
-    #[serde(default)]
-    pub tax_rate_id: Option<String>,
-    #[serde(default)]
-    pub tax_inclusive: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct InvoiceInput {
     #[serde(default)]
     pub client_id: Option<String>,
@@ -140,12 +119,11 @@ pub struct InvoiceInput {
     pub terms: Option<String>,
     #[serde(default)]
     pub payment_instructions: Option<String>,
+    /// Set when the invoice was created by converting an estimate.
     #[serde(default)]
-    pub items: Vec<InvoiceItemInput>,
-}
-
-fn default_quantity() -> String {
-    "1".to_string()
+    pub estimate_id: Option<String>,
+    #[serde(default)]
+    pub items: Vec<LineItemInput>,
 }
 
 fn map_invoice(row: &Row, items: Vec<InvoiceItem>) -> rusqlite::Result<Invoice> {
@@ -183,43 +161,6 @@ fn map_invoice(row: &Row, items: Vec<InvoiceItem>) -> rusqlite::Result<Invoice> 
         days_past_due,
         display_status: display_status(&status, balance_minor, paid_minor, days_past_due),
         items,
-    })
-}
-
-fn parse_decimal(value: &str, fallback: Decimal) -> Decimal {
-    Decimal::from_str(value.trim()).unwrap_or(fallback)
-}
-
-pub(crate) fn discount_from(kind: &Option<String>, value: &Option<String>) -> Option<Discount> {
-    let kind = kind.as_deref()?.trim();
-    let value = value.as_deref()?.trim();
-    if value.is_empty() {
-        return None;
-    }
-    let value = Decimal::from_str(value).ok()?;
-    let kind = match kind {
-        "percent" => DiscountKind::Percent,
-        "fixed" => DiscountKind::Fixed,
-        _ => return None,
-    };
-    Some(Discount { kind, value })
-}
-
-fn currency_or_default(value: &str) -> String {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        "USD".to_string()
-    } else {
-        trimmed.to_string()
-    }
-}
-
-fn year_of(conn: &Connection, date: &str) -> rusqlite::Result<i64> {
-    if let Some(year) = date.get(0..4).and_then(|part| part.parse::<i64>().ok()) {
-        return Ok(year);
-    }
-    conn.query_row("SELECT CAST(strftime('%Y', 'now') AS INTEGER)", [], |row| {
-        row.get(0)
     })
 }
 
@@ -310,30 +251,12 @@ pub fn get(conn: &Connection, id: &str) -> rusqlite::Result<Option<Invoice>> {
 
 /// Compute totals for a draft that has not been saved yet (live editor preview).
 pub fn preview_totals(conn: &Connection, input: &InvoiceInput) -> rusqlite::Result<InvoiceTotals> {
-    let rates = tax_rates::rate_map(conn)?;
-    let lines: Vec<LineInput> = input
-        .items
-        .iter()
-        .map(|item| to_line_input(item, &rates))
-        .collect();
-    Ok(totals::compute(
-        &lines,
-        discount_from(&input.discount_type, &input.discount_value),
-    ))
-}
-
-fn to_line_input(item: &InvoiceItemInput, rates: &HashMap<String, i64>) -> LineInput {
-    LineInput {
-        quantity: parse_decimal(&item.quantity, Decimal::ONE),
-        unit_price_minor: item.unit_price_minor,
-        discount: discount_from(&item.discount_type, &item.discount_value),
-        tax_rate_bp: item
-            .tax_rate_id
-            .as_ref()
-            .and_then(|id| rates.get(id).copied())
-            .unwrap_or(0),
-        tax_inclusive: item.tax_inclusive,
-    }
+    line_items::preview_totals(
+        conn,
+        &input.discount_type,
+        &input.discount_value,
+        &input.items,
+    )
 }
 
 /// Build totals inputs from stored line items (used for rendering and re-checks).
@@ -341,69 +264,36 @@ pub fn stored_line_inputs(items: &[InvoiceItem]) -> Vec<LineInput> {
     items
         .iter()
         .map(|item| LineInput {
-            quantity: parse_decimal(&item.quantity, Decimal::ONE),
+            quantity: line_items::parse_decimal(&item.quantity, Decimal::ONE),
             unit_price_minor: item.unit_price_minor,
-            discount: discount_from(&item.discount_type, &item.discount_value),
+            discount: line_items::discount_from(&item.discount_type, &item.discount_value),
             tax_rate_bp: item.tax_rate_bp.unwrap_or(0),
             tax_inclusive: item.tax_inclusive,
         })
         .collect()
 }
 
-fn normalized_quantity(value: &str) -> String {
-    parse_decimal(value, Decimal::ONE).normalize().to_string()
-}
-
-fn insert_items(
-    conn: &Connection,
-    invoice_id: &str,
-    items: &[InvoiceItemInput],
-) -> rusqlite::Result<()> {
-    let mut stmt = conn.prepare(
-        "INSERT INTO invoice_item (
-            id, invoice_id, sort_order, description, quantity, unit, unit_price_minor,
-            discount_type, discount_value, tax_rate_id, tax_inclusive
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-    )?;
-    for (index, item) in items.iter().enumerate() {
-        stmt.execute(params![
-            uuid::Uuid::now_v7().to_string(),
-            invoice_id,
-            index as i64,
-            item.description.trim(),
-            normalized_quantity(&item.quantity),
-            trim_opt(&item.unit),
-            item.unit_price_minor,
-            trim_opt(&item.discount_type),
-            trim_opt(&item.discount_value),
-            trim_opt(&item.tax_rate_id),
-            item.tax_inclusive as i64,
-        ])?;
-    }
-    Ok(())
-}
-
-pub fn create(conn: &Connection, input: &InvoiceInput) -> rusqlite::Result<Invoice> {
-    let tx = conn.unchecked_transaction()?;
-
+/// Insert an invoice and its lines *without* opening a transaction, so callers
+/// that already have one (like estimate conversion) stay atomic.
+pub(crate) fn insert_invoice(conn: &Connection, input: &InvoiceInput) -> rusqlite::Result<String> {
     let id = uuid::Uuid::now_v7().to_string();
-    let year = year_of(&tx, &input.issue_date)?;
-    let number = numbering::next_number(&tx, "invoice", year)?;
-    let totals = preview_totals(&tx, input)?;
+    let year = line_items::year_of(conn, &input.issue_date)?;
+    let number = numbering::next_number(conn, "invoice", year)?;
+    let totals = preview_totals(conn, input)?;
 
-    tx.execute(
+    conn.execute(
         "INSERT INTO invoice (
             id, number, client_id, status, issue_date, due_date, currency, po_reference,
             discount_type, discount_value, subtotal_minor, discount_minor, tax_minor,
-            total_minor, notes, terms, payment_instructions
-         ) VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            total_minor, notes, terms, payment_instructions, estimate_id
+         ) VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
         params![
             id,
             number,
             trim_opt(&input.client_id),
             input.issue_date.trim(),
             trim_opt(&input.due_date),
-            currency_or_default(&input.currency),
+            line_items::currency_or_default(&input.currency),
             trim_opt(&input.po_reference),
             trim_opt(&input.discount_type),
             trim_opt(&input.discount_value),
@@ -414,10 +304,17 @@ pub fn create(conn: &Connection, input: &InvoiceInput) -> rusqlite::Result<Invoi
             trim_opt(&input.notes),
             trim_opt(&input.terms),
             trim_opt(&input.payment_instructions),
+            trim_opt(&input.estimate_id),
         ],
     )?;
 
-    insert_items(&tx, &id, &input.items)?;
+    line_items::insert_items(conn, "invoice_item", "invoice_id", &id, &input.items)?;
+    Ok(id)
+}
+
+pub fn create(conn: &Connection, input: &InvoiceInput) -> rusqlite::Result<Invoice> {
+    let tx = conn.unchecked_transaction()?;
+    let id = insert_invoice(&tx, input)?;
     tx.commit()?;
 
     get(conn, &id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)
@@ -439,7 +336,7 @@ pub fn update(conn: &Connection, id: &str, input: &InvoiceInput) -> rusqlite::Re
             trim_opt(&input.client_id),
             input.issue_date.trim(),
             trim_opt(&input.due_date),
-            currency_or_default(&input.currency),
+            line_items::currency_or_default(&input.currency),
             trim_opt(&input.po_reference),
             trim_opt(&input.discount_type),
             trim_opt(&input.discount_value),
@@ -457,7 +354,7 @@ pub fn update(conn: &Connection, id: &str, input: &InvoiceInput) -> rusqlite::Re
     }
 
     tx.execute("DELETE FROM invoice_item WHERE invoice_id = ?1", [id])?;
-    insert_items(&tx, id, &input.items)?;
+    line_items::insert_items(&tx, "invoice_item", "invoice_id", id, &input.items)?;
     tx.commit()?;
 
     get(conn, id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)
@@ -478,10 +375,11 @@ pub fn duplicate(conn: &Connection, id: &str) -> rusqlite::Result<Invoice> {
         notes: original.notes,
         terms: original.terms,
         payment_instructions: original.payment_instructions,
+        estimate_id: None,
         items: original
             .items
             .iter()
-            .map(|item| InvoiceItemInput {
+            .map(|item| LineItemInput {
                 description: item.description.clone(),
                 quantity: item.quantity.clone(),
                 unit: item.unit.clone(),
@@ -528,10 +426,14 @@ pub fn set_void(conn: &Connection, id: &str, voided: bool) -> rusqlite::Result<I
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{clients, tax_rates::TaxRateInput, tests_support::temp_db};
+    use crate::db::{
+        clients,
+        tax_rates::{self, TaxRateInput},
+        tests_support::temp_db,
+    };
 
-    fn item(description: &str, price: i64, tax_rate_id: Option<String>) -> InvoiceItemInput {
-        InvoiceItemInput {
+    fn item(description: &str, price: i64, tax_rate_id: Option<String>) -> LineItemInput {
+        LineItemInput {
             description: description.to_string(),
             quantity: "1".to_string(),
             unit: None,
@@ -543,7 +445,7 @@ mod tests {
         }
     }
 
-    fn input(items: Vec<InvoiceItemInput>) -> InvoiceInput {
+    fn input(items: Vec<LineItemInput>) -> InvoiceInput {
         InvoiceInput {
             client_id: None,
             issue_date: "2026-03-15".to_string(),
@@ -555,6 +457,7 @@ mod tests {
             notes: None,
             terms: None,
             payment_instructions: None,
+            estimate_id: None,
             items,
         }
     }
@@ -686,7 +589,7 @@ mod tests {
         // What the PDF renders must equal what the list view shows.
         let recomputed = crate::domain::totals::compute(
             &stored_line_inputs(&invoice.items),
-            discount_from(&invoice.discount_type, &invoice.discount_value),
+            line_items::discount_from(&invoice.discount_type, &invoice.discount_value),
         );
 
         assert_eq!(recomputed.subtotal_minor, invoice.subtotal_minor);

@@ -7,6 +7,8 @@ import type {
   CatalogItemInput,
   Client,
   ClientInput,
+  Estimate,
+  EstimateInput,
   Invoice,
   InvoiceInput,
   InvoiceTotals,
@@ -74,6 +76,20 @@ export const api = {
     setSent: (id: string, sent: boolean) => invoke<Invoice>("invoices_set_sent", { id, sent }),
     exportPdf: (id: string, path: string, template: string) =>
       invoke<string>("pdf_export_invoice", { id, path, template }),
+  },
+
+  estimates: {
+    list: (query?: string, status?: string) =>
+      invoke<Estimate[]>("estimates_list", { query: query ?? null, status: status ?? null }),
+    get: (id: string) => invoke<Estimate | null>("estimates_get", { id }),
+    totals: (input: EstimateInput) => invoke<InvoiceTotals>("estimates_totals", { input }),
+    create: (input: EstimateInput) => invoke<Estimate>("estimates_create", { input }),
+    update: (id: string, input: EstimateInput) =>
+      invoke<Estimate>("estimates_update", { id, input }),
+    duplicate: (id: string) => invoke<Estimate>("estimates_duplicate", { id }),
+    setStatus: (id: string, status: string) =>
+      invoke<Estimate>("estimates_set_status", { id, status }),
+    convert: (id: string) => invoke<Invoice>("estimates_convert", { id }),
   },
 
   payments: {

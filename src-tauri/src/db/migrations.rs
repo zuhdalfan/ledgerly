@@ -6,6 +6,7 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0002_identity.sql"),
     include_str!("../../migrations/0003_invoices.sql"),
     include_str!("../../migrations/0004_payments.sql"),
+    include_str!("../../migrations/0005_estimates.sql"),
 ];
 
 /// Apply every migration newer than the database's current `user_version`.
@@ -31,10 +32,12 @@ mod tests {
     fn upgrades_an_older_database_incrementally() {
         let t = temp_db();
 
-        // Simulate a database created before the invoice and payment schemas existed.
+        // Simulate a database created before the invoice/estimate schemas existed.
         t.conn
             .execute_batch(
-                "DROP TABLE payment;
+                "DROP TABLE estimate_item;
+                 DROP TABLE estimate;
+                 DROP TABLE payment;
                  DROP TABLE invoice_item;
                  DROP TABLE invoice;
                  DROP TABLE tax_rate;

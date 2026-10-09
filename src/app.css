@@ -309,6 +309,19 @@ code {
   color: #3b82f6;
 }
 
+.badge.accepted {
+  color: #16a34a;
+}
+
+.badge.declined,
+.badge.expired {
+  color: #ef4444;
+}
+
+.badge.converted {
+  color: #8b5cf6;
+}
+
 .badge.void {
   color: var(--muted);
   text-decoration: line-through;

@@ -1,6 +1,7 @@
 use crate::db::business::{self, Business, BusinessInput};
 use crate::db::catalog::{self, CatalogItem, CatalogItemInput};
 use crate::db::clients::{self, Client, ClientInput};
+use crate::db::estimates::{self, Estimate, EstimateInput};
 use crate::db::invoices::{self, Invoice, InvoiceInput};
 use crate::db::numbering::{self, Numbering, NumberingInput};
 use crate::db::payments::{self, Payment, PaymentInput};
@@ -317,6 +318,73 @@ pub fn invoices_set_sent(
 ) -> AppResult<Invoice> {
     let conn = state.db.lock().unwrap();
     Ok(invoices::set_sent(&conn, &id, sent)?)
+}
+
+#[tauri::command]
+pub fn estimates_list(
+    state: State<'_, AppState>,
+    query: Option<String>,
+    status: Option<String>,
+) -> AppResult<Vec<Estimate>> {
+    let conn = state.db.lock().unwrap();
+    Ok(estimates::list(&conn, query.as_deref(), status.as_deref())?)
+}
+
+#[tauri::command]
+pub fn estimates_get(state: State<'_, AppState>, id: String) -> AppResult<Option<Estimate>> {
+    let conn = state.db.lock().unwrap();
+    Ok(estimates::get(&conn, &id)?)
+}
+
+#[tauri::command]
+pub fn estimates_totals(
+    state: State<'_, AppState>,
+    input: EstimateInput,
+) -> AppResult<InvoiceTotals> {
+    let conn = state.db.lock().unwrap();
+    Ok(estimates::preview_totals(&conn, &input)?)
+}
+
+#[tauri::command]
+pub fn estimates_create(
+    state: State<'_, AppState>,
+    input: EstimateInput,
+) -> AppResult<Estimate> {
+    let conn = state.db.lock().unwrap();
+    Ok(estimates::create(&conn, &input)?)
+}
+
+#[tauri::command]
+pub fn estimates_update(
+    state: State<'_, AppState>,
+    id: String,
+    input: EstimateInput,
+) -> AppResult<Estimate> {
+    let conn = state.db.lock().unwrap();
+    Ok(estimates::update(&conn, &id, &input)?)
+}
+
+#[tauri::command]
+pub fn estimates_duplicate(state: State<'_, AppState>, id: String) -> AppResult<Estimate> {
+    let conn = state.db.lock().unwrap();
+    Ok(estimates::duplicate(&conn, &id)?)
+}
+
+#[tauri::command]
+pub fn estimates_set_status(
+    state: State<'_, AppState>,
+    id: String,
+    status: String,
+) -> AppResult<Estimate> {
+    let conn = state.db.lock().unwrap();
+    Ok(estimates::set_status(&conn, &id, &status)?)
+}
+
+/// Create an invoice from an estimate and link them.
+#[tauri::command]
+pub fn estimates_convert(state: State<'_, AppState>, id: String) -> AppResult<Invoice> {
+    let conn = state.db.lock().unwrap();
+    Ok(estimates::convert(&conn, &id)?)
 }
 
 #[tauri::command]

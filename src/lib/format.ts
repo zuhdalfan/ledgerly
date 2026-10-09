@@ -21,6 +21,11 @@ export function emptyToNull(value: string): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
+/** Render minor units as a plain decimal string for an input field. */
+export function minorToInput(minor: number): string {
+  return (minor / 100).toFixed(2);
+}
+
 /** Today as YYYY-MM-DD in the local timezone (not UTC). */
 export function localDate(): string {
   const now = new Date();
@@ -41,6 +46,14 @@ export function statusLabel(status: string): string {
       return "Sent";
     case "void":
       return "Void";
+    case "accepted":
+      return "Accepted";
+    case "declined":
+      return "Declined";
+    case "converted":
+      return "Converted";
+    case "expired":
+      return "Expired";
     default:
       return "Draft";
   }

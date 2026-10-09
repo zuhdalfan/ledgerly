@@ -11,6 +11,7 @@ use printpdf::*;
 use crate::db::business::Business;
 use crate::db::clients::Client;
 use crate::db::invoices::{self, Invoice, InvoiceItem};
+use crate::db::line_items;
 use crate::domain::totals::{self, InvoiceTotals, LineTotals};
 
 use format::{format_date, format_money, format_percent_bp};
@@ -661,7 +662,7 @@ pub fn render_invoice(
 
     let totals = totals::compute(
         &invoices::stored_line_inputs(&invoice.items),
-        invoices::discount_from(&invoice.discount_type, &invoice.discount_value),
+        line_items::discount_from(&invoice.discount_type, &invoice.discount_value),
     );
 
     let mut y = painter.letterhead(business, invoice);
@@ -859,7 +860,7 @@ mod tests {
         .unwrap();
 
         let item = |description: &str, quantity: &str, price: i64, tax_rate_id: Option<String>| {
-            invoices::InvoiceItemInput {
+            invoices::LineItemInput {
                 description: description.to_string(),
                 quantity: quantity.to_string(),
                 unit: Some("hour".to_string()),
@@ -884,6 +885,7 @@ mod tests {
                 notes: None,
                 terms: None,
                 payment_instructions: None,
+                estimate_id: None,
                 items: vec![
                     item("Consulting", "3", 12_345, Some(gst.id)),
                     item("Hosting", "1", 4_000, None),
@@ -901,7 +903,7 @@ mod tests {
         // The PDF must show the same figures the list view shows.
         let recomputed = totals::compute(
             &invoices::stored_line_inputs(&loaded.items),
-            invoices::discount_from(&loaded.discount_type, &loaded.discount_value),
+            line_items::discount_from(&loaded.discount_type, &loaded.discount_value),
         );
         assert_eq!(recomputed.subtotal_minor, loaded.subtotal_minor);
         assert_eq!(recomputed.discount_minor, loaded.discount_minor);

@@ -9,9 +9,12 @@
     formatDate,
     fromMinor,
     localDate,
+    minorToInput,
     statusLabel,
     toMinor,
   } from "$lib/format";
+  import LineItems from "$lib/components/LineItems.svelte";
+  import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
   import type {
     Client,
     Invoice,
@@ -20,28 +23,6 @@
     Payment,
     TaxRate,
   } from "$lib/types";
-
-  type ItemForm = {
-    description: string;
-    quantity: string;
-    unit: string;
-    price: string;
-    discountType: string;
-    discountValue: string;
-    taxRateId: string;
-    taxInclusive: boolean;
-  };
-
-  const emptyItem = (): ItemForm => ({
-    description: "",
-    quantity: "1",
-    unit: "",
-    price: "",
-    discountType: "",
-    discountValue: "",
-    taxRateId: "",
-    taxInclusive: false,
-  });
 
   let clients = $state<Client[]>([]);
   let taxRates = $state<TaxRate[]>([]);
@@ -97,10 +78,6 @@
     clients.find((client) => client.id === clientId)?.displayName ?? ""
   );
 
-  function moneyString(minor: number): string {
-    return (minor / 100).toFixed(2);
-  }
-
   /// Status and balance are derived on the Rust side, so take them from the
   /// invoice the backend returns rather than recomputing them here.
   function applyDerived(invoice: Invoice) {
@@ -133,21 +110,7 @@
       notes: emptyToNull(notes),
       terms: emptyToNull(terms),
       paymentInstructions: emptyToNull(paymentInstructions),
-      items: items.map((item) => ({
-        description: item.description,
-        quantity: item.quantity.trim() || "1",
-        unit: emptyToNull(item.unit),
-        unitPriceMinor: toMinor(item.price),
-        discountType: item.discountType || null,
-        discountValue:
-          item.discountType === ""
-            ? null
-            : item.discountType === "fixed"
-              ? String(toMinor(item.discountValue))
-              : item.discountValue,
-        taxRateId: item.taxRateId || null,
-        taxInclusive: item.taxInclusive,
-      })),
+      items: toItemInputs(items),
     };
   }
 
@@ -187,26 +150,12 @@
       discountType = invoice.discountType ?? "";
       discountValue =
         invoice.discountType === "fixed" && invoice.discountValue
-          ? moneyString(Number(invoice.discountValue))
+          ? minorToInput(Number(invoice.discountValue))
           : (invoice.discountValue ?? "");
       notes = invoice.notes ?? "";
       terms = invoice.terms ?? "";
       paymentInstructions = invoice.paymentInstructions ?? "";
-      items = invoice.items.length
-        ? invoice.items.map((item) => ({
-            description: item.description,
-            quantity: item.quantity,
-            unit: item.unit ?? "",
-            price: moneyString(item.unitPriceMinor),
-            discountType: item.discountType ?? "",
-            discountValue:
-              item.discountType === "fixed" && item.discountValue
-                ? moneyString(Number(item.discountValue))
-                : (item.discountValue ?? ""),
-            taxRateId: item.taxRateId ?? "",
-            taxInclusive: item.taxInclusive,
-          }))
-        : [emptyItem()];
+      items = invoice.items.length ? invoice.items.map(toItemForm) : [emptyItem()];
       savedTotals = {
         subtotalMinor: invoice.subtotalMinor,
         discountMinor: invoice.discountMinor,
@@ -235,15 +184,6 @@
         .catch(() => {});
     }, 150);
   });
-
-  function addItem() {
-    items = [...items, emptyItem()];
-  }
-
-  function removeItem(index: number) {
-    const next = items.filter((_, i) => i !== index);
-    items = next.length ? next : [emptyItem()];
-  }
 
   async function save() {
     saveError = "";
@@ -405,69 +345,7 @@
 <div class="card">
   <h2>Line items</h2>
 
-  <table>
-    <thead>
-      <tr>
-        <th style="min-width: 160px;">Description</th>
-        <th style="width: 70px;">Qty</th>
-        <th style="width: 70px;">Unit</th>
-        <th style="width: 100px;">Price</th>
-        <th style="width: 100px;">Disc.</th>
-        <th style="width: 90px;">Value</th>
-        <th style="width: 120px;">Tax</th>
-        <th style="width: 60px;">Incl.</th>
-        <th style="width: 100px;">Total</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {#each items as item, index (index)}
-        <tr>
-          <td><input bind:value={item.description} placeholder="Description" /></td>
-          <td><input bind:value={item.quantity} inputmode="decimal" /></td>
-          <td><input bind:value={item.unit} placeholder="hour" /></td>
-          <td><input bind:value={item.price} inputmode="decimal" placeholder="0.00" /></td>
-          <td>
-            <select bind:value={item.discountType}>
-              <option value="">—</option>
-              <option value="percent">%</option>
-              <option value="fixed">Fixed</option>
-            </select>
-          </td>
-          <td>
-            {#if item.discountType}
-              <input bind:value={item.discountValue} inputmode="decimal" placeholder="0" />
-            {/if}
-          </td>
-          <td>
-            <select bind:value={item.taxRateId}>
-              <option value="">—</option>
-              {#each taxRates as rate (rate.id)}
-                <option value={rate.id}>{rate.name}</option>
-              {/each}
-            </select>
-          </td>
-          <td style="text-align: center;">
-            <input type="checkbox" bind:checked={item.taxInclusive} style="width: auto;" />
-          </td>
-          <td>{fromMinor(totals?.lines[index]?.totalMinor ?? 0, currency)}</td>
-          <td>
-            <button
-              class="btn secondary"
-              onclick={() => removeItem(index)}
-              aria-label="Remove line"
-            >
-              ×
-            </button>
-          </td>
-        </tr>
-      {/each}
-    </tbody>
-  </table>
-
-  <div class="row" style="margin-top: 0.75rem;">
-    <button class="btn secondary" onclick={addItem}>Add line</button>
-  </div>
+  <LineItems bind:items {taxRates} {currency} lines={totals?.lines ?? []} />
 </div>
 
 <div class="card">

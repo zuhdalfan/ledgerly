@@ -1,7 +1,9 @@
 pub mod business;
 pub mod catalog;
 pub mod clients;
+pub mod estimates;
 pub mod invoices;
+pub mod line_items;
 pub mod migrations;
 pub mod numbering;
 pub mod payments;

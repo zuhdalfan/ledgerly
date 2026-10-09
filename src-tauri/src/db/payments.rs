@@ -169,7 +169,7 @@ pub fn delete(conn: &Connection, id: &str) -> Result<(), AppError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::invoices::{self, InvoiceInput, InvoiceItemInput};
+    use crate::db::invoices::{self, InvoiceInput, LineItemInput};
     use crate::db::tests_support::temp_db;
 
     fn invoice(conn: &Connection, total: i64) -> String {
@@ -186,7 +186,8 @@ mod tests {
                 notes: None,
                 terms: None,
                 payment_instructions: None,
-                items: vec![InvoiceItemInput {
+                estimate_id: None,
+                items: vec![LineItemInput {
                     description: "Work".to_string(),
                     quantity: "1".to_string(),
                     unit: None,
