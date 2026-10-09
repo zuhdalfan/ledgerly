@@ -246,6 +246,24 @@ export type InvoiceInput = {
   items: LineItemInput[];
 };
 
+export type LicenseStatus = {
+  licensed: boolean;
+  /** `free`, `license` or `trial`. */
+  source: string;
+  plan: string | null;
+  keyId: string | null;
+  expiresAt: string | null;
+  daysRemaining: number | null;
+  features: string[];
+  serial: string;
+  machineFingerprint: string;
+  binding: string;
+  trialActive: boolean;
+  trialEndsAt: string | null;
+  trialAvailable: boolean;
+  problem: string | null;
+};
+
 export type BackupInfo = {
   path: string;
   name: string;

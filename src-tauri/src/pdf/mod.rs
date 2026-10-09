@@ -126,6 +126,7 @@ struct Painter {
     measure: TextMeasure,
     bold_measure: TextMeasure,
     theme: Theme,
+    promo: bool,
     page: PdfPageIndex,
     layer: PdfLayerIndex,
     pages: Vec<(PdfPageIndex, PdfLayerIndex)>,
@@ -516,6 +517,20 @@ impl Painter {
                 false,
                 self.theme.muted,
             );
+
+            if self.promo {
+                let promo = "Made with Ledgerly";
+                let width = self.width_mm(promo, 7.0, false);
+                self.text_on(
+                    &layer,
+                    promo,
+                    7.0,
+                    (PAGE_W - width) / 2.0,
+                    FOOTER_Y,
+                    false,
+                    self.theme.muted,
+                );
+            }
         }
     }
 }
@@ -631,6 +646,8 @@ pub fn render_invoice(
     business: &Business,
     client: Option<&Client>,
     template: Template,
+    // Free invoices carry a small "Made with Ledgerly" footer.
+    promo_footer: bool,
 ) -> Result<Vec<u8>, String> {
     let measure =
         TextMeasure::new(FONT_REGULAR).ok_or_else(|| "could not read the regular font".to_string())?;
@@ -655,6 +672,7 @@ pub fn render_invoice(
         measure,
         bold_measure,
         theme: Theme::for_template(template),
+        promo: promo_footer,
         page,
         layer,
         pages: vec![(page, layer)],
@@ -781,6 +799,7 @@ mod tests {
             &business(),
             None,
             Template::Classic,
+            false,
         )
         .unwrap();
 
@@ -801,8 +820,14 @@ mod tests {
             })
             .collect();
 
-        let bytes = render_invoice(&invoice(items, "draft"), &business(), None, Template::Classic)
-            .unwrap();
+        let bytes = render_invoice(
+            &invoice(items, "draft"),
+            &business(),
+            None,
+            Template::Classic,
+            false,
+        )
+        .unwrap();
 
         assert!(page_count(&bytes) > 1);
     }
@@ -815,6 +840,7 @@ mod tests {
                 &business(),
                 None,
                 template,
+                false,
             )
             .unwrap();
 
@@ -897,7 +923,14 @@ mod tests {
         let loaded = invoices::get(&t.conn, &created.id).unwrap().unwrap();
         let business = crate::db::business::get(&t.conn).unwrap();
 
-        let bytes = render_invoice(&loaded, &business, Some(&client), Template::Classic).unwrap();
+        let bytes = render_invoice(
+            &loaded,
+            &business,
+            Some(&client),
+            Template::Classic,
+            false,
+        )
+        .unwrap();
         assert_eq!(page_count(&bytes), 1);
 
         // The PDF must show the same figures the list view shows.
@@ -922,7 +955,7 @@ mod tests {
         invoice.payment_instructions = None;
         invoice.client_name = None;
 
-        let bytes = render_invoice(&invoice, &business(), None, Template::Minimal).unwrap();
+        let bytes = render_invoice(&invoice, &business(), None, Template::Minimal, true).unwrap();
         assert_eq!(page_count(&bytes), 1);
     }
 }

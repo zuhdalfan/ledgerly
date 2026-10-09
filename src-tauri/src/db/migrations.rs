@@ -7,6 +7,7 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0003_invoices.sql"),
     include_str!("../../migrations/0004_payments.sql"),
     include_str!("../../migrations/0005_estimates.sql"),
+    include_str!("../../migrations/0006_licensing.sql"),
 ];
 
 /// Apply every migration newer than the database's current `user_version`.
@@ -35,7 +36,10 @@ mod tests {
         // Simulate a database created before the invoice/estimate schemas existed.
         t.conn
             .execute_batch(
-                "DROP TABLE estimate_item;
+                "DROP TABLE trial;
+                 DROP TABLE license;
+                 DROP TABLE installation;
+                 DROP TABLE estimate_item;
                  DROP TABLE estimate;
                  DROP TABLE payment;
                  DROP TABLE invoice_item;

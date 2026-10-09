@@ -7,6 +7,7 @@ import type {
   BackupSettingsInput,
   Business,
   BusinessInput,
+  LicenseStatus,
   ClientRevenueRow,
   MethodRow,
   PeriodRow,
@@ -100,6 +101,16 @@ export const api = {
   exportCsv: (path: string, headers: string[], rows: string[][]) =>
     invoke<string>("export_csv", { path, headers, rows }),
   exportJson: (path: string) => invoke<string>("export_json", { path }),
+
+  license: {
+    status: () => invoke<LicenseStatus>("license_status"),
+    requestCode: () => invoke<string>("license_request_code"),
+    saveRequestFile: (path: string) => invoke<string>("license_save_request_file", { path }),
+    importKey: (text: string) => invoke<LicenseStatus>("license_import_key", { text }),
+    importFile: (path: string) => invoke<LicenseStatus>("license_import_file", { path }),
+    deactivate: () => invoke<LicenseStatus>("license_deactivate"),
+    startTrial: () => invoke<LicenseStatus>("license_start_trial"),
+  },
 
   backup: {
     now: (path?: string) => invoke<string>("backup_now", { path: path ?? null }),

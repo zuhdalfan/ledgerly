@@ -8,6 +8,7 @@
     BackupInfo,
     BackupSettings,
     BusinessInput,
+    LicenseStatus,
     TaxRate,
   } from "$lib/types";
 
@@ -281,6 +282,113 @@
   onMount(() => {
     void loadBackups();
   });
+
+  // ---- Licence ----
+
+  let license = $state<LicenseStatus | null>(null);
+  let requestCode = $state("");
+  let upgradeKey = $state("");
+  let licenseMessage = $state("");
+  let licenseError = $state("");
+  let licenseBusy = $state(false);
+
+  async function loadLicense() {
+    try {
+      license = await api.license.status();
+      requestCode = await api.license.requestCode();
+    } catch (e) {
+      licenseError = String(e);
+    }
+  }
+
+  async function copyRequestCode() {
+    licenseMessage = "";
+    try {
+      await navigator.clipboard.writeText(requestCode);
+      licenseMessage = "Request code copied";
+    } catch {
+      licenseMessage = "Select the code above and copy it manually.";
+    }
+  }
+
+  async function saveRequestCode() {
+    licenseMessage = "";
+    licenseError = "";
+    try {
+      const path = await saveDialog({
+        defaultPath: "ledgerly-request-code.txt",
+        filters: [{ name: "Text", extensions: ["txt"] }],
+      });
+      if (!path) return;
+      await api.license.saveRequestFile(path);
+      licenseMessage = `Request code saved to ${path}`;
+    } catch (e) {
+      licenseError = String(e);
+    }
+  }
+
+  async function activateKey() {
+    licenseMessage = "";
+    licenseError = "";
+    if (!upgradeKey.trim()) return;
+
+    licenseBusy = true;
+    try {
+      license = await api.license.importKey(upgradeKey.trim());
+      upgradeKey = "";
+      licenseMessage = "Licence activated — thank you!";
+    } catch (e) {
+      licenseError = String(e);
+    } finally {
+      licenseBusy = false;
+    }
+  }
+
+  async function loadLicenceFile() {
+    licenseMessage = "";
+    licenseError = "";
+    try {
+      const selected = await openDialog({
+        multiple: false,
+        filters: [{ name: "Ledgerly licence", extensions: ["lic", "json"] }],
+      });
+      if (typeof selected !== "string") return;
+
+      licenseBusy = true;
+      license = await api.license.importFile(selected);
+      licenseMessage = "Licence activated — thank you!";
+    } catch (e) {
+      licenseError = String(e);
+    } finally {
+      licenseBusy = false;
+    }
+  }
+
+  async function startTrial() {
+    licenseMessage = "";
+    licenseError = "";
+    try {
+      license = await api.license.startTrial();
+      licenseMessage = `Pro trial started — ${license.daysRemaining} days.`;
+    } catch (e) {
+      licenseError = String(e);
+    }
+  }
+
+  async function deactivate() {
+    licenseMessage = "";
+    licenseError = "";
+    try {
+      license = await api.license.deactivate();
+      licenseMessage = "Licence removed from this machine.";
+    } catch (e) {
+      licenseError = String(e);
+    }
+  }
+
+  onMount(() => {
+    void loadLicense();
+  });
 </script>
 
 <div class="page-head">
@@ -534,6 +642,101 @@
         {/each}
       </tbody>
     </table>
+  {/if}
+</div>
+
+<div class="card">
+  <div class="page-head">
+    <h2>Licence</h2>
+    {#if license}
+      <span class={`badge ${license.licensed ? "paid" : "draft"}`}>
+        {#if license.source === "trial"}Pro trial{:else if license.licensed}Pro{:else}Free{/if}
+      </span>
+    {/if}
+  </div>
+
+  {#if !license}
+    <p class="muted">Reading licence…</p>
+  {:else}
+    {#if license.licensed}
+      <p>
+        {#if license.source === "trial"}
+          Pro trial — {license.daysRemaining} day(s) left, until {license.expiresAt}.
+        {:else if license.plan === "perpetual"}
+          Pro licence, perpetual.
+        {:else}
+          Pro licence ({license.plan}) — {license.daysRemaining} day(s) left, until {license.expiresAt}.
+        {/if}
+      </p>
+      <p class="muted">Unlocked: {license.features.join(", ") || "nothing yet"}</p>
+    {:else}
+      <p class="muted">
+        Ledgerly is free and fully usable. Pro adds reports, extra PDF templates, custom branding,
+        scheduled backups, batch export and multi-currency.
+      </p>
+    {/if}
+
+    {#if license.problem}
+      <p class="error">{license.problem}</p>
+    {/if}
+
+    <h2 style="margin-top: 1.25rem;">This installation</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="licenceSerial">Installation serial</label>
+        <input id="licenceSerial" value={license.serial} disabled />
+      </div>
+      <div class="field">
+        <label for="licenceMachine">Machine ID</label>
+        <input id="licenceMachine" value={license.machineFingerprint} disabled />
+      </div>
+    </div>
+
+    {#if !license.licensed && license.trialAvailable}
+      <div class="row wrap">
+        <button class="btn secondary" onclick={startTrial} disabled={licenseBusy}>
+          Try Pro for 14 days
+        </button>
+      </div>
+    {/if}
+
+    <h2 style="margin-top: 1.5rem;">Upgrade to Pro</h2>
+    <p class="muted">
+      Send the request code to the vendor, then paste the key you get back. Activation happens
+      entirely offline — this app sends nothing anywhere.
+    </p>
+    <div class="field">
+      <label for="requestCode">Request code</label>
+      <textarea id="requestCode" rows="4" readonly value={requestCode}></textarea>
+    </div>
+    <div class="row wrap">
+      <button class="btn secondary" onclick={copyRequestCode}>Copy</button>
+      <button class="btn secondary" onclick={saveRequestCode}>Save to file…</button>
+    </div>
+
+    <div class="field" style="margin-top: 1rem;">
+      <label for="upgradeKey">Upgrade key</label>
+      <textarea
+        id="upgradeKey"
+        rows="3"
+        bind:value={upgradeKey}
+        placeholder="Paste the key, or load a .lic file"
+      ></textarea>
+    </div>
+    <div class="row wrap">
+      <button class="btn" onclick={activateKey} disabled={licenseBusy || !upgradeKey.trim()}>
+        Activate
+      </button>
+      <button class="btn secondary" onclick={loadLicenceFile} disabled={licenseBusy}>
+        Load .lic file…
+      </button>
+      {#if license.source === "license"}
+        <button class="btn danger" onclick={deactivate}>Deactivate</button>
+      {/if}
+    </div>
+
+    {#if licenseMessage}<p class="ok">{licenseMessage}</p>{/if}
+    {#if licenseError}<p class="error">{licenseError}</p>{/if}
   {/if}
 </div>
 

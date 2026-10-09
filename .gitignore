@@ -16,6 +16,9 @@ src-tauri/target/
 src-tauri/gen/
 src-tauri/.cargo/
 
+# Vendor signing key — must never be committed
+.vendor/
+
 # Tooling / editor
 .commandcode/
 .vscode/*

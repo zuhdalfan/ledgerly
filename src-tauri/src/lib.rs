@@ -4,6 +4,7 @@ mod db;
 mod domain;
 mod error;
 mod export;
+mod licensing;
 mod pdf;
 
 use std::path::{Path, PathBuf};
@@ -12,14 +13,43 @@ use std::sync::Mutex;
 use rusqlite::Connection;
 use tauri::Manager;
 
+use crate::error::AppResult;
+
 pub struct AppState {
     pub db: Mutex<Connection>,
     pub data_dir: PathBuf,
+    /// Keychain access is not free, and entitlements only change when the user
+    /// activates or deactivates, so they are cached for the session.
+    entitlements: Mutex<Option<licensing::Entitlements>>,
 }
 
 impl AppState {
+    pub fn new(db: Connection, data_dir: PathBuf) -> Self {
+        Self {
+            db: Mutex::new(db),
+            data_dir,
+            entitlements: Mutex::new(None),
+        }
+    }
+
     pub fn database_path(&self) -> PathBuf {
         db_path(&self.data_dir)
+    }
+
+    /// Never lock this before `db`.
+    pub fn entitlements(&self, conn: &Connection) -> AppResult<licensing::Entitlements> {
+        let mut cache = self.entitlements.lock().unwrap();
+        if let Some(value) = cache.as_ref() {
+            return Ok(value.clone());
+        }
+
+        let value = licensing::entitlements(conn)?;
+        *cache = Some(value.clone());
+        Ok(value)
+    }
+
+    pub fn forget_entitlements(&self) {
+        *self.entitlements.lock().unwrap() = None;
     }
 }
 
@@ -43,10 +73,7 @@ pub fn run() {
                 eprintln!("automatic backup skipped: {error}");
             }
 
-            app.manage(AppState {
-                db: Mutex::new(conn),
-                data_dir,
-            });
+            app.manage(AppState::new(conn, data_dir));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -106,6 +133,13 @@ pub fn run() {
             commands::backup_list,
             commands::backup_settings_get,
             commands::backup_settings_set,
+            commands::license_status,
+            commands::license_request_code,
+            commands::license_save_request_file,
+            commands::license_import_key,
+            commands::license_import_file,
+            commands::license_deactivate,
+            commands::license_start_trial,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

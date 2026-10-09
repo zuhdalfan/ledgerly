@@ -14,12 +14,37 @@ use crate::db::tax_rates::{self, TaxRate, TaxRateInput};
 use crate::domain::totals::InvoiceTotals;
 use crate::error::{AppError, AppResult};
 use crate::export;
+use crate::licensing::{self, LicenseStatus};
 use crate::pdf;
 use crate::AppState;
 use rusqlite::Connection;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use tauri::State;
+
+/// Gate for Pro-only work. Free (and anything unrecognised) is denied.
+fn ensure(state: &AppState, conn: &Connection, feature: &str) -> AppResult<()> {
+    if state.entitlements(conn)?.allows(feature) {
+        return Ok(());
+    }
+
+    Err(AppError::Validation(format!(
+        "{} is a Ledgerly Pro feature.",
+        feature_label(feature)
+    )))
+}
+
+fn feature_label(feature: &str) -> &'static str {
+    match feature {
+        "reports" => "Reports",
+        "pdf_templates" => "PDF templates other than Classic",
+        "branding" => "Custom branding",
+        "scheduled_backups" => "Scheduled backups",
+        "batch_export" => "Batch export",
+        "multi_currency" => "Multi-currency",
+        _ => "That feature",
+    }
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -283,8 +308,17 @@ pub fn pdf_export_invoice(
     path: String,
     template: Option<String>,
 ) -> AppResult<String> {
-    let (invoice, business, client) = {
+    let template_name = template.as_deref().unwrap_or("classic").to_string();
+
+    let (invoice, business, client, entitlements) = {
         let conn = state.db.lock().unwrap();
+        let entitlements = state.entitlements(&conn)?;
+        if template_name != "classic" && !entitlements.allows("pdf_templates") {
+            return Err(AppError::Validation(
+                "PDF templates other than Classic are a Ledgerly Pro feature.".to_string(),
+            ));
+        }
+
         let invoice = invoices::get(&conn, &id)?
             .ok_or_else(|| AppError::Pdf("invoice not found".to_string()))?;
         let business = business::get(&conn)?;
@@ -292,14 +326,16 @@ pub fn pdf_export_invoice(
             Some(client_id) => clients::get(&conn, client_id)?,
             None => None,
         };
-        (invoice, business, client)
+        (invoice, business, client, entitlements)
     };
 
     let bytes = pdf::render_invoice(
         &invoice,
         &business,
         client.as_ref(),
-        pdf::Template::parse(template.as_deref().unwrap_or("classic")),
+        pdf::Template::parse(&template_name),
+        // Free invoices carry a small footer; Pro removes it.
+        !entitlements.allows("branding"),
     )
     .map_err(AppError::Pdf)?;
 
@@ -434,6 +470,7 @@ pub fn reports_revenue(
     granularity: Option<String>,
 ) -> AppResult<Vec<PeriodRow>> {
     let conn = state.db.lock().unwrap();
+    ensure(&state, &conn, "reports")?;
     Ok(reports::revenue_by_period(
         &conn,
         &from,
@@ -449,12 +486,14 @@ pub fn reports_revenue_by_client(
     to: String,
 ) -> AppResult<Vec<ClientRevenueRow>> {
     let conn = state.db.lock().unwrap();
+    ensure(&state, &conn, "reports")?;
     Ok(reports::revenue_by_client(&conn, &from, &to)?)
 }
 
 #[tauri::command]
 pub fn reports_aged_receivables(state: State<'_, AppState>) -> AppResult<Vec<AgedRow>> {
     let conn = state.db.lock().unwrap();
+    ensure(&state, &conn, "reports")?;
     Ok(reports::aged_receivables(&conn)?)
 }
 
@@ -465,6 +504,7 @@ pub fn reports_tax(
     to: String,
 ) -> AppResult<Vec<TaxRow>> {
     let conn = state.db.lock().unwrap();
+    ensure(&state, &conn, "reports")?;
     Ok(reports::tax_collected(&conn, &from, &to)?)
 }
 
@@ -475,6 +515,7 @@ pub fn reports_payments_by_method(
     to: String,
 ) -> AppResult<Vec<MethodRow>> {
     let conn = state.db.lock().unwrap();
+    ensure(&state, &conn, "reports")?;
     Ok(reports::payments_by_method(&conn, &from, &to)?)
 }
 
@@ -568,5 +609,61 @@ pub fn backup_settings_set(
     input: BackupSettingsInput,
 ) -> AppResult<BackupSettings> {
     let conn = state.db.lock().unwrap();
+    if input.enabled {
+        ensure(&state, &conn, "scheduled_backups")?;
+    }
     Ok(backup::save_settings(&conn, &state.data_dir, &input)?)
+}
+
+#[tauri::command]
+pub fn license_status(state: State<'_, AppState>) -> AppResult<LicenseStatus> {
+    let conn = state.db.lock().unwrap();
+    licensing::status(&conn)
+}
+
+#[tauri::command]
+pub fn license_request_code(state: State<'_, AppState>) -> AppResult<String> {
+    let conn = state.db.lock().unwrap();
+    licensing::request_code_text(&conn)
+}
+
+#[tauri::command]
+pub fn license_save_request_file(state: State<'_, AppState>, path: String) -> AppResult<String> {
+    let conn = state.db.lock().unwrap();
+    let text = licensing::request_code_text(&conn)?;
+    std::fs::write(&path, format!("{text}\n"))?;
+    Ok(path)
+}
+
+#[tauri::command]
+pub fn license_import_key(state: State<'_, AppState>, text: String) -> AppResult<LicenseStatus> {
+    let conn = state.db.lock().unwrap();
+    let status = licensing::activate(&conn, &text)?;
+    state.forget_entitlements();
+    Ok(status)
+}
+
+#[tauri::command]
+pub fn license_import_file(state: State<'_, AppState>, path: String) -> AppResult<LicenseStatus> {
+    let text = std::fs::read_to_string(&path)?;
+    let conn = state.db.lock().unwrap();
+    let status = licensing::activate(&conn, &text)?;
+    state.forget_entitlements();
+    Ok(status)
+}
+
+#[tauri::command]
+pub fn license_deactivate(state: State<'_, AppState>) -> AppResult<LicenseStatus> {
+    let conn = state.db.lock().unwrap();
+    let status = licensing::deactivate(&conn)?;
+    state.forget_entitlements();
+    Ok(status)
+}
+
+#[tauri::command]
+pub fn license_start_trial(state: State<'_, AppState>) -> AppResult<LicenseStatus> {
+    let conn = state.db.lock().unwrap();
+    let status = licensing::start_trial(&conn, licensing::DEFAULT_TRIAL_DAYS)?;
+    state.forget_entitlements();
+    Ok(status)
 }
