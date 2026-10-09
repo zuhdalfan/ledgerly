@@ -7,6 +7,7 @@ pub mod line_items;
 pub mod migrations;
 pub mod numbering;
 pub mod payments;
+pub mod reports;
 pub mod settings;
 pub mod tax_rates;
 

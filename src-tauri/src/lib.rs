@@ -2,6 +2,7 @@ mod commands;
 mod db;
 mod domain;
 mod error;
+mod export;
 mod pdf;
 
 use std::path::{Path, PathBuf};
@@ -85,6 +86,13 @@ pub fn run() {
             commands::estimates_duplicate,
             commands::estimates_set_status,
             commands::estimates_convert,
+            commands::reports_revenue,
+            commands::reports_revenue_by_client,
+            commands::reports_aged_receivables,
+            commands::reports_tax,
+            commands::reports_payments_by_method,
+            commands::export_csv,
+            commands::export_json,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

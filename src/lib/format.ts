@@ -21,6 +21,11 @@ export function emptyToNull(value: string): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
+/** Plain decimal for spreadsheet cells — no symbol or grouping. */
+export function minorToCsv(minor: number): string {
+  return minorToInput(minor);
+}
+
 /** Render minor units as a plain decimal string for an input field. */
 export function minorToInput(minor: number): string {
   return (minor / 100).toFixed(2);

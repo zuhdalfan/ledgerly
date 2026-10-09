@@ -5,10 +5,14 @@ use crate::db::estimates::{self, Estimate, EstimateInput};
 use crate::db::invoices::{self, Invoice, InvoiceInput};
 use crate::db::numbering::{self, Numbering, NumberingInput};
 use crate::db::payments::{self, Payment, PaymentInput};
+use crate::db::reports::{
+    self, AgedRow, ClientRevenueRow, Granularity, MethodRow, PeriodRow, TaxRow,
+};
 use crate::db::settings::{self, Setting};
 use crate::db::tax_rates::{self, TaxRate, TaxRateInput};
 use crate::domain::totals::InvoiceTotals;
 use crate::error::{AppError, AppResult};
+use crate::export;
 use crate::pdf;
 use crate::AppState;
 use serde::Serialize;
@@ -417,4 +421,75 @@ pub fn payments_update(
 pub fn payments_delete(state: State<'_, AppState>, id: String) -> AppResult<()> {
     let conn = state.db.lock().unwrap();
     Ok(payments::delete(&conn, &id)?)
+}
+
+#[tauri::command]
+pub fn reports_revenue(
+    state: State<'_, AppState>,
+    from: String,
+    to: String,
+    granularity: Option<String>,
+) -> AppResult<Vec<PeriodRow>> {
+    let conn = state.db.lock().unwrap();
+    Ok(reports::revenue_by_period(
+        &conn,
+        &from,
+        &to,
+        Granularity::parse(granularity.as_deref().unwrap_or("month")),
+    )?)
+}
+
+#[tauri::command]
+pub fn reports_revenue_by_client(
+    state: State<'_, AppState>,
+    from: String,
+    to: String,
+) -> AppResult<Vec<ClientRevenueRow>> {
+    let conn = state.db.lock().unwrap();
+    Ok(reports::revenue_by_client(&conn, &from, &to)?)
+}
+
+#[tauri::command]
+pub fn reports_aged_receivables(state: State<'_, AppState>) -> AppResult<Vec<AgedRow>> {
+    let conn = state.db.lock().unwrap();
+    Ok(reports::aged_receivables(&conn)?)
+}
+
+#[tauri::command]
+pub fn reports_tax(
+    state: State<'_, AppState>,
+    from: String,
+    to: String,
+) -> AppResult<Vec<TaxRow>> {
+    let conn = state.db.lock().unwrap();
+    Ok(reports::tax_collected(&conn, &from, &to)?)
+}
+
+#[tauri::command]
+pub fn reports_payments_by_method(
+    state: State<'_, AppState>,
+    from: String,
+    to: String,
+) -> AppResult<Vec<MethodRow>> {
+    let conn = state.db.lock().unwrap();
+    Ok(reports::payments_by_method(&conn, &from, &to)?)
+}
+
+/// Write a report the frontend already holds to a CSV file.
+#[tauri::command]
+pub fn export_csv(
+    path: String,
+    headers: Vec<String>,
+    rows: Vec<Vec<String>>,
+) -> AppResult<String> {
+    export::write_csv(&path, &headers, &rows)?;
+    Ok(path)
+}
+
+/// Write the whole database to a single JSON file.
+#[tauri::command]
+pub fn export_json(state: State<'_, AppState>, path: String) -> AppResult<String> {
+    let conn = state.db.lock().unwrap();
+    export::export_json(&conn, &path)?;
+    Ok(path)
 }

@@ -1,8 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  AgedRow,
   AppInfo,
   Business,
   BusinessInput,
+  ClientRevenueRow,
+  MethodRow,
+  PeriodRow,
+  TaxRow,
   CatalogItem,
   CatalogItemInput,
   Client,
@@ -77,6 +82,21 @@ export const api = {
     exportPdf: (id: string, path: string, template: string) =>
       invoke<string>("pdf_export_invoice", { id, path, template }),
   },
+
+  reports: {
+    revenue: (from: string, to: string, granularity: string) =>
+      invoke<PeriodRow[]>("reports_revenue", { from, to, granularity }),
+    revenueByClient: (from: string, to: string) =>
+      invoke<ClientRevenueRow[]>("reports_revenue_by_client", { from, to }),
+    agedReceivables: () => invoke<AgedRow[]>("reports_aged_receivables"),
+    tax: (from: string, to: string) => invoke<TaxRow[]>("reports_tax", { from, to }),
+    paymentsByMethod: (from: string, to: string) =>
+      invoke<MethodRow[]>("reports_payments_by_method", { from, to }),
+  },
+
+  exportCsv: (path: string, headers: string[], rows: string[][]) =>
+    invoke<string>("export_csv", { path, headers, rows }),
+  exportJson: (path: string) => invoke<string>("export_json", { path }),
 
   estimates: {
     list: (query?: string, status?: string) =>

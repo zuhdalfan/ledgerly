@@ -246,6 +246,43 @@ export type InvoiceInput = {
   items: LineItemInput[];
 };
 
+export type PeriodRow = {
+  period: string;
+  invoiceCount: number;
+  invoicedMinor: number;
+  taxMinor: number;
+  paidMinor: number;
+};
+
+export type ClientRevenueRow = {
+  clientId: string | null;
+  clientName: string;
+  invoiceCount: number;
+  invoicedMinor: number;
+  paidMinor: number;
+  outstandingMinor: number;
+};
+
+export type AgedRow = {
+  label: string;
+  invoiceCount: number;
+  balanceMinor: number;
+};
+
+export type TaxRow = {
+  taxRateId: string | null;
+  name: string;
+  rateBp: number;
+  taxableMinor: number;
+  taxMinor: number;
+};
+
+export type MethodRow = {
+  method: string;
+  paymentCount: number;
+  amountMinor: number;
+};
+
 export type LineTotals = {
   grossMinor: number;
   discountMinor: number;
