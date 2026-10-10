@@ -3,6 +3,7 @@ name = "ledgerly"
 version = "0.1.0"
 description = "Offline invoicing for freelancers and small businesses"
 authors = ["Muhammad Zuhdi"]
+license = "MIT"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -30,14 +31,7 @@ printpdf = "0.7"
 tauri-plugin-dialog = "2.8.1"
 ttf-parser = "0.25.1"
 zip = { version = "9.0.0", default-features = false, features = ["deflate"] }
-ed25519-dalek = "3.0.0"
-sha2 = "0.11.0"
-base32 = "0.5.1"
-aes-gcm = "0.11.1"
-keyring = { version = "4.2.0", features = ["apple-native-keyring-store"] }
 getrandom = "0.4.3"
-machine-uid = "0.6.0"
-ledgerly-license = { path = "../licensing-format" }
 argon2 = "0.5"
 
 

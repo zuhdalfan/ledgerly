@@ -6,7 +6,7 @@
 </script>
 
 <div class="error-page">
-  <Mascot expression={isMissing ? "idle" : "worried"} size={88} />
+  <Mascot expression={isMissing ? "thinking" : "worried"} size={88} />
   <h1>{isMissing ? "That page is not here" : "Something went wrong"}</h1>
   <p class="muted">
     {isMissing

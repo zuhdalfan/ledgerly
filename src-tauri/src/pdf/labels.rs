@@ -46,7 +46,6 @@ pub struct Labels {
     pub no_items: &'static str,
     pub page: &'static str,
     pub of: &'static str,
-    pub promo: &'static str,
     pub void: &'static str,
 }
 
@@ -74,7 +73,6 @@ static EN: Labels = Labels {
     no_items: "No line items",
     page: "Page",
     of: "of",
-    promo: "Made with Ledgerly",
     void: "VOID",
 };
 
@@ -118,7 +116,6 @@ mod tests {
             labels.no_items,
             labels.page,
             labels.of,
-            labels.promo,
             labels.void,
         ] {
             assert!(!value.trim().is_empty(), "a label is missing");

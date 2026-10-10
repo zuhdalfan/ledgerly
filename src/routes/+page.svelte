@@ -3,12 +3,15 @@
   import { formatDate, fromMinor } from "$lib/format";
   import type { AppInfo, Business, Invoice } from "$lib/types";
   import AsyncState from "$lib/components/AsyncState.svelte";
+  import BarList from "$lib/components/BarList.svelte";
+  import ColumnChart from "$lib/components/ColumnChart.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
 
   let info = $state<AppInfo | null>(null);
   let business = $state<Business | null>(null);
   let clientCount = $state(0);
   let invoices = $state<Invoice[]>([]);
+  let revenue = $state<{ label: string; primary: number; secondary: number }[]>([]);
   let loading = $state(true);
   let error = $state("");
 
@@ -28,21 +31,28 @@
 
   const aging = $derived.by(() => {
     const buckets = [
-      { label: "Not yet due", amount: 0 },
-      { label: "1–30 days", amount: 0 },
-      { label: "31–60 days", amount: 0 },
-      { label: "61–90 days", amount: 0 },
-      { label: "90+ days", amount: 0 },
+      { label: "Not yet due", amountMinor: 0 },
+      { label: "1–30 days", amountMinor: 0 },
+      { label: "31–60 days", amountMinor: 0 },
+      { label: "61–90 days", amountMinor: 0 },
+      { label: "90+ days", amountMinor: 0 },
     ];
 
     for (const invoice of open) {
       const days = invoice.daysPastDue ?? 0;
       const index = days <= 0 ? 0 : days <= 30 ? 1 : days <= 60 ? 2 : days <= 90 ? 3 : 4;
-      buckets[index].amount += invoice.balanceMinor;
+      buckets[index].amountMinor += invoice.balanceMinor;
     }
 
     return buckets;
   });
+  // The oldest bucket is the one that matters most, so it is the only colour.
+  const agingRows = $derived(
+    aging.map((bucket, index) => ({
+      ...bucket,
+      tone: index === 4 ? ("danger" as const) : ("ink" as const),
+    }))
+  );
 
   // First-run path. Each step disappears once it is done, so the dashboard
   // teaches the product without a separate tour.
@@ -68,19 +78,43 @@
   ]);
   const remaining = $derived(steps.filter((step) => !step.done).length);
 
+  function isoLocal(date: Date): string {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${date.getFullYear()}-${month}-${day}`;
+  }
+
+  function monthLabel(period: string): string {
+    const [year, month] = period.split("-");
+    return new Date(Number(year), Number(month) - 1, 1).toLocaleString(undefined, {
+      month: "short",
+    });
+  }
+
   async function load() {
     loading = true;
     try {
-      const [appInfo, biz, clients, allInvoices] = await Promise.all([
+      const now = new Date();
+      const from = isoLocal(new Date(now.getFullYear(), now.getMonth() - 5, 1));
+      const to = isoLocal(now);
+
+      const [appInfo, biz, clients, allInvoices, periods] = await Promise.all([
         api.appInfo(),
         api.business.get(),
         api.clients.list(),
         api.invoices.list(),
+        // A failed chart must not blank the whole dashboard.
+        api.reports.revenue(from, to, "month").catch(() => []),
       ]);
       info = appInfo;
       business = biz;
       clientCount = clients.length;
       invoices = allInvoices;
+      revenue = periods.map((row) => ({
+        label: monthLabel(row.period),
+        primary: row.paidMinor,
+        secondary: row.invoicedMinor,
+      }));
       error = "";
     } catch (e) {
       error = String(e);
@@ -178,26 +212,27 @@
 
   <div class="card rise" style="--i: 3">
     <h2>Aged receivables</h2>
-    <table>
-      <thead>
-        <tr><th>Age</th><th class="numeric">Balance</th></tr>
-      </thead>
-      <tbody>
-        {#each aging as bucket (bucket.label)}
-          <tr>
-            <td>{bucket.label}</td>
-            <td class="numeric">{fromMinor(bucket.amount, currency)}</td>
-          </tr>
-        {/each}
-        <tr>
-          <td><strong>Total outstanding</strong></td>
-          <td class="numeric"><strong>{fromMinor(outstanding, currency)}</strong></td>
-        </tr>
-      </tbody>
-    </table>
+    <BarList
+      rows={agingRows}
+      {currency}
+      label="Outstanding balance by age"
+      columnLabel="Share of the largest bucket"
+    />
   </div>
 
   <div class="card rise" style="--i: 4">
+    <h2>Billed and collected</h2>
+    <p class="muted">The last six months. The gap between the bars is money you are owed.</p>
+    <ColumnChart
+      points={revenue}
+      {currency}
+      label="Billed and collected over the last six months"
+      primaryName="Collected"
+      secondaryName="Billed"
+    />
+  </div>
+
+  <div class="card rise" style="--i: 5">
     <h2>Your data</h2>
     <p class="muted">
       Everything is stored on this machine. No account, no cloud, no network.

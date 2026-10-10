@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import Mascot from "./Mascot.svelte";
+  import Mascot, { type Mood } from "./Mascot.svelte";
 
   // The empty state is the onboarding. Say what belongs here, and what fills it.
   let {
@@ -11,7 +11,7 @@
   }: {
     title: string;
     body?: string;
-    mood?: "idle" | "pleased" | "worried" | "celebrating";
+    mood?: Mood;
     children?: Snippet;
   } = $props();
 </script>

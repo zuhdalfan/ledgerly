@@ -9,6 +9,7 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0005_estimates.sql"),
     include_str!("../../migrations/0006_licensing.sql"),
     include_str!("../../migrations/0007_security.sql"),
+    include_str!("../../migrations/0008_drop_licensing.sql"),
 ];
 
 /// Apply every migration newer than the database's current `user_version`.
@@ -38,9 +39,6 @@ mod tests {
         t.conn
             .execute_batch(
                 "DROP TABLE app_lock;
-                 DROP TABLE trial;
-                 DROP TABLE license;
-                 DROP TABLE installation;
                  DROP TABLE estimate_item;
                  DROP TABLE estimate;
                  DROP TABLE payment;
@@ -73,5 +71,35 @@ mod tests {
         run(&t.conn).unwrap();
 
         assert_eq!(tax_rates::list(&t.conn, true).unwrap().len(), before);
+    }
+
+    #[test]
+    fn drops_the_retired_licensing_tables() {
+        let t = temp_db();
+
+        // Stand up a database that still carries what 0006 created, the way an
+        // existing installation does.
+        t.conn
+            .execute_batch(
+                "CREATE TABLE installation (id TEXT PRIMARY KEY);
+                 CREATE TABLE license (id TEXT PRIMARY KEY);
+                 CREATE TABLE trial (id TEXT PRIMARY KEY);
+                 PRAGMA user_version = 7;",
+            )
+            .unwrap();
+
+        run(&t.conn).unwrap();
+
+        let remaining: i64 = t
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'table' AND name IN ('installation', 'license', 'trial')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(remaining, 0, "the retired licensing tables should be gone");
     }
 }

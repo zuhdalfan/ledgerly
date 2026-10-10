@@ -558,6 +558,14 @@ Primary concern is **unintended data exposure and loss**, not a remote attacker.
 
 ## 13. Licensing & Freemium Model (Offline Activation)
 
+> **Superseded.** This section describes the original freemium plan. The project
+> is now **MIT licensed with every feature unlocked**, and the offline activation
+> subsystem (Ed25519 keys, request codes, `licensectl`, entitlement gating) has
+> been removed from the codebase. It is kept here as a record of the design and
+> its reasoning, not as a description of the current product. See §13.3 for the
+> cryptographic argument, which is still the correct analysis of the original
+> brief.
+
 Ledgerly ships as a **freemium** product. The Free tier is genuinely usable forever; Pro is a
 paid upgrade unlocked by an **offline license key cryptographically bound to the machine**.
 Nothing about licensing requires the app to touch the network — the request and the key are

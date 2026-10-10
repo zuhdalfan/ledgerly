@@ -37,10 +37,10 @@
     },
     { id: "settings-data", label: "Settings: Data", hint: "Settings", href: "/settings/data" },
     {
-      id: "settings-licence",
-      label: "Settings: Licence",
+      id: "settings-support",
+      label: "Settings: Support",
       hint: "Settings",
-      href: "/settings/licence",
+      href: "/settings/support",
     },
     { id: "settings-about", label: "Settings: About", hint: "Settings", href: "/settings/about" },
   ];

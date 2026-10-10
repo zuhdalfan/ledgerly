@@ -62,9 +62,3 @@ jobs:
 
       - name: Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
-
-      - name: Licence format tests
-        run: cargo test --manifest-path licensing-format/Cargo.toml
-
-      - name: Vendor signing tool builds
-        run: cargo build --manifest-path tools/licensectl/Cargo.toml

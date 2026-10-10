@@ -7,7 +7,6 @@ import type {
   BackupSettingsInput,
   Business,
   BusinessInput,
-  LicenseStatus,
   SecurityStatus,
   ClientRevenueRow,
   MethodRow,
@@ -119,16 +118,6 @@ export const api = {
     disable: (passphrase: string) => invoke<SecurityStatus>("security_disable", { passphrase }),
     setAutoLock: (minutes: number) =>
       invoke<SecurityStatus>("security_set_auto_lock", { minutes }),
-  },
-
-  license: {
-    status: () => invoke<LicenseStatus>("license_status"),
-    requestCode: () => invoke<string>("license_request_code"),
-    saveRequestFile: (path: string) => invoke<string>("license_save_request_file", { path }),
-    importKey: (text: string) => invoke<LicenseStatus>("license_import_key", { text }),
-    importFile: (path: string) => invoke<LicenseStatus>("license_import_file", { path }),
-    deactivate: () => invoke<LicenseStatus>("license_deactivate"),
-    startTrial: () => invoke<LicenseStatus>("license_start_trial"),
   },
 
   backup: {

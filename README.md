@@ -3,23 +3,25 @@
 A fully local, fully offline desktop invoicing app for freelancers and small
 businesses. Manage clients, create invoices and estimates, track payments, run
 reports and export professional PDFs — with no account, no cloud and no network
-dependency.
+dependency. Every feature is free.
 
 Built with **Rust + Tauri 2**, a **Svelte 5 + TypeScript** frontend, and a local
-**SQLite** file. Pro is unlocked by an offline key bound to the machine.
+**SQLite** file.
 
 > The product name "Ledgerly" is a placeholder.
 
 ## What it does
 
-- **Clients and a reusable catalog** of products and services.
+- **Clients and a reusable catalog** of products and services, with a catalog
+  picker right inside the invoice editor.
 - **Invoices** with line items, per-line and invoice-level discounts, multiple
   tax rates, tax-inclusive or exclusive pricing, and a totals engine that
   reconciles to the cent.
 - **Payments and lifecycle** — record full or partial payments; draft, sent,
   partially paid, paid, overdue and void are derived, not hand-set. Aged
   receivables on the dashboard.
-- **Estimates** that convert into a linked invoice in one click.
+- **Estimates** that convert into a linked invoice in one click, and export to
+  PDF like invoices do.
 - **PDF export** with three templates, an embedded font, pagination and a
   void watermark.
 - **Reports** — revenue by period and client, aged receivables, tax collected
@@ -29,24 +31,32 @@ Built with **Rust + Tauri 2**, a **Svelte 5 + TypeScript** frontend, and a local
   pre-restore safety copy, and rotating automatic backups.
 - **App lock** with an Argon2id passphrase, enforced in the Rust core, with
   auto-lock on idle.
-- **Offline licensing** — an Ed25519 key bound to this install and machine.
+- **A command palette** (`Ctrl/Cmd+K`), keyboard shortcuts, and a mascot called
+  Tally.
 
 ## The promise
 
 **Ledgerly makes no network requests.** No telemetry, no analytics, no update
-checks, no licence server. `npm run check:offline` enforces it in CI by failing
-the build if an HTTP client crate, a browser networking API, or a remote URL
-appears anywhere in the dependency graph or source.
+checks, no licence server, no account. `npm run check:offline` enforces it in CI
+by failing the build if an HTTP client crate, a browser networking API, or a
+remote URL appears anywhere in the dependency graph or source.
+
+## Licence
+
+**MIT.** See [LICENSE](LICENSE). Use it, change it, ship it, sell it. It comes
+with no warranty.
+
+There is no paid tier, no trial and no licence key: every feature is unlocked
+for everyone. If it saves you time, there is a "buy me a coffee" button in
+`Settings → Support` — entirely optional, and it changes nothing inside the app.
 
 ## Layout
 
 ```
-docs/          PRD, release checklist, licensing runbook
-src/           Svelte frontend
-src-tauri/     Rust core (Tauri backend)
-licensing-format/  Licence wire format shared by the app and the vendor tool
-tools/licensectl/  Vendor signing tool (never shipped with the app)
-scripts/       CI helpers
+docs/         PRD and release checklist
+src/          Svelte frontend
+src-tauri/    Rust core (Tauri backend), migrations and assets
+scripts/      CI helpers
 ```
 
 ## Develop
@@ -70,24 +80,18 @@ npm run tauri build
 
 ```bash
 cargo test --manifest-path src-tauri/Cargo.toml
-cargo test --manifest-path licensing-format/Cargo.toml
 npm run check          # svelte-check
 npm run check:offline  # no network access
 ```
 
-Two tests are `#[ignore]`d because they need a real OS keychain and the vendor
-development key; run them with `-- --ignored`.
-
 ## Docs
 
 - [`docs/PRD.md`](docs/PRD.md) — the product requirements and design.
-- [`docs/RELEASING.md`](docs/RELEASING.md) — release checklist, signing, and the
-  one-time hardening still to do.
-- [`docs/LICENSING.md`](docs/LICENSING.md) — how to issue and re-issue Pro keys.
+- [`docs/RELEASING.md`](docs/RELEASING.md) — release checklist and signing.
 
 ## Status
 
-Feature-complete against the PRD milestones M0–M8 and the security/i18n parts of
-M9. Known gaps: the database is **not encrypted at rest** (SQLCipher needs a
-vendored OpenSSL build), reports have no PDF output, and the app UI is
-English-only with document labels localized. See `docs/RELEASING.md`.
+Feature-complete against the PRD milestones M0–M10. Known gaps: the database is
+**not encrypted at rest** (SQLCipher needs a vendored OpenSSL build), the app UI
+is English-only with document labels localized, and recurring invoices are not
+implemented. See `docs/RELEASING.md`.

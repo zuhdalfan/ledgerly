@@ -98,7 +98,6 @@ for (const name of jsDeps) {
 const sources = [
   ...walk(join(ROOT, "src")),
   ...walk(join(ROOT, "src-tauri", "src")),
-  ...walk(join(ROOT, "licensing-format", "src")),
 ].filter((path) => /\.(svelte|ts|js|rs|html|css)$/.test(path));
 
 for (const path of sources) {

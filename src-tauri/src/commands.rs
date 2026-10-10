@@ -14,7 +14,6 @@ use crate::db::tax_rates::{self, TaxRate, TaxRateInput};
 use crate::domain::totals::InvoiceTotals;
 use crate::error::{AppError, AppResult};
 use crate::export;
-use crate::licensing::{self, LicenseStatus};
 use crate::pdf;
 use crate::security::{self, LockSettings, LockSettingsInput};
 use crate::AppState;
@@ -22,18 +21,6 @@ use rusqlite::Connection;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use tauri::State;
-
-/// Gate for Pro-only work. Free (and anything unrecognised) is denied.
-fn ensure(state: &AppState, conn: &Connection, feature: &str) -> AppResult<()> {
-    if state.entitlements(conn)?.allows(feature) {
-        return Ok(());
-    }
-
-    Err(AppError::Validation(format!(
-        "{} is a Ledgerly Pro feature.",
-        feature_label(feature)
-    )))
-}
 
 /// Everything that touches user data passes through this while the lock is on,
 /// so the check cannot be bypassed by talking to the IPC layer directly.
@@ -44,18 +31,6 @@ fn require_unlocked(state: &AppState) -> AppResult<()> {
         Err(AppError::Validation(
             "Ledgerly is locked. Unlock to continue.".to_string(),
         ))
-    }
-}
-
-fn feature_label(feature: &str) -> &'static str {
-    match feature {
-        "reports" => "Reports",
-        "pdf_templates" => "PDF templates other than Classic",
-        "branding" => "Custom branding",
-        "scheduled_backups" => "Scheduled backups",
-        "batch_export" => "Batch export",
-        "multi_currency" => "Multi-currency",
-        _ => "That feature",
     }
 }
 
@@ -95,13 +70,6 @@ mod tests {
     #[test]
     fn an_unlocked_app_allows_them() {
         assert!(require_unlocked(&state(false)).is_ok());
-    }
-
-    #[test]
-    fn pro_features_are_labelled_for_the_user() {
-        assert_eq!(feature_label("reports"), "Reports");
-        assert_eq!(feature_label("scheduled_backups"), "Scheduled backups");
-        assert_eq!(feature_label("something_new"), "That feature");
     }
 }
 
@@ -388,17 +356,11 @@ pub fn pdf_export_invoice(
 ) -> AppResult<String> {
     let template_name = template.as_deref().unwrap_or("classic").to_string();
 
-    let (invoice, business, client, entitlements, locale) = {
+    let (invoice, business, client, locale) = {
         let conn = state.db.lock().unwrap();
         require_unlocked(&state)?;
-        let entitlements = state.entitlements(&conn)?;
         // Document language is independent of the app's UI language.
         let locale = settings::get(&conn, "pdf.locale")?.unwrap_or_else(|| "en".to_string());
-        if template_name != "classic" && !entitlements.allows("pdf_templates") {
-            return Err(AppError::Validation(
-                "PDF templates other than Classic are a Ledgerly Pro feature.".to_string(),
-            ));
-        }
 
         let invoice = invoices::get(&conn, &id)?
             .ok_or_else(|| AppError::Pdf("invoice not found".to_string()))?;
@@ -407,7 +369,7 @@ pub fn pdf_export_invoice(
             Some(client_id) => clients::get(&conn, client_id)?,
             None => None,
         };
-        (invoice, business, client, entitlements, locale)
+        (invoice, business, client, locale)
     };
 
     let bytes = pdf::render_invoice(
@@ -416,8 +378,6 @@ pub fn pdf_export_invoice(
         client.as_ref(),
         pdf::PdfOptions {
             template: pdf::Template::parse(&template_name),
-            // Free invoices carry a small footer; Pro removes it.
-            promo_footer: !entitlements.allows("branding"),
             locale: pdf::DocumentLocale::parse(&locale),
         },
     )
@@ -438,17 +398,11 @@ pub fn pdf_export_estimate(
 ) -> AppResult<String> {
     let template_name = template.as_deref().unwrap_or("classic").to_string();
 
-    let (estimate, business, client, entitlements, locale) = {
+    let (estimate, business, client, locale) = {
         let conn = state.db.lock().unwrap();
         require_unlocked(&state)?;
-        let entitlements = state.entitlements(&conn)?;
         // Document language is independent of the app's UI language.
         let locale = settings::get(&conn, "pdf.locale")?.unwrap_or_else(|| "en".to_string());
-        if template_name != "classic" && !entitlements.allows("pdf_templates") {
-            return Err(AppError::Validation(
-                "PDF templates other than Classic are a Ledgerly Pro feature.".to_string(),
-            ));
-        }
 
         let estimate = estimates::get(&conn, &id)?
             .ok_or_else(|| AppError::Pdf("estimate not found".to_string()))?;
@@ -457,7 +411,7 @@ pub fn pdf_export_estimate(
             Some(client_id) => clients::get(&conn, client_id)?,
             None => None,
         };
-        (estimate, business, client, entitlements, locale)
+        (estimate, business, client, locale)
     };
 
     let bytes = pdf::render_estimate(
@@ -466,8 +420,6 @@ pub fn pdf_export_estimate(
         client.as_ref(),
         pdf::PdfOptions {
             template: pdf::Template::parse(&template_name),
-            // Free documents carry a small footer; Pro removes it.
-            promo_footer: !entitlements.allows("branding"),
             locale: pdf::DocumentLocale::parse(&locale),
         },
     )
@@ -611,7 +563,6 @@ pub fn reports_revenue(
 ) -> AppResult<Vec<PeriodRow>> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    ensure(&state, &conn, "reports")?;
     Ok(reports::revenue_by_period(
         &conn,
         &from,
@@ -628,7 +579,6 @@ pub fn reports_revenue_by_client(
 ) -> AppResult<Vec<ClientRevenueRow>> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    ensure(&state, &conn, "reports")?;
     Ok(reports::revenue_by_client(&conn, &from, &to)?)
 }
 
@@ -636,7 +586,6 @@ pub fn reports_revenue_by_client(
 pub fn reports_aged_receivables(state: State<'_, AppState>) -> AppResult<Vec<AgedRow>> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    ensure(&state, &conn, "reports")?;
     Ok(reports::aged_receivables(&conn)?)
 }
 
@@ -644,7 +593,6 @@ pub fn reports_aged_receivables(state: State<'_, AppState>) -> AppResult<Vec<Age
 pub fn reports_tax(state: State<'_, AppState>, from: String, to: String) -> AppResult<Vec<TaxRow>> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    ensure(&state, &conn, "reports")?;
     Ok(reports::tax_collected(&conn, &from, &to)?)
 }
 
@@ -656,7 +604,6 @@ pub fn reports_payments_by_method(
 ) -> AppResult<Vec<MethodRow>> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    ensure(&state, &conn, "reports")?;
     Ok(reports::payments_by_method(&conn, &from, &to)?)
 }
 
@@ -755,9 +702,6 @@ pub fn backup_settings_set(
 ) -> AppResult<BackupSettings> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    if input.enabled {
-        ensure(&state, &conn, "scheduled_backups")?;
-    }
     Ok(backup::save_settings(&conn, &state.data_dir, &input)?)
 }
 
@@ -842,64 +786,4 @@ pub fn security_set_auto_lock(
 
     security::set_auto_lock(&conn, minutes)?;
     security_status_for(&state, &conn)
-}
-
-#[tauri::command]
-pub fn license_status(state: State<'_, AppState>) -> AppResult<LicenseStatus> {
-    let conn = state.db.lock().unwrap();
-    require_unlocked(&state)?;
-    licensing::status(&conn)
-}
-
-#[tauri::command]
-pub fn license_request_code(state: State<'_, AppState>) -> AppResult<String> {
-    let conn = state.db.lock().unwrap();
-    require_unlocked(&state)?;
-    licensing::request_code_text(&conn)
-}
-
-#[tauri::command]
-pub fn license_save_request_file(state: State<'_, AppState>, path: String) -> AppResult<String> {
-    let conn = state.db.lock().unwrap();
-    require_unlocked(&state)?;
-    let text = licensing::request_code_text(&conn)?;
-    std::fs::write(&path, format!("{text}\n"))?;
-    Ok(path)
-}
-
-#[tauri::command]
-pub fn license_import_key(state: State<'_, AppState>, text: String) -> AppResult<LicenseStatus> {
-    let conn = state.db.lock().unwrap();
-    require_unlocked(&state)?;
-    let status = licensing::activate(&conn, &text)?;
-    state.forget_entitlements();
-    Ok(status)
-}
-
-#[tauri::command]
-pub fn license_import_file(state: State<'_, AppState>, path: String) -> AppResult<LicenseStatus> {
-    let text = std::fs::read_to_string(&path)?;
-    let conn = state.db.lock().unwrap();
-    require_unlocked(&state)?;
-    let status = licensing::activate(&conn, &text)?;
-    state.forget_entitlements();
-    Ok(status)
-}
-
-#[tauri::command]
-pub fn license_deactivate(state: State<'_, AppState>) -> AppResult<LicenseStatus> {
-    let conn = state.db.lock().unwrap();
-    require_unlocked(&state)?;
-    let status = licensing::deactivate(&conn)?;
-    state.forget_entitlements();
-    Ok(status)
-}
-
-#[tauri::command]
-pub fn license_start_trial(state: State<'_, AppState>) -> AppResult<LicenseStatus> {
-    let conn = state.db.lock().unwrap();
-    require_unlocked(&state)?;
-    let status = licensing::start_trial(&conn, licensing::DEFAULT_TRIAL_DAYS)?;
-    state.forget_entitlements();
-    Ok(status)
 }

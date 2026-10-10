@@ -26,8 +26,6 @@ pub use labels::Locale as DocumentLocale;
 #[derive(Debug, Clone, Copy)]
 pub struct PdfOptions {
     pub template: Template,
-    /// Free invoices carry a small "Made with Ledgerly" footer.
-    pub promo_footer: bool,
     /// Language of the labels on the document itself.
     pub locale: Locale,
 }
@@ -172,7 +170,6 @@ struct Painter {
     measure: TextMeasure,
     bold_measure: TextMeasure,
     theme: Theme,
-    promo: bool,
     labels: &'static Labels,
     kind: DocumentKind,
     page: PdfPageIndex,
@@ -590,20 +587,6 @@ impl Painter {
                 false,
                 self.theme.muted,
             );
-
-            if self.promo {
-                let promo = self.labels.promo;
-                let width = self.width_mm(promo, 7.0, false);
-                self.text_on(
-                    &layer,
-                    promo,
-                    7.0,
-                    (PAGE_W - width) / 2.0,
-                    FOOTER_Y,
-                    false,
-                    self.theme.muted,
-                );
-            }
         }
     }
 }
@@ -830,7 +813,6 @@ fn render_document(
         measure,
         bold_measure,
         theme: Theme::for_template(options.template),
-        promo: options.promo_footer,
         labels: options.locale.labels(),
         kind,
         page,
@@ -958,7 +940,6 @@ mod tests {
     fn options(template: Template) -> PdfOptions {
         PdfOptions {
             template,
-            promo_footer: false,
             locale: Locale::En,
         }
     }

@@ -4,7 +4,6 @@ mod db;
 mod domain;
 mod error;
 mod export;
-mod licensing;
 mod pdf;
 mod security;
 
@@ -14,14 +13,9 @@ use std::sync::Mutex;
 use rusqlite::Connection;
 use tauri::Manager;
 
-use crate::error::AppResult;
-
 pub struct AppState {
     pub db: Mutex<Connection>,
     pub data_dir: PathBuf,
-    /// Keychain access is not free, and entitlements only change when the user
-    /// activates or deactivates, so they are cached for the session.
-    entitlements: Mutex<Option<licensing::Entitlements>>,
     /// False while the app lock is engaged; every data command checks this.
     unlocked: Mutex<bool>,
 }
@@ -31,7 +25,6 @@ impl AppState {
         Self {
             db: Mutex::new(db),
             data_dir,
-            entitlements: Mutex::new(None),
             unlocked: Mutex::new(!locked),
         }
     }
@@ -46,22 +39,6 @@ impl AppState {
 
     pub fn database_path(&self) -> PathBuf {
         db_path(&self.data_dir)
-    }
-
-    /// Never lock this before `db`.
-    pub fn entitlements(&self, conn: &Connection) -> AppResult<licensing::Entitlements> {
-        let mut cache = self.entitlements.lock().unwrap();
-        if let Some(value) = cache.as_ref() {
-            return Ok(value.clone());
-        }
-
-        let value = licensing::entitlements(conn)?;
-        *cache = Some(value.clone());
-        Ok(value)
-    }
-
-    pub fn forget_entitlements(&self) {
-        *self.entitlements.lock().unwrap() = None;
     }
 }
 
@@ -148,13 +125,6 @@ pub fn run() {
             commands::backup_list,
             commands::backup_settings_get,
             commands::backup_settings_set,
-            commands::license_status,
-            commands::license_request_code,
-            commands::license_save_request_file,
-            commands::license_import_key,
-            commands::license_import_file,
-            commands::license_deactivate,
-            commands::license_start_trial,
             commands::security_status,
             commands::security_unlock,
             commands::security_lock,
