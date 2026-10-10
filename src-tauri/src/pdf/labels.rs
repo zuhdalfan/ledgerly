@@ -24,9 +24,11 @@ impl Locale {
 /// Every piece of fixed text that appears on a document.
 pub struct Labels {
     pub invoice: &'static str,
+    pub estimate: &'static str,
     pub bill_to: &'static str,
     pub issued: &'static str,
     pub due: &'static str,
+    pub valid_until: &'static str,
     pub reference: &'static str,
     pub description: &'static str,
     pub quantity: &'static str,
@@ -36,6 +38,7 @@ pub struct Labels {
     pub total: &'static str,
     pub subtotal: &'static str,
     pub total_due: &'static str,
+    pub total_plain: &'static str,
     pub notes: &'static str,
     pub terms: &'static str,
     pub payment_instructions: &'static str,
@@ -49,9 +52,11 @@ pub struct Labels {
 
 static EN: Labels = Labels {
     invoice: "INVOICE",
+    estimate: "ESTIMATE",
     bill_to: "BILL TO",
     issued: "Issued",
     due: "Due",
+    valid_until: "Valid until",
     reference: "Ref",
     description: "DESCRIPTION",
     quantity: "QTY",
@@ -61,6 +66,7 @@ static EN: Labels = Labels {
     total: "TOTAL",
     subtotal: "Subtotal",
     total_due: "Total due",
+    total_plain: "Total",
     notes: "NOTES",
     terms: "TERMS",
     payment_instructions: "PAYMENT INSTRUCTIONS",
@@ -90,9 +96,11 @@ mod tests {
         // Every label must be present and non-empty.
         for value in [
             labels.invoice,
+            labels.estimate,
             labels.bill_to,
             labels.issued,
             labels.due,
+            labels.valid_until,
             labels.reference,
             labels.description,
             labels.quantity,
@@ -102,6 +110,7 @@ mod tests {
             labels.total,
             labels.subtotal,
             labels.total_due,
+            labels.total_plain,
             labels.notes,
             labels.terms,
             labels.payment_instructions,

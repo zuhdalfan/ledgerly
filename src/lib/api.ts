@@ -152,6 +152,8 @@ export const api = {
     setStatus: (id: string, status: string) =>
       invoke<Estimate>("estimates_set_status", { id, status }),
     convert: (id: string) => invoke<Invoice>("estimates_convert", { id }),
+    exportPdf: (id: string, path: string, template?: string) =>
+      invoke<string>("pdf_export_estimate", { id, path, template }),
   },
 
   payments: {

@@ -121,6 +121,7 @@ pub fn run() {
             commands::invoices_duplicate,
             commands::invoices_set_void,
             commands::pdf_export_invoice,
+            commands::pdf_export_estimate,
             commands::open_in_viewer,
             commands::invoices_set_sent,
             commands::payments_list,

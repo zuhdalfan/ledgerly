@@ -11,6 +11,7 @@ use printpdf::*;
 
 use crate::db::business::Business;
 use crate::db::clients::Client;
+use crate::db::estimates::{Estimate, EstimateItem};
 use crate::db::invoices::{self, Invoice, InvoiceItem};
 use crate::db::line_items;
 use crate::domain::totals::{self, InvoiceTotals, LineTotals};
@@ -29,6 +30,37 @@ pub struct PdfOptions {
     pub promo_footer: bool,
     /// Language of the labels on the document itself.
     pub locale: Locale,
+}
+
+/// Invoices and estimates share one layout. Only the title, the date line and
+/// the final total's wording differ.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DocumentKind {
+    Invoice,
+    Estimate,
+}
+
+impl DocumentKind {
+    fn title(self, labels: &Labels) -> &'static str {
+        match self {
+            DocumentKind::Invoice => labels.invoice,
+            DocumentKind::Estimate => labels.estimate,
+        }
+    }
+
+    fn date_label(self, labels: &Labels) -> &'static str {
+        match self {
+            DocumentKind::Invoice => labels.due,
+            DocumentKind::Estimate => labels.valid_until,
+        }
+    }
+
+    fn total_label(self, labels: &Labels) -> &'static str {
+        match self {
+            DocumentKind::Invoice => labels.total_due,
+            DocumentKind::Estimate => labels.total_plain,
+        }
+    }
 }
 
 static FONT_REGULAR: &[u8] = include_bytes!("../../assets/fonts/Inter-Regular.ttf");
@@ -142,6 +174,7 @@ struct Painter {
     theme: Theme,
     promo: bool,
     labels: &'static Labels,
+    kind: DocumentKind,
     page: PdfPageIndex,
     layer: PdfLayerIndex,
     pages: Vec<(PdfPageIndex, PdfLayerIndex)>,
@@ -227,7 +260,7 @@ impl Painter {
 
         let mut ry = PAGE_H - MARGIN - 2.0;
         self.text_right(
-            self.labels.invoice,
+            self.kind.title(self.labels),
             theme.title_size,
             CONTENT_RIGHT,
             ry,
@@ -253,7 +286,7 @@ impl Painter {
 
         if let Some(due) = non_empty(&invoice.due_date) {
             self.text_right(
-                &format!("{} {}", self.labels.due, format_date(due)),
+                &format!("{} {}", self.kind.date_label(self.labels), format_date(due)),
                 8.5,
                 CONTENT_RIGHT,
                 ry,
@@ -447,7 +480,7 @@ impl Painter {
 
         self.rect(label_x, y + 3.4, COL_TOTAL - label_x, 0.4, theme.rule);
         self.text_right(
-            self.labels.total_due,
+            self.kind.total_label(self.labels),
             11.0,
             label_x,
             y - 2.4,
@@ -690,6 +723,90 @@ pub fn render_invoice(
     client: Option<&Client>,
     options: PdfOptions,
 ) -> Result<Vec<u8>, String> {
+    render_document(invoice, business, client, options, DocumentKind::Invoice)
+}
+
+/// Render an estimate to PDF bytes. An estimate is a quote: same layout, but it
+/// says ESTIMATE, shows a validity date instead of a due date, and totals to
+/// "Total" rather than "Total due".
+pub fn render_estimate(
+    estimate: &Estimate,
+    business: &Business,
+    client: Option<&Client>,
+    options: PdfOptions,
+) -> Result<Vec<u8>, String> {
+    render_document(
+        &estimate_as_invoice(estimate),
+        business,
+        client,
+        options,
+        DocumentKind::Estimate,
+    )
+}
+
+/// An estimate carries the fields an invoice does, so it is viewed as one
+/// rather than duplicating the renderer. Payments are zero and the validity
+/// date takes the due-date slot; neither is printed for an estimate.
+fn estimate_as_invoice(estimate: &Estimate) -> Invoice {
+    Invoice {
+        id: estimate.id.clone(),
+        number: estimate.number.clone(),
+        client_id: estimate.client_id.clone(),
+        client_name: estimate.client_name.clone(),
+        status: estimate.status.clone(),
+        issue_date: estimate.issue_date.clone(),
+        due_date: estimate.valid_until.clone(),
+        currency: estimate.currency.clone(),
+        po_reference: estimate.po_reference.clone(),
+        discount_type: estimate.discount_type.clone(),
+        discount_value: estimate.discount_value.clone(),
+        subtotal_minor: estimate.subtotal_minor,
+        discount_minor: estimate.discount_minor,
+        tax_minor: estimate.tax_minor,
+        total_minor: estimate.total_minor,
+        notes: estimate.notes.clone(),
+        terms: estimate.terms.clone(),
+        payment_instructions: estimate.payment_instructions.clone(),
+        voided_at: None,
+        sent_at: None,
+        created_at: estimate.created_at.clone(),
+        updated_at: estimate.updated_at.clone(),
+        paid_minor: 0,
+        balance_minor: 0,
+        days_past_due: None,
+        display_status: estimate.display_status.clone(),
+        items: estimate
+            .items
+            .iter()
+            .map(estimate_item_as_invoice_item)
+            .collect(),
+    }
+}
+
+fn estimate_item_as_invoice_item(item: &EstimateItem) -> InvoiceItem {
+    InvoiceItem {
+        id: item.id.clone(),
+        sort_order: item.sort_order,
+        description: item.description.clone(),
+        quantity: item.quantity.clone(),
+        unit: item.unit.clone(),
+        unit_price_minor: item.unit_price_minor,
+        discount_type: item.discount_type.clone(),
+        discount_value: item.discount_value.clone(),
+        tax_rate_id: item.tax_rate_id.clone(),
+        tax_rate_name: item.tax_rate_name.clone(),
+        tax_rate_bp: item.tax_rate_bp,
+        tax_inclusive: item.tax_inclusive,
+    }
+}
+
+fn render_document(
+    invoice: &Invoice,
+    business: &Business,
+    client: Option<&Client>,
+    options: PdfOptions,
+    kind: DocumentKind,
+) -> Result<Vec<u8>, String> {
     let measure = TextMeasure::new(FONT_REGULAR)
         .ok_or_else(|| "could not read the regular font".to_string())?;
     let bold_measure =
@@ -715,6 +832,7 @@ pub fn render_invoice(
         theme: Theme::for_template(options.template),
         promo: options.promo_footer,
         labels: options.locale.labels(),
+        kind,
         page,
         layer,
         pages: vec![(page, layer)],
@@ -850,6 +968,118 @@ mod tests {
             .expect("rendered bytes should parse as a PDF")
             .get_pages()
             .len()
+    }
+
+    fn estimate_item(description: &str, quantity: &str, unit_price_minor: i64) -> EstimateItem {
+        EstimateItem {
+            id: uuid::Uuid::now_v7().to_string(),
+            sort_order: 0,
+            description: description.to_string(),
+            quantity: quantity.to_string(),
+            unit: Some("hour".to_string()),
+            unit_price_minor,
+            discount_type: None,
+            discount_value: None,
+            tax_rate_id: None,
+            tax_rate_name: None,
+            tax_rate_bp: None,
+            tax_inclusive: false,
+        }
+    }
+
+    fn estimate(items: Vec<EstimateItem>, valid_until: Option<&str>) -> Estimate {
+        Estimate {
+            id: uuid::Uuid::now_v7().to_string(),
+            number: "EST-0001".to_string(),
+            client_id: None,
+            client_name: Some("Acme".to_string()),
+            status: "draft".to_string(),
+            issue_date: "2026-01-15".to_string(),
+            valid_until: valid_until.map(str::to_string),
+            currency: "USD".to_string(),
+            po_reference: None,
+            discount_type: None,
+            discount_value: None,
+            subtotal_minor: 20_000,
+            discount_minor: 0,
+            tax_minor: 0,
+            total_minor: 20_000,
+            notes: None,
+            terms: None,
+            payment_instructions: None,
+            converted_invoice_id: None,
+            converted_at: None,
+            created_at: "2026-01-15".to_string(),
+            updated_at: "2026-01-15".to_string(),
+            days_until_expiry: Some(31),
+            display_status: "draft".to_string(),
+            items,
+        }
+    }
+
+    #[test]
+    fn document_kinds_use_their_own_labels() {
+        let labels = Locale::En.labels();
+
+        assert_eq!(DocumentKind::Invoice.title(labels), "INVOICE");
+        assert_eq!(DocumentKind::Estimate.title(labels), "ESTIMATE");
+
+        assert_eq!(DocumentKind::Invoice.date_label(labels), "Due");
+        assert_eq!(DocumentKind::Estimate.date_label(labels), "Valid until");
+
+        // An estimate is a quote, so nothing is "due" yet.
+        assert_eq!(DocumentKind::Invoice.total_label(labels), "Total due");
+        assert_eq!(DocumentKind::Estimate.total_label(labels), "Total");
+    }
+
+    #[test]
+    fn renders_an_estimate() {
+        let bytes = render_estimate(
+            &estimate(
+                vec![estimate_item("Consulting", "2", 10_000)],
+                Some("2026-02-15"),
+            ),
+            &business(),
+            None,
+            options(Template::Classic),
+        )
+        .expect("an estimate should render");
+
+        assert!(bytes.starts_with(b"%PDF-"));
+        assert_eq!(page_count(&bytes), 1);
+    }
+
+    #[test]
+    fn an_estimate_without_a_validity_date_still_renders() {
+        let bytes = render_estimate(
+            &estimate(vec![estimate_item("Consulting", "2", 10_000)], None),
+            &business(),
+            None,
+            options(Template::Classic),
+        )
+        .expect("a missing validity date must not break the document");
+
+        assert_eq!(page_count(&bytes), 1);
+    }
+
+    #[test]
+    fn an_estimate_paginates_like_an_invoice() {
+        let items: Vec<EstimateItem> = (0..70)
+            .map(|index| estimate_item(&format!("Line item {index}"), "1", 12_345))
+            .collect();
+
+        let bytes = render_estimate(
+            &estimate(items, Some("2026-02-15")),
+            &business(),
+            None,
+            options(Template::Classic),
+        )
+        .expect("a long estimate should render");
+
+        assert!(
+            page_count(&bytes) > 1,
+            "the table should continue onto a second page"
+        );
     }
 
     #[test]

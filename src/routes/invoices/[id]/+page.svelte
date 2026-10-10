@@ -507,11 +507,14 @@
   <div class="card">
     <h2>PDF</h2>
     <div class="row wrap">
-      <select bind:value={template} style="width: auto;">
-        <option value="classic">Classic</option>
-        <option value="modern">Modern</option>
-        <option value="minimal">Minimal</option>
-      </select>
+      <label class="template">
+        <span class="sr-only">PDF template</span>
+        <select bind:value={template}>
+          <option value="classic">Classic</option>
+          <option value="modern">Modern</option>
+          <option value="minimal">Minimal</option>
+        </select>
+      </label>
       <button class="btn" onclick={exportPdf} disabled={exporting}>
         {exporting ? "Exporting…" : "Export PDF"}
       </button>
@@ -521,3 +524,9 @@
 {/if}
 
 <Celebration bind:open={celebrating} amount={celebrationAmount} />
+
+<style>
+  .template select {
+    width: auto;
+  }
+</style>

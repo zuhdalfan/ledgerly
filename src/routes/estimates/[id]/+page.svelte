@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import { save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
   import LineItems from "$lib/components/LineItems.svelte";
   import {
@@ -49,10 +50,17 @@
   let saving = $state(false);
   let converting = $state(false);
 
+  let template = $state("classic");
+  let exporting = $state(false);
+  let exportMessage = $state("");
+
   const id = $derived(page.params.id ?? "");
   const isNew = $derived(id === "new");
   const summary = $derived(totals ?? savedTotals);
   const converted = $derived(displayStatus === "converted");
+  const clientName = $derived(
+    clients.find((client) => client.id === clientId)?.displayName ?? ""
+  );
 
   /// Status and expiry are derived on the Rust side.
   function applyEstimate(estimate: Estimate) {
@@ -204,6 +212,30 @@
       converting = false;
     }
   }
+
+  async function exportPdf() {
+    exportMessage = "";
+    exporting = true;
+    try {
+      const suggested = `${number || "estimate"}-${clientName || "client"}.pdf`.replace(
+        /[^\w.\-]+/g,
+        "-"
+      );
+      const path = await saveDialog({
+        defaultPath: suggested,
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+      if (!path) return;
+
+      await api.estimates.exportPdf(id, path, template);
+      await api.openInViewer(path);
+      exportMessage = `Saved to ${path}`;
+    } catch (e) {
+      exportMessage = String(e);
+    } finally {
+      exporting = false;
+    }
+  }
 </script>
 
 <div class="page-head">
@@ -349,3 +381,29 @@
   {#if saved}<span class="ok">Saved</span>{/if}
   {#if saveError}<span class="error">{saveError}</span>{/if}
 </div>
+
+{#if !isNew}
+  <div class="card">
+    <h2>PDF</h2>
+    <div class="row wrap">
+      <label class="template">
+        <span class="sr-only">PDF template</span>
+        <select bind:value={template}>
+          <option value="classic">Classic</option>
+          <option value="modern">Modern</option>
+          <option value="minimal">Minimal</option>
+        </select>
+      </label>
+      <button class="btn" onclick={exportPdf} disabled={exporting}>
+        {exporting ? "Exporting…" : "Export PDF"}
+      </button>
+      {#if exportMessage}<span class="muted">{exportMessage}</span>{/if}
+    </div>
+  </div>
+{/if}
+
+<style>
+  .template select {
+    width: auto;
+  }
+</style>

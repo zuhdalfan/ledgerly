@@ -427,6 +427,56 @@ pub fn pdf_export_invoice(
     Ok(path)
 }
 
+/// Save an estimate as a PDF. Estimates and invoices share one renderer, so
+/// this mirrors the invoice path and only the document's own labels differ.
+#[tauri::command]
+pub fn pdf_export_estimate(
+    state: State<'_, AppState>,
+    id: String,
+    path: String,
+    template: Option<String>,
+) -> AppResult<String> {
+    let template_name = template.as_deref().unwrap_or("classic").to_string();
+
+    let (estimate, business, client, entitlements, locale) = {
+        let conn = state.db.lock().unwrap();
+        require_unlocked(&state)?;
+        let entitlements = state.entitlements(&conn)?;
+        // Document language is independent of the app's UI language.
+        let locale = settings::get(&conn, "pdf.locale")?.unwrap_or_else(|| "en".to_string());
+        if template_name != "classic" && !entitlements.allows("pdf_templates") {
+            return Err(AppError::Validation(
+                "PDF templates other than Classic are a Ledgerly Pro feature.".to_string(),
+            ));
+        }
+
+        let estimate = estimates::get(&conn, &id)?
+            .ok_or_else(|| AppError::Pdf("estimate not found".to_string()))?;
+        let business = business::get(&conn)?;
+        let client = match estimate.client_id.as_deref() {
+            Some(client_id) => clients::get(&conn, client_id)?,
+            None => None,
+        };
+        (estimate, business, client, entitlements, locale)
+    };
+
+    let bytes = pdf::render_estimate(
+        &estimate,
+        &business,
+        client.as_ref(),
+        pdf::PdfOptions {
+            template: pdf::Template::parse(&template_name),
+            // Free documents carry a small footer; Pro removes it.
+            promo_footer: !entitlements.allows("branding"),
+            locale: pdf::DocumentLocale::parse(&locale),
+        },
+    )
+    .map_err(AppError::Pdf)?;
+
+    std::fs::write(&path, &bytes)?;
+    Ok(path)
+}
+
 /// Open a file (usually the PDF just exported) in the OS default viewer.
 #[tauri::command]
 pub fn open_in_viewer(app: tauri::AppHandle, path: String) -> AppResult<()> {
