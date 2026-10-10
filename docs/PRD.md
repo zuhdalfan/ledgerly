@@ -827,8 +827,21 @@ verification problem the app **degrades to Free and never hides or deletes user 
 
 *(Vendor-side `ledgerly-licensectl` reuses `ed25519-dalek` for **signing** and is not shipped in the app.)*
 
-### 18.3 Indicative frontend dependencies
-`svelte`, `vite`, `typescript`, `tailwindcss`, `@tauri-apps/api`, `@tauri-apps/plugin-dialog`, `@tauri-apps/plugin-notification`, `date-fns`, a virtual-list lib, a small chart lib (or hand-rolled SVG) for reports.
+### 18.3 Actual frontend dependencies
+
+Shipped: `svelte` 5, `@sveltejs/kit` (SPA mode, `adapter-static`), `vite`, `typescript`,
+`svelte-check`, and `@tauri-apps/api` with the `dialog` and `opener` plugins. That is the whole
+list, and only the three Tauri packages reach the running app.
+
+Deliberately **not** used, against the earlier indicative list:
+
+- **`tailwindcss`** — styling is a hand-authored token layer in `src/app.css` (468 lines, 51 custom
+  properties) plus component-scoped styles. Nothing in the app references Tailwind.
+- **`date-fns`** — `src/lib/format.ts` is small, local-date aware, and already tested against the
+  Rust side's conventions.
+- **A virtual-list library** — declined after measuring; see §11.
+- **A chart library** — the two dashboard charts are hand-rolled CSS.
+- **`plugin-notification`** — the app never pushes anything at the user.
 
 ### 18.4 Reference formats
 - Currency formatting: use CLDR-style rules (symbol placement, grouping) implemented locally, not fetched.
