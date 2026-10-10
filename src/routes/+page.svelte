@@ -12,7 +12,9 @@
   let business = $state<Business | null>(null);
   let clientCount = $state(0);
   let invoices = $state<Invoice[]>([]);
-  let revenue = $state<{ label: string; primary: number; secondary: number }[]>([]);
+  let revenue = $state<
+    { period: string; label: string; primary: number; secondary: number }[]
+  >([]);
   let loading = $state(true);
   let error = $state("");
   let chaseMessage = $state("");
@@ -30,6 +32,13 @@
       .sort((a, b) => (b.daysPastDue ?? 0) - (a.daysPastDue ?? 0))
   );
   const overdue = $derived(overdueInvoices.reduce((sum, invoice) => sum + invoice.balanceMinor, 0));
+
+  // The revenue report only returns months that have activity, so "this month"
+  // has to be matched by period. Taking the last entry would quietly mean "the
+  // last month with data", which is not the same thing.
+  const collectedThisMonth = $derived(
+    revenue.find((point) => point.period === periodOf(new Date()))?.primary ?? 0
+  );
 
   // Chasing order: never chased first, then the ones left longest, then the
   // most overdue. This is the queue the user actually works through.
@@ -127,6 +136,12 @@
     });
   }
 
+  /// Matches the period format the report groups by: "2026-10".
+  function periodOf(date: Date): string {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return `${date.getFullYear()}-${month}`;
+  }
+
   async function load() {
     loading = true;
     try {
@@ -147,6 +162,7 @@
       clientCount = clients.length;
       invoices = allInvoices;
       revenue = periods.map((row) => ({
+        period: row.period,
         label: monthLabel(row.period),
         primary: row.paidMinor,
         secondary: row.invoicedMinor,
@@ -205,8 +221,8 @@
         <dd class={overdue > 0 ? "alarm" : ""}>{fromMinor(overdue, currency)}</dd>
       </div>
       <div>
-        <dt>Invoices</dt>
-        <dd>{invoices.filter((invoice) => invoice.displayStatus !== "void").length}</dd>
+        <dt>Collected this month</dt>
+        <dd>{fromMinor(collectedThisMonth, currency)}</dd>
       </div>
       <div>
         <dt>Clients</dt>

@@ -107,6 +107,9 @@
     display: flex;
     align-items: flex-end;
     gap: var(--space-2);
+    /* A baseline, so a month with no activity still reads as a month rather
+     * than as a gap in the chart. */
+    border-bottom: 1px solid var(--paper-3);
   }
 
   .column {
