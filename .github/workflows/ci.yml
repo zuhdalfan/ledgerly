@@ -50,6 +50,11 @@ jobs:
       - name: Offline check
         run: npm run check:offline
 
+      # An MIT binary carries its dependencies' licences, so a copyleft crate
+      # creeping in is a release blocker rather than a style question.
+      - name: Licence check
+        run: npm run check:licenses
+
       - name: Frontend typecheck
         run: npm run check
 
