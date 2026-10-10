@@ -446,6 +446,19 @@ pub fn invoices_set_sent(state: State<'_, AppState>, id: String, sent: bool) -> 
     Ok(invoices::set_sent(&conn, &id, sent)?)
 }
 
+/// Note that the user chased this invoice. Nothing is sent from here: the app
+/// has no network, so it only records what the user did in their own mail client.
+#[tauri::command]
+pub fn invoices_set_chased(
+    state: State<'_, AppState>,
+    id: String,
+    chased: bool,
+) -> AppResult<Invoice> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+    Ok(invoices::set_chased(&conn, &id, chased)?)
+}
+
 #[tauri::command]
 pub fn estimates_list(
     state: State<'_, AppState>,

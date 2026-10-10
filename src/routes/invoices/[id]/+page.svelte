@@ -17,6 +17,7 @@
   import Celebration from "$lib/components/Celebration.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import { useDirtyGuard } from "$lib/guard";
+  import { reminder } from "$lib/chase";
   import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
   import type {
     Client,
@@ -72,6 +73,11 @@
   let paidMinor = $state(0);
   let balanceMinor = $state(0);
   let payments = $state<Payment[]>([]);
+  let businessName = $state("");
+  let lastChasedAt = $state<string | null>(null);
+  let chaseCount = $state(0);
+  let daysPastDue = $state<number | null>(null);
+  let reminderMessage = $state("");
 
   let payDate = $state("");
   let payAmount = $state("");
@@ -114,6 +120,9 @@
     displayStatus = invoice.displayStatus;
     paidMinor = invoice.paidMinor;
     balanceMinor = invoice.balanceMinor;
+    lastChasedAt = invoice.lastChasedAt;
+    chaseCount = invoice.chaseCount;
+    daysPastDue = invoice.daysPastDue;
   }
 
   async function reloadPayments() {
@@ -154,6 +163,7 @@
       clients = clientList;
       taxRates = rates;
       currency = business.defaultCurrency;
+      businessName = business.displayName;
       template = savedTemplate ?? "classic";
 
       if (isNew) {
@@ -392,6 +402,42 @@
     }
   }
 
+  const reminderText = $derived(
+    reminder(
+      {
+        number,
+        clientName,
+        currency,
+        balanceMinor,
+        dueDate,
+        daysPastDue,
+        displayStatus,
+        paymentInstructions,
+      },
+      businessName
+    )
+  );
+
+  async function copyReminder() {
+    reminderMessage = "";
+    try {
+      await navigator.clipboard.writeText(`${reminderText.subject}\n\n${reminderText.body}`);
+      reminderMessage = "Copied";
+    } catch {
+      reminderMessage = "Select the text above and copy it manually.";
+    }
+  }
+
+  async function setChased(chased: boolean) {
+    reminderMessage = "";
+    try {
+      applyDerived(await api.invoices.setChased(id, chased));
+      reminderMessage = chased ? "Marked as chased" : "Chased mark cleared";
+    } catch (e) {
+      saveError = String(e);
+    }
+  }
+
   async function saveTemplate() {
     try {
       await api.settings.set("pdf.template", template);
@@ -610,6 +656,39 @@
         {paymentBusy ? "Recording…" : "Record payment"}
       </button>
       {#if paymentError}<span class="error">{paymentError}</span>{/if}
+    </div>
+  </div>
+{/if}
+
+{#if !isNew && balanceMinor > 0}
+  <div class="card">
+    <h2>Chasing this one</h2>
+    <p class="muted">
+      {#if lastChasedAt}
+        Last chased {formatDate(lastChasedAt.slice(0, 10))}{chaseCount > 1
+          ? ` (${chaseCount} times)`
+          : ""}.
+      {:else}
+        Not chased yet.
+      {/if}
+      Ledgerly sends nothing itself. Copy this into your own email.
+    </p>
+
+    <div class="field">
+      <label for="reminderSubject">Subject</label>
+      <input id="reminderSubject" readonly value={reminderText.subject} />
+    </div>
+    <div class="field">
+      <label for="reminderBody">Message</label>
+      <textarea id="reminderBody" rows="10" readonly value={reminderText.body}></textarea>
+    </div>
+
+    <div class="row wrap">
+      <button class="btn" onclick={copyReminder}>Copy reminder</button>
+      <button class="btn secondary" onclick={() => setChased(!lastChasedAt)}>
+        {lastChasedAt ? "Clear the chased mark" : "Mark as chased"}
+      </button>
+      {#if reminderMessage}<span class="ok">{reminderMessage}</span>{/if}
     </div>
   </div>
 {/if}

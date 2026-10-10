@@ -758,6 +758,9 @@ fn estimate_as_invoice(estimate: &Estimate) -> Invoice {
         balance_minor: 0,
         days_past_due: None,
         display_status: estimate.display_status.clone(),
+        // Chasing is an invoice concern; an estimate has no such record.
+        last_chased_at: None,
+        chase_count: 0,
         items: estimate
             .items
             .iter()
@@ -933,6 +936,8 @@ mod tests {
             balance_minor: totals.total_minor,
             days_past_due: None,
             display_status: status.to_string(),
+            last_chased_at: None,
+            chase_count: 0,
             items,
         }
     }

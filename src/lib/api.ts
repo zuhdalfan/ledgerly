@@ -83,6 +83,8 @@ export const api = {
     duplicate: (id: string) => invoke<Invoice>("invoices_duplicate", { id }),
     setVoid: (id: string, voided: boolean) => invoke<Invoice>("invoices_set_void", { id, voided }),
     setSent: (id: string, sent: boolean) => invoke<Invoice>("invoices_set_sent", { id, sent }),
+    setChased: (id: string, chased: boolean) =>
+      invoke<Invoice>("invoices_set_chased", { id, chased }),
     exportPdf: (id: string, path: string, template: string) =>
       invoke<string>("pdf_export_invoice", { id, path, template }),
   },

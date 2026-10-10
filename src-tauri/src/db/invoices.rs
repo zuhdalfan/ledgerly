@@ -19,7 +19,8 @@ fn columns() -> String {
          i.subtotal_minor, i.discount_minor, i.tax_minor, i.total_minor, \
          i.notes, i.terms, i.payment_instructions, i.voided_at, i.sent_at, \
          i.created_at, i.updated_at, c.display_name, \
-         {PAID_EXPR} AS paid_minor, {DAYS_PAST_DUE_EXPR} AS days_past_due"
+         {PAID_EXPR} AS paid_minor, {DAYS_PAST_DUE_EXPR} AS days_past_due, \
+         i.last_chased_at, i.chase_count"
     )
 }
 
@@ -94,6 +95,10 @@ pub struct Invoice {
     pub days_past_due: Option<i64>,
     /// Derived from the stored lifecycle plus payments and the due date.
     pub display_status: String,
+    /// When the user last chased this invoice, and how many times. Local time,
+    /// because "I emailed them on Tuesday" is the user's sense of it.
+    pub last_chased_at: Option<String>,
+    pub chase_count: i64,
     pub items: Vec<InvoiceItem>,
 }
 
@@ -160,6 +165,8 @@ fn map_invoice(row: &Row, items: Vec<InvoiceItem>) -> rusqlite::Result<Invoice> 
         balance_minor,
         days_past_due,
         display_status: display_status(&status, balance_minor, paid_minor, days_past_due),
+        last_chased_at: row.get(24)?,
+        chase_count: row.get(25)?,
         items,
     })
 }
@@ -224,6 +231,32 @@ pub fn list(
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map(params![status, search], |row| map_invoice(row, Vec::new()))?;
     rows.collect()
+}
+
+/// Record that the invoice was chased, or take that record back. Nothing is
+/// sent from here: this only writes down what the user already did elsewhere.
+pub fn set_chased(conn: &Connection, id: &str, chased: bool) -> rusqlite::Result<Invoice> {
+    if chased {
+        conn.execute(
+            "UPDATE invoice
+             SET last_chased_at = datetime('now', 'localtime'),
+                 chase_count = chase_count + 1,
+                 updated_at = datetime('now')
+             WHERE id = ?1",
+            [id],
+        )?;
+    } else {
+        conn.execute(
+            "UPDATE invoice
+             SET last_chased_at = NULL,
+                 chase_count = MAX(chase_count - 1, 0),
+                 updated_at = datetime('now')
+             WHERE id = ?1",
+            [id],
+        )?;
+    }
+
+    get(conn, id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)
 }
 
 pub fn get(conn: &Connection, id: &str) -> rusqlite::Result<Option<Invoice>> {

@@ -140,6 +140,9 @@ export type Invoice = {
   balanceMinor: number;
   daysPastDue: number | null;
   displayStatus: string;
+  /** When the user last chased this invoice, and how many times. */
+  lastChasedAt: string | null;
+  chaseCount: number;
   items: InvoiceItem[];
 };
 

@@ -10,6 +10,7 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0006_licensing.sql"),
     include_str!("../../migrations/0007_security.sql"),
     include_str!("../../migrations/0008_drop_licensing.sql"),
+    include_str!("../../migrations/0009_chasing.sql"),
 ];
 
 /// Apply every migration newer than the database's current `user_version`.
@@ -29,7 +30,10 @@ pub fn run(conn: &Connection) -> rusqlite::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{tax_rates, tests_support::temp_db};
+    use crate::db::{
+        tax_rates,
+        tests_support::{temp_db, temp_db_at},
+    };
 
     #[test]
     fn upgrades_an_older_database_incrementally() {
@@ -75,22 +79,27 @@ mod tests {
 
     #[test]
     fn drops_the_retired_licensing_tables() {
-        let t = temp_db();
+        // A database as it stood at v7: the retired tables are still present,
+        // and the invoice table predates the chasing columns.
+        let t = temp_db_at(7);
 
-        // Stand up a database that still carries what 0006 created, the way an
-        // existing installation does.
-        t.conn
-            .execute_batch(
-                "CREATE TABLE installation (id TEXT PRIMARY KEY);
-                 CREATE TABLE license (id TEXT PRIMARY KEY);
-                 CREATE TABLE trial (id TEXT PRIMARY KEY);
-                 PRAGMA user_version = 7;",
+        let before: i64 = t
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'table' AND name IN ('installation', 'license', 'trial')",
+                [],
+                |row| row.get(0),
             )
             .unwrap();
+        assert_eq!(
+            before, 3,
+            "the fixture should start with the retired tables"
+        );
 
         run(&t.conn).unwrap();
 
-        let remaining: i64 = t
+        let after: i64 = t
             .conn
             .query_row(
                 "SELECT COUNT(*) FROM sqlite_master
@@ -100,6 +109,35 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(remaining, 0, "the retired licensing tables should be gone");
+        assert_eq!(after, 0, "the retired licensing tables should be gone");
+    }
+
+    #[test]
+    fn an_older_database_gains_the_chasing_columns() {
+        let t = temp_db_at(8);
+
+        run(&t.conn).unwrap();
+
+        let mut stmt = t.conn.prepare("PRAGMA table_info(invoice)").unwrap();
+        let columns: Vec<String> = stmt
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .map(|name| name.unwrap())
+            .collect();
+
+        assert!(
+            columns.iter().any(|name| name == "last_chased_at"),
+            "chasing should have added last_chased_at, got {columns:?}"
+        );
+        assert!(
+            columns.iter().any(|name| name == "chase_count"),
+            "chasing should have added chase_count, got {columns:?}"
+        );
+        assert_eq!(current_version(&t.conn), MIGRATIONS.len());
+    }
+
+    fn current_version(conn: &Connection) -> usize {
+        conn.query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+            .unwrap() as usize
     }
 }

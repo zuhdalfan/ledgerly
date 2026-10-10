@@ -60,4 +60,28 @@ pub(crate) mod tests_support {
         let conn = super::open(&dir.join("ledgerly.db")).unwrap();
         TempDb { dir, conn }
     }
+
+    /// A database with only the first `version` migrations applied, so the rest
+    /// can be exercised as a genuine upgrade rather than as a re-run.
+    ///
+    /// This matters because migrations are not all idempotent: `DROP TABLE IF
+    /// EXISTS` can run twice, but `ALTER TABLE ADD COLUMN` cannot.
+    pub(crate) fn temp_db_at(version: usize) -> TempDb {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("ledgerly-test-{version}-{nanos}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let conn = Connection::open(dir.join("ledgerly.db")).unwrap();
+
+        for sql in &super::migrations::MIGRATIONS[..version] {
+            conn.execute_batch(&format!("BEGIN;\n{sql}\nCOMMIT;"))
+                .unwrap();
+        }
+        conn.pragma_update(None, "user_version", version as i64)
+            .unwrap();
+
+        TempDb { dir, conn }
+    }
 }

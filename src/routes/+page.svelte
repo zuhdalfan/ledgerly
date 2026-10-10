@@ -6,6 +6,7 @@
   import BarList from "$lib/components/BarList.svelte";
   import ColumnChart from "$lib/components/ColumnChart.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import { reminder } from "$lib/chase";
 
   let info = $state<AppInfo | null>(null);
   let business = $state<Business | null>(null);
@@ -14,6 +15,7 @@
   let revenue = $state<{ label: string; primary: number; secondary: number }[]>([]);
   let loading = $state(true);
   let error = $state("");
+  let chaseMessage = $state("");
 
   const currency = $derived(business?.defaultCurrency ?? "");
 
@@ -28,6 +30,19 @@
       .sort((a, b) => (b.daysPastDue ?? 0) - (a.daysPastDue ?? 0))
   );
   const overdue = $derived(overdueInvoices.reduce((sum, invoice) => sum + invoice.balanceMinor, 0));
+
+  // Chasing order: never chased first, then the ones left longest, then the
+  // most overdue. This is the queue the user actually works through.
+  const needsChasing = $derived(
+    [...overdueInvoices].sort((a, b) => {
+      const chased = (invoice: Invoice) => (invoice.lastChasedAt ? 1 : 0);
+      if (chased(a) !== chased(b)) return chased(a) - chased(b);
+      if (a.lastChasedAt && b.lastChasedAt && a.lastChasedAt !== b.lastChasedAt) {
+        return a.lastChasedAt < b.lastChasedAt ? -1 : 1;
+      }
+      return (b.daysPastDue ?? 0) - (a.daysPastDue ?? 0);
+    })
+  );
 
   const aging = $derived.by(() => {
     const buckets = [
@@ -77,6 +92,27 @@
     },
   ]);
   const remaining = $derived(steps.filter((step) => !step.done).length);
+
+  async function copyReminderFor(invoice: Invoice) {
+    chaseMessage = "";
+    const { subject, body } = reminder(invoice, business?.displayName ?? "");
+    try {
+      await navigator.clipboard.writeText(`${subject}\n\n${body}`);
+      chaseMessage = `Reminder for ${invoice.number} copied. Paste it into your email.`;
+    } catch {
+      chaseMessage = "Could not reach the clipboard. Open the invoice to copy it by hand.";
+    }
+  }
+
+  async function toggleChased(invoice: Invoice) {
+    chaseMessage = "";
+    try {
+      await api.invoices.setChased(invoice.id, invoice.lastChasedAt === null);
+      await load();
+    } catch (e) {
+      error = String(e);
+    }
+  }
 
   function isoLocal(date: Date): string {
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -193,20 +229,36 @@
             <th>Due</th>
             <th class="numeric">Late by</th>
             <th class="numeric">Balance</th>
+            <th>Chased</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          {#each overdueInvoices.slice(0, 5) as invoice (invoice.id)}
+          {#each needsChasing.slice(0, 5) as invoice (invoice.id)}
             <tr>
               <td><a class="link" href={`/invoices/${invoice.id}`}>{invoice.number}</a></td>
               <td>{invoice.clientName ?? "—"}</td>
               <td>{formatDate(invoice.dueDate)}</td>
               <td class="numeric">{invoice.daysPastDue ?? 0} days</td>
               <td class="numeric">{fromMinor(invoice.balanceMinor, invoice.currency)}</td>
+              <td>
+                {invoice.lastChasedAt ? formatDate(invoice.lastChasedAt.slice(0, 10)) : "Never"}
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn secondary" onclick={() => copyReminderFor(invoice)}>
+                    Copy
+                  </button>
+                  <button class="btn secondary" onclick={() => toggleChased(invoice)}>
+                    {invoice.lastChasedAt ? "Unmark" : "Mark chased"}
+                  </button>
+                </div>
+              </td>
             </tr>
           {/each}
         </tbody>
       </table>
+      {#if chaseMessage}<p class="ok">{chaseMessage}</p>{/if}
     </div>
   {/if}
 
@@ -320,6 +372,12 @@
     align-items: baseline;
     justify-content: space-between;
     gap: var(--space-4);
+  }
+
+  .row-actions {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: flex-end;
   }
 
   @media (max-width: 720px) {

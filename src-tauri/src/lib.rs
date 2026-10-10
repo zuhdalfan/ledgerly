@@ -101,6 +101,7 @@ pub fn run() {
             commands::pdf_export_estimate,
             commands::open_in_viewer,
             commands::invoices_set_sent,
+            commands::invoices_set_chased,
             commands::payments_list,
             commands::payments_create,
             commands::payments_update,
