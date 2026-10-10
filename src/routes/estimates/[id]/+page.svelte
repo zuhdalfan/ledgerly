@@ -107,6 +107,9 @@
         notes = business.defaultNotes ?? "";
         terms = business.defaultTerms ?? "";
         paymentInstructions = business.defaultPaymentInstructions ?? "";
+        // A client workspace can start an estimate for that client directly.
+        const preset = page.url.searchParams.get("client");
+        if (preset && clientList.some((client) => client.id === preset)) clientId = preset;
         return;
       }
 

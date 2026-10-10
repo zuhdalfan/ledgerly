@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { save as saveDialog } from "@tauri-apps/plugin-dialog";
+  import { ask, save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
   import {
     emptyToNull,
@@ -15,6 +15,7 @@
   } from "$lib/format";
   import LineItems from "$lib/components/LineItems.svelte";
   import Celebration from "$lib/components/Celebration.svelte";
+  import Toast from "$lib/components/Toast.svelte";
   import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
   import type {
     Client,
@@ -74,6 +75,16 @@
 
   let celebrating = $state(false);
   let celebrationAmount = $state("");
+
+  let undoOpen = $state(false);
+  let undoMessage = $state("");
+  let undoAction = $state<(() => void) | undefined>(undefined);
+
+  function offerUndo(message: string, action: () => void) {
+    undoMessage = message;
+    undoAction = action;
+    undoOpen = true;
+  }
 
   const id = $derived(page.params.id ?? "");
   const isNew = $derived(id === "new");
@@ -135,6 +146,9 @@
         notes = business.defaultNotes ?? "";
         terms = business.defaultTerms ?? "";
         paymentInstructions = business.defaultPaymentInstructions ?? "";
+        // A client workspace can start an invoice for that client directly.
+        const preset = page.url.searchParams.get("client");
+        if (preset && clientList.some((client) => client.id === preset)) clientId = preset;
         return;
       }
 
@@ -225,6 +239,16 @@
   }
 
   async function toggleVoid() {
+    // Voiding a financial document gets a confirmation, unlike a reversible
+    // toggle: it changes what the client was asked to pay.
+    if (status !== "void") {
+      const confirmed = await ask(
+        "Void this invoice? It will be marked cancelled. You can restore it afterwards.",
+        { title: "Void invoice", kind: "warning" }
+      );
+      if (!confirmed) return;
+    }
+
     try {
       applyDerived(await api.invoices.setVoid(id, status !== "void"));
     } catch (e) {
@@ -273,8 +297,30 @@
 
   async function removePayment(paymentId: string) {
     paymentError = "";
+    const removed = payments.find((payment) => payment.id === paymentId);
     try {
       await api.payments.remove(paymentId);
+      await reloadPayments();
+
+      // A payment is real financial history, so the delete is recoverable.
+      if (removed) {
+        offerUndo("Payment removed.", () => void restorePayment(removed));
+      }
+    } catch (e) {
+      paymentError = String(e);
+    }
+  }
+
+  async function restorePayment(payment: Payment) {
+    paymentError = "";
+    try {
+      await api.payments.create(id, {
+        paidOn: payment.paidOn,
+        amountMinor: payment.amountMinor,
+        method: payment.method,
+        reference: payment.reference,
+        note: payment.note,
+      });
       await reloadPayments();
     } catch (e) {
       paymentError = String(e);
@@ -425,7 +471,7 @@
               <td>{payment.reference ?? "—"}</td>
               <td class="numeric">{fromMinor(payment.amountMinor, currency)}</td>
               <td>
-                <button class="btn secondary" onclick={() => removePayment(payment.id)}>
+                <button class="btn danger" onclick={() => removePayment(payment.id)}>
                   Delete
                 </button>
               </td>
@@ -524,6 +570,8 @@
 {/if}
 
 <Celebration bind:open={celebrating} amount={celebrationAmount} />
+
+<Toast bind:open={undoOpen} message={undoMessage} onaction={undoAction} />
 
 <style>
   .template select {

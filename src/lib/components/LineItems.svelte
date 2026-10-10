@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { fromMinor } from "$lib/format";
+  import { api } from "$lib/api";
+  import { fromMinor, minorToInput } from "$lib/format";
   import { emptyItem, type ItemForm } from "$lib/lineItems";
-  import type { LineTotals, TaxRate } from "$lib/types";
+  import type { CatalogItem, LineTotals, TaxRate } from "$lib/types";
 
   let {
     items = $bindable(),
@@ -15,6 +16,10 @@
     lines: LineTotals[];
   } = $props();
 
+  // Row inputs sit under column headers, which does not name them for a screen
+  // reader, so every control carries the column and its row.
+  const name = (column: string, index: number) => `${column}, line ${index + 1}`;
+
   function addItem() {
     items = [...items, emptyItem()];
   }
@@ -23,64 +28,285 @@
     const next = items.filter((_, i) => i !== index);
     items = next.length ? next : [emptyItem()];
   }
+
+  // ---- Catalog picker ----
+
+  let pickerOpen = $state(false);
+  let catalog = $state<CatalogItem[]>([]);
+  let catalogQuery = $state("");
+  let catalogLoading = $state(false);
+  let catalogRead = false;
+
+  async function togglePicker() {
+    pickerOpen = !pickerOpen;
+    if (!pickerOpen || catalogRead) return;
+
+    catalogRead = true;
+    catalogLoading = true;
+    try {
+      catalog = await api.catalog.list("", false);
+    } catch {
+      // The picker is a convenience; typing a line by hand still works.
+    } finally {
+      catalogLoading = false;
+    }
+  }
+
+  const matches = $derived.by(() => {
+    const needle = catalogQuery.trim().toLowerCase();
+    if (!needle) return catalog.slice(0, 30);
+    return catalog
+      .filter((item) =>
+        `${item.name} ${item.description ?? ""} ${item.sku ?? ""}`.toLowerCase().includes(needle)
+      )
+      .slice(0, 30);
+  });
+
+  function pick(item: CatalogItem) {
+    items = [
+      ...items,
+      {
+        ...emptyItem(),
+        description: item.name,
+        unit: item.unit ?? "",
+        price: minorToInput(item.unitPriceMinor),
+      },
+    ];
+    catalogQuery = "";
+    pickerOpen = false;
+  }
 </script>
 
-<table>
-  <thead>
-    <tr>
-      <th style="min-width: 160px;">Description</th>
-      <th style="width: 70px;">Qty</th>
-      <th style="width: 70px;">Unit</th>
-      <th style="width: 100px;">Price</th>
-      <th style="width: 100px;">Disc.</th>
-      <th style="width: 90px;">Value</th>
-      <th style="width: 120px;">Tax</th>
-      <th style="width: 60px;">Incl.</th>
-      <th style="width: 100px;">Total</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    {#each items as item, index (index)}
+<div class="wrap">
+  <table>
+    <thead>
       <tr>
-        <td><input bind:value={item.description} placeholder="Description" /></td>
-        <td><input bind:value={item.quantity} inputmode="decimal" /></td>
-        <td><input bind:value={item.unit} placeholder="hour" /></td>
-        <td><input bind:value={item.price} inputmode="decimal" placeholder="0.00" /></td>
-        <td>
-          <select bind:value={item.discountType}>
-            <option value="">None</option>
-            <option value="percent">%</option>
-            <option value="fixed">Fixed</option>
-          </select>
-        </td>
-        <td>
-          {#if item.discountType}
-            <input bind:value={item.discountValue} inputmode="decimal" placeholder="0" />
-          {/if}
-        </td>
-        <td>
-          <select bind:value={item.taxRateId}>
-            <option value="">None</option>
-            {#each taxRates as rate (rate.id)}
-              <option value={rate.id}>{rate.name}</option>
-            {/each}
-          </select>
-        </td>
-        <td style="text-align: center;">
-          <input type="checkbox" bind:checked={item.taxInclusive} style="width: auto;" />
-        </td>
-        <td class="numeric">{fromMinor(lines[index]?.totalMinor ?? 0, currency)}</td>
-        <td>
-          <button class="btn secondary" onclick={() => removeItem(index)} aria-label="Remove line">
-            ×
-          </button>
-        </td>
+        <th class="wide">Description</th>
+        <th class="qty">Qty</th>
+        <th class="unit">Unit</th>
+        <th class="money">Price</th>
+        <th class="money">Disc.</th>
+        <th class="value">Value</th>
+        <th class="tax">Tax</th>
+        <th class="incl">Incl.</th>
+        <th class="total">Total</th>
+        <th></th>
       </tr>
-    {/each}
-  </tbody>
-</table>
-
-<div class="row" style="margin-top: 0.75rem;">
-  <button class="btn secondary" onclick={addItem}>Add line</button>
+    </thead>
+    <tbody>
+      {#each items as item, index (index)}
+        <tr>
+          <td>
+            <input
+              bind:value={item.description}
+              placeholder="Description"
+              aria-label={name("Description", index)}
+            />
+          </td>
+          <td>
+            <input
+              bind:value={item.quantity}
+              inputmode="decimal"
+              aria-label={name("Quantity", index)}
+            />
+          </td>
+          <td>
+            <input bind:value={item.unit} placeholder="hour" aria-label={name("Unit", index)} />
+          </td>
+          <td>
+            <input
+              bind:value={item.price}
+              inputmode="decimal"
+              placeholder="0.00"
+              aria-label={name("Unit price", index)}
+            />
+          </td>
+          <td>
+            <select bind:value={item.discountType} aria-label={name("Discount type", index)}>
+              <option value="">None</option>
+              <option value="percent">%</option>
+              <option value="fixed">Fixed</option>
+            </select>
+          </td>
+          <td>
+            {#if item.discountType}
+              <input
+                bind:value={item.discountValue}
+                inputmode="decimal"
+                placeholder="0"
+                aria-label={name("Discount amount", index)}
+              />
+            {/if}
+          </td>
+          <td>
+            <select bind:value={item.taxRateId} aria-label={name("Tax rate", index)}>
+              <option value="">None</option>
+              {#each taxRates as rate (rate.id)}
+                <option value={rate.id}>{rate.name}</option>
+              {/each}
+            </select>
+          </td>
+          <td class="centre">
+            <input
+              type="checkbox"
+              bind:checked={item.taxInclusive}
+              aria-label={name("Price includes tax", index)}
+            />
+          </td>
+          <td class="numeric">{fromMinor(lines[index]?.totalMinor ?? 0, currency)}</td>
+          <td>
+            <button class="btn secondary" onclick={() => removeItem(index)} aria-label={name("Remove", index)}>
+              ×
+            </button>
+          </td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
 </div>
+
+<div class="row actions">
+  <button class="btn secondary" onclick={addItem}>Add line</button>
+  <button class="btn secondary" onclick={togglePicker} aria-expanded={pickerOpen}>
+    Add from catalog
+  </button>
+
+  {#if pickerOpen}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="picker"
+      onkeydown={(event) => {
+        if (event.key === "Escape") pickerOpen = false;
+      }}
+    >
+      <label class="search">
+        <span class="sr-only">Search the catalog</span>
+        <!-- svelte-ignore a11y_autofocus -->
+        <input
+          bind:value={catalogQuery}
+          placeholder="Search the catalog"
+          autofocus
+          spellcheck="false"
+        />
+      </label>
+
+      {#if catalogLoading}
+        <p class="muted note">Reading the catalog…</p>
+      {:else if matches.length === 0}
+        <p class="muted note">
+          Nothing matches. Add items on the <a class="link" href="/catalog">Catalog</a> page.
+        </p>
+      {:else}
+        <ul>
+          {#each matches as item (item.id)}
+            <li>
+              <button class="option" onclick={() => pick(item)}>
+                <span>{item.name}</span>
+                <span class="muted">{fromMinor(item.unitPriceMinor, item.currency ?? currency)}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  {/if}
+</div>
+
+<style>
+  /* The grid is wider than a narrow window; scroll it rather than clipping. */
+  .wrap {
+    overflow-x: auto;
+  }
+
+  .wrap table {
+    min-width: 860px;
+  }
+
+  .wide {
+    min-width: 160px;
+  }
+
+  .qty,
+  .unit {
+    width: 70px;
+  }
+
+  .money {
+    width: 100px;
+  }
+
+  .value {
+    width: 90px;
+  }
+
+  .tax {
+    width: 120px;
+  }
+
+  .incl {
+    width: 60px;
+  }
+
+  .total {
+    width: 100px;
+  }
+
+  .centre {
+    text-align: center;
+  }
+
+  .actions {
+    position: relative;
+    margin-top: var(--space-3);
+  }
+
+  .picker {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 20;
+    width: min(24rem, 100%);
+    max-height: 20rem;
+    overflow-y: auto;
+    margin-top: var(--space-2);
+    padding: var(--space-2);
+    background: var(--paper-0);
+    border: 1px solid var(--paper-4);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
+  }
+
+  .search {
+    display: block;
+    margin-bottom: var(--space-2);
+  }
+
+  .picker ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .option {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    font: inherit;
+    text-align: left;
+    color: var(--ink-1);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .option:hover {
+    background: var(--paper-2);
+  }
+
+  .note {
+    margin: var(--space-2) var(--space-3);
+  }
+</style>

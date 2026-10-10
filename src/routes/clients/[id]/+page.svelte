@@ -3,8 +3,10 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { api } from "$lib/api";
-  import { emptyToNull, nullToEmpty } from "$lib/format";
-  import type { ClientInput } from "$lib/types";
+  import { emptyToNull, formatDate, fromMinor, nullToEmpty, statusLabel } from "$lib/format";
+  import type { ClientInput, Estimate, Invoice } from "$lib/types";
+  import EmptyState from "$lib/components/EmptyState.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
 
   type Form = Record<keyof ClientInput, string>;
 
@@ -32,8 +34,26 @@
   let saved = $state(false);
   let saving = $state(false);
 
+  let invoices = $state<Invoice[]>([]);
+  let estimates = $state<Estimate[]>([]);
+  let documentsLoading = $state(false);
+
   const id = $derived(page.params.id ?? "");
   const isNew = $derived(id === "new");
+
+  // Invoices can be in different currencies, so a single total would be a lie.
+  const outstanding = $derived.by(() => {
+    const totals = new Map<string, number>();
+    for (const invoice of invoices) {
+      if (invoice.displayStatus === "void" || invoice.balanceMinor <= 0) continue;
+      totals.set(invoice.currency, (totals.get(invoice.currency) ?? 0) + invoice.balanceMinor);
+    }
+    return [...totals.entries()].map(([code, amountMinor]) => ({ code, amountMinor }));
+  });
+
+  const overdueCount = $derived(
+    invoices.filter((invoice) => invoice.displayStatus === "overdue").length
+  );
 
   onMount(async () => {
     if (isNew) return;
@@ -60,10 +80,29 @@
         notes: nullToEmpty(client.notes),
       };
       archived = client.archivedAt !== null;
+      await loadDocuments();
     } catch (e) {
       loadError = String(e);
     }
   });
+
+  /// Filtered here rather than in the query, because both lists are small and
+  /// this keeps one source of truth for what a client's documents are.
+  async function loadDocuments() {
+    documentsLoading = true;
+    try {
+      const [allInvoices, allEstimates] = await Promise.all([
+        api.invoices.list(),
+        api.estimates.list(),
+      ]);
+      invoices = allInvoices.filter((invoice) => invoice.clientId === id);
+      estimates = allEstimates.filter((estimate) => estimate.clientId === id);
+    } catch (e) {
+      loadError = String(e);
+    } finally {
+      documentsLoading = false;
+    }
+  }
 
   function toInput(): ClientInput {
     return {
@@ -119,17 +158,128 @@
   }
 </script>
 
-<div class="page-head">
-  <h1>{isNew ? "New client" : "Edit client"}</h1>
-  <a class="link" href="/clients">Back to clients</a>
-</div>
+<PageHeader title={isNew ? "New client" : form.displayName || "Client"}>
+  {#if !isNew}
+    <a class="btn" href={`/invoices/new?client=${id}`}>New invoice</a>
+    <a class="btn secondary" href={`/estimates/new?client=${id}`}>New estimate</a>
+  {/if}
+</PageHeader>
 
 {#if loadError}
   <p class="error">{loadError}</p>
 {/if}
 
+{#if !isNew}
+  <div class="card rise" style="--i: 0">
+    <h2>Balance</h2>
+    {#if documentsLoading}
+      <p class="muted">Adding up their invoices…</p>
+    {:else if outstanding.length === 0}
+      <p class="muted">Nothing outstanding. Every invoice is settled.</p>
+    {:else}
+      <div class="figures">
+        {#each outstanding as total (total.code)}
+          <div>
+            <p class="figure">{fromMinor(total.amountMinor, total.code)}</p>
+            <p class="muted">{total.code}</p>
+          </div>
+        {/each}
+      </div>
+      {#if overdueCount > 0}
+        <p class="error">
+          {overdueCount}
+          {overdueCount === 1 ? "invoice is" : "invoices are"} overdue.
+          <a class="link" href={`/invoices?status=overdue`}>See them all</a>
+        </p>
+      {/if}
+    {/if}
+  </div>
+
+  <div class="card rise" style="--i: 1">
+    <h2>Invoices</h2>
+    {#if documentsLoading}
+      <p class="muted">Reading their invoices…</p>
+    {:else if invoices.length === 0}
+      <EmptyState
+        title="No invoices for {form.displayName || "this client"} yet"
+        body="When you bill them, it will show up here with what is still owed."
+      >
+        <a class="btn" href={`/invoices/new?client=${id}`}>Create an invoice</a>
+      </EmptyState>
+    {:else}
+      <table>
+        <thead>
+          <tr>
+            <th>Number</th>
+            <th>Issued</th>
+            <th>Due</th>
+            <th class="numeric">Balance</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each invoices as invoice (invoice.id)}
+            <tr>
+              <td><a class="link" href={`/invoices/${invoice.id}`}>{invoice.number}</a></td>
+              <td>{formatDate(invoice.issueDate)}</td>
+              <td>{formatDate(invoice.dueDate)}</td>
+              <td class="numeric">{fromMinor(invoice.balanceMinor, invoice.currency)}</td>
+              <td>
+                <span class={`badge ${invoice.displayStatus}`}>
+                  {statusLabel(invoice.displayStatus)}
+                </span>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    {/if}
+  </div>
+
+  <div class="card rise" style="--i: 2">
+    <h2>Estimates</h2>
+    {#if documentsLoading}
+      <p class="muted">Reading their estimates…</p>
+    {:else if estimates.length === 0}
+      <EmptyState
+        title="No estimates yet"
+        body="A quote for this client, ready to convert into an invoice once the work is agreed."
+      >
+        <a class="btn secondary" href={`/estimates/new?client=${id}`}>Create an estimate</a>
+      </EmptyState>
+    {:else}
+      <table>
+        <thead>
+          <tr>
+            <th>Number</th>
+            <th>Issued</th>
+            <th>Valid until</th>
+            <th class="numeric">Total</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each estimates as estimate (estimate.id)}
+            <tr>
+              <td><a class="link" href={`/estimates/${estimate.id}`}>{estimate.number}</a></td>
+              <td>{formatDate(estimate.issueDate)}</td>
+              <td>{formatDate(estimate.validUntil)}</td>
+              <td class="numeric">{fromMinor(estimate.totalMinor, estimate.currency)}</td>
+              <td>
+                <span class={`badge ${estimate.displayStatus}`}>
+                  {statusLabel(estimate.displayStatus)}
+                </span>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    {/if}
+  </div>
+{/if}
+
 <div class="card">
-  <h2>Details</h2>
+  <h2>{isNew ? "Details" : "Their details"}</h2>
 
   <div class="field">
     <label for="displayName">Name *</label>
@@ -155,7 +305,7 @@
     </div>
   </div>
 
-  <h2>Address</h2>
+  <h2 class="spaced">Address</h2>
   <div class="grid-2">
     <div class="field">
       <label for="addressLine1">Address line 1</label>
@@ -183,7 +333,7 @@
     </div>
   </div>
 
-  <h2>Billing</h2>
+  <h2 class="spaced">Billing</h2>
   <div class="grid-2">
     <div class="field">
       <label for="taxId">Tax / VAT ID</label>
@@ -191,7 +341,7 @@
     </div>
     <div class="field">
       <label for="currency">Currency</label>
-      <input id="currency" bind:value={form.currency} placeholder="e.g. USD" />
+      <input id="currency" bind:value={form.currency} placeholder="USD" />
     </div>
   </div>
 
@@ -202,14 +352,35 @@
 
   <div class="row wrap">
     <button class="btn" onclick={save} disabled={saving}>
-      {saving ? "Saving…" : "Save"}
+      {saving ? "Saving…" : "Save client"}
     </button>
     {#if !isNew}
       <button class="btn secondary" onclick={toggleArchive}>
         {archived ? "Restore" : "Archive"}
       </button>
+      <a class="link" href="/clients">Back to clients</a>
     {/if}
     {#if saved}<span class="ok">Saved</span>{/if}
     {#if saveError}<span class="error">{saveError}</span>{/if}
   </div>
 </div>
+
+<style>
+  .spaced {
+    margin-top: var(--space-5);
+  }
+
+  .figures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-5);
+  }
+
+  .figure {
+    margin: 0;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
