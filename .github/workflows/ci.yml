@@ -55,6 +55,11 @@ jobs:
       - name: Licence check
         run: npm run check:licenses
 
+      # Measures every foreground/background pair the UI renders, so the
+      # contrast claim is a check rather than an opinion.
+      - name: Contrast check
+        run: npm run check:contrast
+
       - name: Frontend typecheck
         run: npm run check
 

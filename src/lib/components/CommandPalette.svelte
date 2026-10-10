@@ -85,15 +85,47 @@
     }
   }
 
+  // Focus belongs to the input while the palette is open, then goes back to
+  // whatever had it before.
+  let previousFocus: HTMLElement | null = null;
+
   $effect(() => {
     if (open) {
+      previousFocus = document.activeElement as HTMLElement | null;
       query = "";
       options = base;
       void loadRecords();
       // Let the element mount before focusing it.
       queueMicrotask(() => input?.focus());
+    } else if (previousFocus) {
+      previousFocus.focus();
+      previousFocus = null;
     }
   });
+
+  /// Keeps Tab inside the dialog, wrapping at both ends.
+  function onTrapKeydown(event: KeyboardEvent) {
+    if (event.key !== "Tab") return;
+
+    const focusable = Array.from(
+      (event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>(
+        'input, button, [href], select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((element) => !element.hasAttribute("disabled"));
+
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   async function choose(command: Command | undefined) {
     if (!command) return;
@@ -157,6 +189,7 @@
       aria-label="Command palette"
       tabindex="-1"
       onclick={(event) => event.stopPropagation()}
+      onkeydown={onTrapKeydown}
     >
       <input
         bind:this={input}

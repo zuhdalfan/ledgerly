@@ -5,6 +5,7 @@
   import { save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
   import LineItems from "$lib/components/LineItems.svelte";
+  import Skeleton from "$lib/components/Skeleton.svelte";
   import { useDirtyGuard } from "$lib/guard";
   import {
     emptyToNull,
@@ -53,6 +54,7 @@
   let totals = $state<InvoiceTotals | null>(null);
 
   let loadError = $state("");
+  let loading = $state(true);
   let saveError = $state("");
   let saved = $state(false);
   let saving = $state(false);
@@ -161,6 +163,8 @@
       baseline = JSON.stringify(toInput());
     } catch (e) {
       loadError = String(e);
+    } finally {
+      loading = false;
     }
   });
 
@@ -323,7 +327,14 @@
   <a class="link" href="/estimates">Back to estimates</a>
 </div>
 
-{#if loadError}<p class="error">{loadError}</p>{/if}
+{#if loadError}<p class="error" role="alert">{loadError}</p>{/if}
+
+{#if loading}
+  <div class="card">
+    <h2>Details</h2>
+    <Skeleton rows={6} columns={2} />
+  </div>
+{:else}
 
 {#if converted && convertedInvoiceId}
   <div class="card">
@@ -502,6 +513,8 @@
       {#if exportMessage}<span class="muted">{exportMessage}</span>{/if}
     </div>
   </div>
+{/if}
+
 {/if}
 
 <style>

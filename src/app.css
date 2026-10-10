@@ -34,6 +34,10 @@
   --paper-2: oklch(0.965 0.008 80);
   --paper-3: oklch(0.92 0.012 80);
   --paper-4: oklch(0.86 0.014 80);
+  /* A control's edge is not decoration: for a text input it is the only thing
+   * saying "you can type here", so it clears 3:1 against the surface behind it
+   * (WCAG 1.4.11). Cards and table rules are decorative and stay lighter. */
+  --line-control: oklch(0.62 0.012 70);
 
   /* Ink ramp — text and the primary action. Three levels, well separated, so
    * the hierarchy survives with the hue stripped out. */
@@ -278,7 +282,7 @@ textarea {
   font: inherit;
   color: inherit;
   background: var(--paper-0);
-  border: 1px solid var(--paper-4);
+  border: 1px solid var(--line-control);
   border-radius: var(--radius-md);
   transition: border-color var(--dur-fast) var(--ease-out);
 }
@@ -522,6 +526,18 @@ code {
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+/* A pointer is the primary input on a desktop app, but a touchscreen laptop or
+ * a tablet gets the larger targets. */
+@media (pointer: coarse) {
+  .btn,
+  nav a,
+  .search,
+  input,
+  select {
+    min-height: 44px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

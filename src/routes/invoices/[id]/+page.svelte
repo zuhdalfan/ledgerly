@@ -16,6 +16,7 @@
   import LineItems from "$lib/components/LineItems.svelte";
   import Celebration from "$lib/components/Celebration.svelte";
   import Toast from "$lib/components/Toast.svelte";
+  import Skeleton from "$lib/components/Skeleton.svelte";
   import { useDirtyGuard } from "$lib/guard";
   import { reminder } from "$lib/chase";
   import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
@@ -61,6 +62,7 @@
   let totals = $state<InvoiceTotals | null>(null);
 
   let loadError = $state("");
+  let loading = $state(true);
   let saveError = $state("");
   let saved = $state(false);
   let saving = $state(false);
@@ -212,6 +214,8 @@
       baseline = JSON.stringify(toInput());
     } catch (e) {
       loadError = String(e);
+    } finally {
+      loading = false;
     }
   });
 
@@ -481,7 +485,14 @@
   <a class="link" href="/invoices">Back to invoices</a>
 </div>
 
-{#if loadError}<p class="error">{loadError}</p>{/if}
+{#if loadError}<p class="error" role="alert">{loadError}</p>{/if}
+
+{#if loading}
+  <div class="card">
+    <h2>Details</h2>
+    <Skeleton rows={6} columns={2} />
+  </div>
+{:else}
 
 <div class="card">
   <h2>Details</h2>
@@ -746,6 +757,8 @@
       {#if exportMessage}<span class="muted">{exportMessage}</span>{/if}
     </div>
   </div>
+{/if}
+
 {/if}
 
 <Celebration bind:open={celebrating} amount={celebrationAmount} />

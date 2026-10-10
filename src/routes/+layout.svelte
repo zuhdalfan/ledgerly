@@ -184,7 +184,7 @@
     </div>
   </div>
 {:else}
-  <div class="app">
+  <div class="app" inert={paletteOpen}>
     <a class="skip" href="#main">Skip to content</a>
     <aside>
       <div class="brand">Ledgerly</div>
