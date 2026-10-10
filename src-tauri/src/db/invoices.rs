@@ -752,4 +752,59 @@ mod tests {
         assert_eq!(list(&t.conn, None, Some("unpaid")).unwrap().len(), 1);
         assert_eq!(list(&t.conn, None, Some("sent")).unwrap().len(), 2);
     }
+
+    /// Opt-in capacity check, so the paging decision rests on a number rather
+    /// than a hunch:
+    ///
+    ///     cargo test -- --ignored --nocapture shows_how_the_list_scales
+    #[test]
+    #[ignore]
+    fn shows_how_the_list_scales() {
+        let t = temp_db();
+
+        let count = 10_000;
+        t.conn.execute_batch("BEGIN").unwrap();
+        {
+            let mut insert = t
+                .conn
+                .prepare(
+                    "INSERT INTO invoice (id, number, status, issue_date, due_date, currency,
+                                          total_minor, created_at, updated_at)
+                     VALUES (?1, ?2, 'sent', '2026-01-01', '2026-02-01', 'USD', 12345,
+                             '2026-01-01 00:00:00', '2026-01-01 00:00:00')",
+                )
+                .unwrap();
+            for index in 0..count {
+                insert
+                    .execute(rusqlite::params![
+                        format!("inv-{index}"),
+                        format!("INV-{index:05}")
+                    ])
+                    .unwrap();
+            }
+        }
+        t.conn.execute_batch("COMMIT").unwrap();
+
+        let started = std::time::Instant::now();
+        let all = list(&t.conn, None, None).unwrap();
+        let unfiltered = started.elapsed();
+
+        let started = std::time::Instant::now();
+        let found = list(&t.conn, Some("INV-09999"), None).unwrap();
+        let searched = started.elapsed();
+
+        let started = std::time::Instant::now();
+        let overdue = list(&t.conn, None, Some("overdue")).unwrap();
+        let filtered = started.elapsed();
+
+        println!(
+            "{count} invoices: list all {unfiltered:?} ({} rows), search {searched:?} ({} rows), \
+             status filter {filtered:?} ({} rows)",
+            all.len(),
+            found.len(),
+            overdue.len()
+        );
+
+        assert_eq!(all.len(), count);
+    }
 }

@@ -8,6 +8,7 @@
   import EmptyState from "$lib/components/EmptyState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SearchField from "$lib/components/SearchField.svelte";
+  import { capped, RENDER_LIMIT } from "$lib/list";
 
   let items = $state<CatalogItem[]>([]);
   let currency = $state("");
@@ -24,6 +25,7 @@
 
   const query = $derived(page.url.searchParams.get("q") ?? "");
   const includeArchived = $derived(page.url.searchParams.get("archived") === "1");
+  const visible = $derived(capped(items));
 
   async function load() {
     loading = true;
@@ -196,7 +198,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each items as item (item.id)}
+          {#each visible.shown as item (item.id)}
             {#if editing?.id === item.id}
               <tr>
                 <td><input bind:value={draft.name} aria-label="Name" /></td>
@@ -240,6 +242,11 @@
           {/each}
         </tbody>
       </table>
+      {#if visible.hidden > 0}
+        <p class="muted truncation">
+          Showing the first {RENDER_LIMIT} of {items.length}. Search to narrow it down.
+        </p>
+      {/if}
     {/if}
   </div>
 </AsyncState>
@@ -247,6 +254,10 @@
 <style>
   .spaced {
     margin-top: var(--space-4);
+  }
+
+  .truncation {
+    margin-top: var(--space-3);
   }
 
   .archived {

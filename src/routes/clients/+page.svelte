@@ -7,6 +7,7 @@
   import EmptyState from "$lib/components/EmptyState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SearchField from "$lib/components/SearchField.svelte";
+  import { capped, RENDER_LIMIT } from "$lib/list";
 
   let clients = $state<Client[]>([]);
   let loading = $state(true);
@@ -16,6 +17,7 @@
 
   const query = $derived(page.url.searchParams.get("q") ?? "");
   const includeArchived = $derived(page.url.searchParams.get("archived") === "1");
+  const visible = $derived(capped(clients));
 
   async function load() {
     loading = true;
@@ -92,7 +94,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each clients as client (client.id)}
+          {#each visible.shown as client (client.id)}
             <tr>
               <td>
                 <a class="link" href={`/clients/${client.id}`}>{client.displayName}</a>
@@ -105,6 +107,11 @@
           {/each}
         </tbody>
       </table>
+      {#if visible.hidden > 0}
+        <p class="muted truncation">
+          Showing the first {RENDER_LIMIT} of {clients.length}. Search to narrow it down.
+        </p>
+      {/if}
     {/if}
   </div>
 </AsyncState>
@@ -116,5 +123,9 @@
 
   .archived input {
     width: auto;
+  }
+
+  .truncation {
+    margin-top: var(--space-3);
   }
 </style>

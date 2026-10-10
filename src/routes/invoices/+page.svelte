@@ -8,6 +8,7 @@
   import EmptyState from "$lib/components/EmptyState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SearchField from "$lib/components/SearchField.svelte";
+  import { capped, RENDER_LIMIT } from "$lib/list";
 
   const statuses = ["draft", "sent", "unpaid", "overdue", "paid", "void"] as const;
 
@@ -63,6 +64,7 @@
   });
 
   const filtered = $derived(Boolean(query) || Boolean(status));
+  const visible = $derived(capped(invoices));
 </script>
 
 <PageHeader title="Invoices">
@@ -120,7 +122,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each invoices as invoice (invoice.id)}
+          {#each visible.shown as invoice (invoice.id)}
             <tr>
               <td><a class="link" href={`/invoices/${invoice.id}`}>{invoice.number}</a></td>
               <td>{invoice.clientName ?? "—"}</td>
@@ -137,6 +139,11 @@
           {/each}
         </tbody>
       </table>
+      {#if visible.hidden > 0}
+        <p class="muted truncation">
+          Showing the first {RENDER_LIMIT} of {invoices.length}. Search or filter to narrow it down.
+        </p>
+      {/if}
     {/if}
   </div>
 </AsyncState>
@@ -148,5 +155,9 @@
 
   .filter select {
     width: auto;
+  }
+
+  .truncation {
+    margin-top: var(--space-3);
   }
 </style>

@@ -8,6 +8,7 @@
   import EmptyState from "$lib/components/EmptyState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SearchField from "$lib/components/SearchField.svelte";
+  import { capped, RENDER_LIMIT } from "$lib/list";
 
   const statuses = ["draft", "sent", "accepted", "declined", "expired", "converted"] as const;
 
@@ -20,6 +21,7 @@
 
   const query = $derived(page.url.searchParams.get("q") ?? "");
   const status = $derived(page.url.searchParams.get("status") ?? "");
+  const visible = $derived(capped(estimates));
 
   async function load() {
     loading = true;
@@ -116,7 +118,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each estimates as estimate (estimate.id)}
+          {#each visible.shown as estimate (estimate.id)}
             <tr>
               <td><a class="link" href={`/estimates/${estimate.id}`}>{estimate.number}</a></td>
               <td>{estimate.clientName ?? "—"}</td>
@@ -132,6 +134,11 @@
           {/each}
         </tbody>
       </table>
+      {#if visible.hidden > 0}
+        <p class="muted truncation">
+          Showing the first {RENDER_LIMIT} of {estimates.length}. Search or filter to narrow it down.
+        </p>
+      {/if}
     {/if}
   </div>
 </AsyncState>
@@ -143,5 +150,9 @@
 
   .filter select {
     width: auto;
+  }
+
+  .truncation {
+    margin-top: var(--space-3);
   }
 </style>
