@@ -2,7 +2,7 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { api } from "$lib/api";
-  import { emptyToNull, fromMinor, toMinor } from "$lib/format";
+  import { emptyToNull, fromMinor, minorToInput, toMinor } from "$lib/format";
   import type { CatalogItem } from "$lib/types";
   import AsyncState from "$lib/components/AsyncState.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
@@ -95,6 +95,41 @@
       error = String(e);
     }
   }
+
+  // ---- Editing ----
+
+  let editing = $state<CatalogItem | null>(null);
+  let draft = $state({ name: "", description: "", unit: "", price: "" });
+
+  function startEdit(item: CatalogItem) {
+    editing = item;
+    draft = {
+      name: item.name,
+      description: item.description ?? "",
+      unit: item.unit ?? "",
+      price: minorToInput(item.unitPriceMinor),
+    };
+  }
+
+  async function saveEdit() {
+    if (!editing || !draft.name.trim()) return;
+    try {
+      await api.catalog.update(editing.id, {
+        name: draft.name.trim(),
+        description: emptyToNull(draft.description),
+        unit: emptyToNull(draft.unit),
+        unitPriceMinor: toMinor(draft.price),
+        // Neither is shown in this table, so carry them through untouched
+        // rather than blanking them on save.
+        currency: editing.currency,
+        sku: editing.sku,
+      });
+      editing = null;
+      await load();
+    } catch (e) {
+      error = String(e);
+    }
+  }
 </script>
 
 <PageHeader
@@ -162,20 +197,46 @@
         </thead>
         <tbody>
           {#each items as item (item.id)}
-            <tr>
-              <td>
-                {item.name}
-                {#if item.archivedAt}<span class="muted"> (archived)</span>{/if}
-              </td>
-              <td>{item.description ?? "—"}</td>
-              <td>{item.unit ?? "—"}</td>
-              <td class="numeric">{fromMinor(item.unitPriceMinor, item.currency ?? currency)}</td>
-              <td>
-                <button class="btn secondary" onclick={() => toggleArchive(item)}>
-                  {item.archivedAt ? "Restore" : "Archive"}
-                </button>
-              </td>
-            </tr>
+            {#if editing?.id === item.id}
+              <tr>
+                <td><input bind:value={draft.name} aria-label="Name" /></td>
+                <td><input bind:value={draft.description} aria-label="Description" /></td>
+                <td><input bind:value={draft.unit} aria-label="Unit" /></td>
+                <td>
+                  <input
+                    bind:value={draft.price}
+                    inputmode="decimal"
+                    aria-label="Unit price"
+                  />
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn" onclick={saveEdit} disabled={!draft.name.trim()}>
+                      Save
+                    </button>
+                    <button class="btn secondary" onclick={() => (editing = null)}>Cancel</button>
+                  </div>
+                </td>
+              </tr>
+            {:else}
+              <tr>
+                <td>
+                  {item.name}
+                  {#if item.archivedAt}<span class="muted"> (archived)</span>{/if}
+                </td>
+                <td>{item.description ?? "—"}</td>
+                <td>{item.unit ?? "—"}</td>
+                <td class="numeric">{fromMinor(item.unitPriceMinor, item.currency ?? currency)}</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn secondary" onclick={() => startEdit(item)}>Edit</button>
+                    <button class="btn secondary" onclick={() => toggleArchive(item)}>
+                      {item.archivedAt ? "Restore" : "Archive"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {/if}
           {/each}
         </tbody>
       </table>
@@ -194,5 +255,11 @@
 
   .archived input {
     width: auto;
+  }
+
+  .row-actions {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: flex-end;
   }
 </style>

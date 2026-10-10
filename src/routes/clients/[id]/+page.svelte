@@ -7,6 +7,7 @@
   import type { ClientInput, Estimate, Invoice } from "$lib/types";
   import EmptyState from "$lib/components/EmptyState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import { useDirtyGuard } from "$lib/guard";
 
   type Form = Record<keyof ClientInput, string>;
 
@@ -41,6 +42,12 @@
   const id = $derived(page.params.id ?? "");
   const isNew = $derived(id === "new");
 
+  // Dirty tracking compares the form against the last state we loaded or saved,
+  // so an untouched form never nags.
+  let baseline = $state("");
+  const dirty = $derived(baseline !== "" && JSON.stringify(toInput()) !== baseline);
+  useDirtyGuard(() => dirty, "This client has unsaved changes. Leave and lose them?");
+
   // Invoices can be in different currencies, so a single total would be a lie.
   const outstanding = $derived.by(() => {
     const totals = new Map<string, number>();
@@ -56,7 +63,10 @@
   );
 
   onMount(async () => {
-    if (isNew) return;
+    if (isNew) {
+      baseline = JSON.stringify(toInput());
+      return;
+    }
     try {
       const client = await api.clients.get(id);
       if (!client) {
@@ -81,6 +91,7 @@
       };
       archived = client.archivedAt !== null;
       await loadDocuments();
+      baseline = JSON.stringify(toInput());
     } catch (e) {
       loadError = String(e);
     }
@@ -135,11 +146,19 @@
     try {
       if (isNew) {
         const created = await api.clients.create(toInput());
-        await goto(`/clients/${created.id}`);
+        // Replace rather than push, so Back does not land on a blank form.
+        await goto(`/clients/${created.id}`, { replaceState: true });
+        // The route component is reused for the new id, so hydrate rather than
+        // waiting for a remount that never comes.
+        archived = created.archivedAt !== null;
+        await loadDocuments();
+        saved = true;
       } else {
         await api.clients.update(id, toInput());
         saved = true;
       }
+
+      baseline = JSON.stringify(toInput());
     } catch (e) {
       saveError = String(e);
     } finally {

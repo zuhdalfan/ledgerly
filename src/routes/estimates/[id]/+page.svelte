@@ -5,6 +5,7 @@
   import { save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
   import LineItems from "$lib/components/LineItems.svelte";
+  import { useDirtyGuard } from "$lib/guard";
   import {
     emptyToNull,
     fromMinor,
@@ -18,6 +19,13 @@
 
   let clients = $state<Client[]>([]);
   let taxRates = $state<TaxRate[]>([]);
+
+  // Creating a client must not mean abandoning a half-typed estimate.
+  let newClientOpen = $state(false);
+  let newClientName = $state("");
+  let newClientEmail = $state("");
+  let newClientError = $state("");
+  let newClientBusy = $state(false);
 
   let clientId = $state("");
   let issueDate = $state("");
@@ -62,6 +70,12 @@
     clients.find((client) => client.id === clientId)?.displayName ?? ""
   );
 
+  // Dirty tracking compares what the form would save against the last state we
+  // loaded or saved, so an untouched form never nags.
+  let baseline = $state("");
+  const dirty = $derived(baseline !== "" && JSON.stringify(toInput()) !== baseline);
+  useDirtyGuard(() => dirty, "This estimate has unsaved changes. Leave and lose them?");
+
   /// Status and expiry are derived on the Rust side.
   function applyEstimate(estimate: Estimate) {
     status = estimate.status;
@@ -93,14 +107,16 @@
 
   onMount(async () => {
     try {
-      const [clientList, rates, business] = await Promise.all([
+      const [clientList, rates, business, savedTemplate] = await Promise.all([
         api.clients.list(),
         api.taxRates.list(),
         api.business.get(),
+        api.settings.get("pdf.template").catch(() => null),
       ]);
       clients = clientList;
       taxRates = rates;
       currency = business.defaultCurrency;
+      template = savedTemplate ?? "classic";
 
       if (isNew) {
         issueDate = localDate();
@@ -110,6 +126,7 @@
         // A client workspace can start an estimate for that client directly.
         const preset = page.url.searchParams.get("client");
         if (preset && clientList.some((client) => client.id === preset)) clientId = preset;
+        baseline = JSON.stringify(toInput());
         return;
       }
 
@@ -141,6 +158,7 @@
         totalMinor: estimate.totalMinor,
       };
       applyEstimate(estimate);
+      baseline = JSON.stringify(toInput());
     } catch (e) {
       loadError = String(e);
     }
@@ -160,6 +178,15 @@
     }, 150);
   });
 
+  function applyTotals(estimate: Estimate) {
+    savedTotals = {
+      subtotalMinor: estimate.subtotalMinor,
+      discountMinor: estimate.discountMinor,
+      taxMinor: estimate.taxMinor,
+      totalMinor: estimate.totalMinor,
+    };
+  }
+
   async function save() {
     saveError = "";
     saved = false;
@@ -167,18 +194,22 @@
     try {
       if (isNew) {
         const created = await api.estimates.create(toInput());
-        await goto(`/estimates/${created.id}`);
+        // Replace rather than push, so Back does not land on a blank form.
+        await goto(`/estimates/${created.id}`, { replaceState: true });
+        // The route component is reused for the new id, so hydrate from what
+        // was just created instead of waiting for a remount that never comes.
+        number = created.number;
+        applyTotals(created);
+        applyEstimate(created);
+        saved = true;
       } else {
         const updated = await api.estimates.update(id, toInput());
-        savedTotals = {
-          subtotalMinor: updated.subtotalMinor,
-          discountMinor: updated.discountMinor,
-          taxMinor: updated.taxMinor,
-          totalMinor: updated.totalMinor,
-        };
+        applyTotals(updated);
         applyEstimate(updated);
         saved = true;
       }
+
+      baseline = JSON.stringify(toInput());
     } catch (e) {
       saveError = String(e);
     } finally {
@@ -192,6 +223,39 @@
       applyEstimate(await api.estimates.setStatus(id, next));
     } catch (e) {
       saveError = String(e);
+    }
+  }
+
+  async function createClient() {
+    if (!newClientName.trim()) return;
+    newClientBusy = true;
+    newClientError = "";
+    try {
+      const created = await api.clients.create({
+        displayName: newClientName.trim(),
+        company: null,
+        contactPerson: null,
+        email: emptyToNull(newClientEmail),
+        phone: null,
+        addressLine1: null,
+        addressLine2: null,
+        city: null,
+        region: null,
+        postalCode: null,
+        country: null,
+        taxId: null,
+        currency: null,
+        notes: null,
+      });
+      clients = [...clients, created];
+      clientId = created.id;
+      newClientOpen = false;
+      newClientName = "";
+      newClientEmail = "";
+    } catch (e) {
+      newClientError = String(e);
+    } finally {
+      newClientBusy = false;
     }
   }
 
@@ -213,6 +277,14 @@
     } catch (e) {
       saveError = String(e);
       converting = false;
+    }
+  }
+
+  async function saveTemplate() {
+    try {
+      await api.settings.set("pdf.template", template);
+    } catch {
+      // Remembering the template is a nicety; it must never block an export.
     }
   }
 
@@ -275,13 +347,40 @@
   <div class="grid-2">
     <div class="field">
       <label for="client">Client</label>
-      <select id="client" bind:value={clientId}>
-        <option value="">None</option>
-        {#each clients as client (client.id)}
-          <option value={client.id}>{client.displayName}</option>
-        {/each}
-      </select>
+      <div class="row">
+        <select id="client" bind:value={clientId}>
+          <option value="">None</option>
+          {#each clients as client (client.id)}
+            <option value={client.id}>{client.displayName}</option>
+          {/each}
+        </select>
+        <button class="btn secondary" onclick={() => (newClientOpen = !newClientOpen)}>
+          New client
+        </button>
+      </div>
     </div>
+
+    {#if newClientOpen}
+      <div class="inline-new">
+        <div class="grid-2">
+          <div class="field">
+            <label for="newClientName">Client name</label>
+            <input id="newClientName" bind:value={newClientName} />
+          </div>
+          <div class="field">
+            <label for="newClientEmail">Email</label>
+            <input id="newClientEmail" type="email" bind:value={newClientEmail} />
+          </div>
+        </div>
+        <div class="row wrap">
+          <button class="btn" onclick={createClient} disabled={newClientBusy || !newClientName.trim()}>
+            Add client
+          </button>
+          <button class="btn secondary" onclick={() => (newClientOpen = false)}>Cancel</button>
+          {#if newClientError}<span class="error">{newClientError}</span>{/if}
+        </div>
+      </div>
+    {/if}
     <div class="field">
       <label for="po">PO / reference</label>
       <input id="po" bind:value={poReference} />
@@ -369,7 +468,7 @@
   </div>
 </div>
 
-<div class="row wrap" style="margin-top: 1rem;">
+<div class="row wrap actions">
   <button class="btn" onclick={save} disabled={saving || converted}>
     {saving ? "Saving…" : "Save"}
   </button>
@@ -391,7 +490,7 @@
     <div class="row wrap">
       <label class="template">
         <span class="sr-only">PDF template</span>
-        <select bind:value={template}>
+        <select bind:value={template} onchange={saveTemplate}>
           <option value="classic">Classic</option>
           <option value="modern">Modern</option>
           <option value="minimal">Minimal</option>
@@ -408,5 +507,16 @@
 <style>
   .template select {
     width: auto;
+  }
+
+  .actions {
+    margin-top: var(--space-4);
+  }
+
+  .inline-new {
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    background: var(--paper-2);
+    border-radius: var(--radius-md);
   }
 </style>
