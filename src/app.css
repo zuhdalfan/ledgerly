@@ -250,6 +250,12 @@ textarea {
   resize: vertical;
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  accent-color: var(--ink-1);
+}
+
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,

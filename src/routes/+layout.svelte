@@ -1,8 +1,10 @@
 <script lang="ts">
   import "../app.css";
   import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { api } from "$lib/api";
+  import CommandPalette from "$lib/components/CommandPalette.svelte";
   import type { SecurityStatus } from "$lib/types";
 
   let { children } = $props();
@@ -27,6 +29,7 @@
   let passphrase = $state("");
   let unlocking = $state(false);
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
+  let paletteOpen = $state(false);
 
   async function loadSecurity() {
     checking = true;
@@ -77,12 +80,46 @@
     if (!security?.locked) restartIdleTimer();
   }
 
+  function isTyping(target: EventTarget | null): boolean {
+    const element = target as HTMLElement | null;
+    if (!element) return false;
+    const tag = element.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || element.isContentEditable;
+  }
+
+  function onKeydown(event: KeyboardEvent) {
+    // Nothing in the shell responds while the gate is up.
+    if (!security || security.locked) return;
+
+    const mod = event.ctrlKey || event.metaKey;
+
+    if (mod && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      paletteOpen = !paletteOpen;
+      return;
+    }
+
+    if (mod && event.key.toLowerCase() === "n") {
+      event.preventDefault();
+      void goto("/invoices/new");
+      return;
+    }
+
+    // The PRD's "/" search binding, and never while the user is typing.
+    if (event.key === "/" && !isTyping(event.target)) {
+      event.preventDefault();
+      paletteOpen = true;
+    }
+  }
+
   onMount(() => {
     void loadSecurity();
 
     for (const event of ["mousemove", "keydown", "click", "scroll"]) {
       window.addEventListener(event, onActivity);
     }
+
+    window.addEventListener("keydown", onKeydown);
   });
 </script>
 
@@ -131,6 +168,10 @@
     <a class="skip" href="#main">Skip to content</a>
     <aside>
       <div class="brand">Ledgerly</div>
+      <button class="search" onclick={() => (paletteOpen = true)}>
+        <span>Search</span>
+        <kbd>Ctrl K</kbd>
+      </button>
       <nav>
         {#each nav as item (item.href)}
           <a href={item.href} class:active={isActive(item.href)}>{item.label}</a>
@@ -142,6 +183,8 @@
       {@render children()}
     </main>
   </div>
+
+  <CommandPalette bind:open={paletteOpen} />
 {/if}
 
 <style>
@@ -175,5 +218,33 @@
 
   .skip:focus-visible {
     transform: translateY(0);
+  }
+
+  .search {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    font: inherit;
+    font-size: var(--text-md);
+    color: var(--ink-2);
+    background: var(--paper-1);
+    border: 1px solid var(--paper-3);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+
+  .search:hover {
+    color: var(--ink-1);
+    border-color: var(--ink-3);
+  }
+
+  kbd {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: var(--text-xs);
+    color: var(--ink-3);
   }
 </style>
