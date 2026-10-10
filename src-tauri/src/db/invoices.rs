@@ -204,12 +204,14 @@ pub fn list(
     conn: &Connection,
     query: Option<&str>,
     status: Option<&str>,
+    client_id: Option<&str>,
 ) -> rusqlite::Result<Vec<Invoice>> {
     let search = query
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(|value| format!("%{value}%"));
     let status = status.map(str::trim).filter(|value| !value.is_empty());
+    let client_id = client_id.map(str::trim).filter(|value| !value.is_empty());
 
     let sql = format!(
         "SELECT {columns} FROM invoice i
@@ -224,12 +226,15 @@ pub fn list(
                                    AND {DAYS_PAST_DUE_EXPR} > 0
                                    AND (i.total_minor - {PAID_EXPR}) > 0))
            AND (?2 IS NULL OR i.number LIKE ?2 OR IFNULL(c.display_name, '') LIKE ?2)
+           AND (?3 IS NULL OR i.client_id = ?3)
          ORDER BY i.issue_date DESC, i.number DESC",
         columns = columns()
     );
 
     let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map(params![status, search], |row| map_invoice(row, Vec::new()))?;
+    let rows = stmt.query_map(params![status, search, client_id], |row| {
+        map_invoice(row, Vec::new())
+    })?;
     rows.collect()
 }
 
@@ -588,12 +593,12 @@ mod tests {
         let first = create(&t.conn, &with_client).unwrap();
         create(&t.conn, &input(vec![item("Two", 2_000, None)])).unwrap();
 
-        assert_eq!(list(&t.conn, None, None).unwrap().len(), 2);
-        assert_eq!(list(&t.conn, Some("acme"), None).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, None, None).unwrap().len(), 2);
+        assert_eq!(list(&t.conn, Some("acme"), None, None).unwrap().len(), 1);
 
         set_void(&t.conn, &first.id, true).unwrap();
-        assert_eq!(list(&t.conn, None, Some("void")).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, Some("draft")).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, Some("void"), None).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, Some("draft"), None).unwrap().len(), 1);
     }
 
     #[test]
@@ -747,10 +752,56 @@ mod tests {
         set_sent(&t.conn, &settled.id, true).unwrap();
         payments::create(&t.conn, &settled.id, &payment(10_000)).unwrap();
 
-        assert_eq!(list(&t.conn, None, Some("overdue")).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, Some("paid")).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, Some("unpaid")).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, Some("sent")).unwrap().len(), 2);
+        assert_eq!(list(&t.conn, None, Some("overdue"), None).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, Some("paid"), None).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, Some("unpaid"), None).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, Some("sent"), None).unwrap().len(), 2);
+    }
+
+    fn make_client(conn: &Connection, name: &str) -> String {
+        clients::create(
+            conn,
+            &clients::ClientInput {
+                display_name: name.to_string(),
+                company: None,
+                contact_person: None,
+                email: None,
+                phone: None,
+                address_line1: None,
+                address_line2: None,
+                city: None,
+                region: None,
+                postal_code: None,
+                country: None,
+                tax_id: None,
+                currency: None,
+                notes: None,
+            },
+        )
+        .unwrap()
+        .id
+    }
+
+    #[test]
+    fn list_filters_by_client() {
+        let t = temp_db();
+        let acme = make_client(&t.conn, "Acme");
+        let globex = make_client(&t.conn, "Globex");
+
+        let mut first = input(vec![item("One", 1_000, None)]);
+        first.client_id = Some(acme.clone());
+        create(&t.conn, &first).unwrap();
+
+        let mut second = input(vec![item("Two", 2_000, None)]);
+        second.client_id = Some(globex.clone());
+        create(&t.conn, &second).unwrap();
+
+        assert_eq!(list(&t.conn, None, None, None).unwrap().len(), 2);
+        assert_eq!(list(&t.conn, None, None, Some(&acme)).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, None, Some(&globex)).unwrap().len(), 1);
+        assert!(list(&t.conn, None, None, Some("nobody"))
+            .unwrap()
+            .is_empty());
     }
 
     /// Opt-in capacity check, so the paging decision rests on a number rather
@@ -786,15 +837,15 @@ mod tests {
         t.conn.execute_batch("COMMIT").unwrap();
 
         let started = std::time::Instant::now();
-        let all = list(&t.conn, None, None).unwrap();
+        let all = list(&t.conn, None, None, None).unwrap();
         let unfiltered = started.elapsed();
 
         let started = std::time::Instant::now();
-        let found = list(&t.conn, Some("INV-09999"), None).unwrap();
+        let found = list(&t.conn, Some("INV-09999"), None, None).unwrap();
         let searched = started.elapsed();
 
         let started = std::time::Instant::now();
-        let overdue = list(&t.conn, None, Some("overdue")).unwrap();
+        let overdue = list(&t.conn, None, Some("overdue"), None).unwrap();
         let filtered = started.elapsed();
 
         println!(

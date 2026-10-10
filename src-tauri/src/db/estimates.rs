@@ -174,12 +174,14 @@ pub fn list(
     conn: &Connection,
     query: Option<&str>,
     status: Option<&str>,
+    client_id: Option<&str>,
 ) -> rusqlite::Result<Vec<Estimate>> {
     let search = query
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(|value| format!("%{value}%"));
     let status = status.map(str::trim).filter(|value| !value.is_empty());
+    let client_id = client_id.map(str::trim).filter(|value| !value.is_empty());
 
     let sql = format!(
         // Filters match the *derived* status, so an expired draft appears under
@@ -193,13 +195,16 @@ pub fn list(
                                    AND (i.valid_until IS NULL OR {days} >= 0))
                 OR (?1 IN ('accepted', 'declined', 'converted') AND i.status = ?1))
            AND (?2 IS NULL OR i.number LIKE ?2 OR IFNULL(c.display_name, '') LIKE ?2)
+           AND (?3 IS NULL OR i.client_id = ?3)
          ORDER BY i.issue_date DESC, i.number DESC",
         columns = columns(),
         days = DAYS_UNTIL_EXPIRY_EXPR
     );
 
     let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map(params![status, search], |row| map_estimate(row, Vec::new()))?;
+    let rows = stmt.query_map(params![status, search, client_id], |row| {
+        map_estimate(row, Vec::new())
+    })?;
     rows.collect()
 }
 
@@ -607,8 +612,8 @@ mod tests {
         create(&t.conn, &input(vec![item("A", 1_000)], Some("2020-01-01"))).unwrap();
         create(&t.conn, &input(vec![item("B", 1_000)], Some("2099-01-01"))).unwrap();
 
-        assert_eq!(list(&t.conn, None, None).unwrap().len(), 2);
-        assert_eq!(list(&t.conn, None, Some("expired")).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, Some("draft")).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, None, None).unwrap().len(), 2);
+        assert_eq!(list(&t.conn, None, Some("expired"), None).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, None, Some("draft"), None).unwrap().len(), 1);
     }
 }

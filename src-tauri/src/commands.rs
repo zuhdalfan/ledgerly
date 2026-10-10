@@ -286,10 +286,16 @@ pub fn invoices_list(
     state: State<'_, AppState>,
     query: Option<String>,
     status: Option<String>,
+    client_id: Option<String>,
 ) -> AppResult<Vec<Invoice>> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    Ok(invoices::list(&conn, query.as_deref(), status.as_deref())?)
+    Ok(invoices::list(
+        &conn,
+        query.as_deref(),
+        status.as_deref(),
+        client_id.as_deref(),
+    )?)
 }
 
 #[tauri::command]
@@ -464,10 +470,16 @@ pub fn estimates_list(
     state: State<'_, AppState>,
     query: Option<String>,
     status: Option<String>,
+    client_id: Option<String>,
 ) -> AppResult<Vec<Estimate>> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
-    Ok(estimates::list(&conn, query.as_deref(), status.as_deref())?)
+    Ok(estimates::list(
+        &conn,
+        query.as_deref(),
+        status.as_deref(),
+        client_id.as_deref(),
+    )?)
 }
 
 #[tauri::command]

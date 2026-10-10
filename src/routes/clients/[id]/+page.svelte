@@ -97,17 +97,17 @@
     }
   });
 
-  /// Filtered here rather than in the query, because both lists are small and
-  /// this keeps one source of truth for what a client's documents are.
+  /// Filtered in SQL rather than in the browser, so a client with years of
+  /// history does not pull the whole ledger across the IPC boundary.
   async function loadDocuments() {
     documentsLoading = true;
     try {
-      const [allInvoices, allEstimates] = await Promise.all([
-        api.invoices.list(),
-        api.estimates.list(),
+      const [theirInvoices, theirEstimates] = await Promise.all([
+        api.invoices.list(undefined, undefined, id),
+        api.estimates.list(undefined, undefined, id),
       ]);
-      invoices = allInvoices.filter((invoice) => invoice.clientId === id);
-      estimates = allEstimates.filter((estimate) => estimate.clientId === id);
+      invoices = theirInvoices;
+      estimates = theirEstimates;
     } catch (e) {
       loadError = String(e);
     } finally {

@@ -74,8 +74,12 @@ export const api = {
   },
 
   invoices: {
-    list: (query?: string, status?: string) =>
-      invoke<Invoice[]>("invoices_list", { query: query ?? null, status: status ?? null }),
+    list: (query?: string, status?: string, clientId?: string) =>
+      invoke<Invoice[]>("invoices_list", {
+        query: query ?? null,
+        status: status ?? null,
+        clientId: clientId ?? null,
+      }),
     get: (id: string) => invoke<Invoice | null>("invoices_get", { id }),
     totals: (input: InvoiceInput) => invoke<InvoiceTotals>("invoices_totals", { input }),
     create: (input: InvoiceInput) => invoke<Invoice>("invoices_create", { input }),
@@ -132,8 +136,12 @@ export const api = {
   },
 
   estimates: {
-    list: (query?: string, status?: string) =>
-      invoke<Estimate[]>("estimates_list", { query: query ?? null, status: status ?? null }),
+    list: (query?: string, status?: string, clientId?: string) =>
+      invoke<Estimate[]>("estimates_list", {
+        query: query ?? null,
+        status: status ?? null,
+        clientId: clientId ?? null,
+      }),
     get: (id: string) => invoke<Estimate | null>("estimates_get", { id }),
     totals: (input: EstimateInput) => invoke<InvoiceTotals>("estimates_totals", { input }),
     create: (input: EstimateInput) => invoke<Estimate>("estimates_create", { input }),
