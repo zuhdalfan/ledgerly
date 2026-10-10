@@ -55,6 +55,7 @@
 
   let loadError = $state("");
   let loading = $state(true);
+  let previewError = $state("");
   let saveError = $state("");
   let saved = $state(false);
   let saving = $state(false);
@@ -177,8 +178,15 @@
     previewTimer = setTimeout(() => {
       api.estimates
         .totals(toInput())
-        .then((value) => (totals = value))
-        .catch(() => {});
+        .then((value) => {
+          totals = value;
+          previewError = "";
+        })
+        .catch((error) => {
+          // Never fail silently: stale figures with no warning is worse than
+          // an obvious problem.
+          previewError = String(error);
+        });
     }, 150);
   });
 
@@ -283,6 +291,26 @@
       converting = false;
     }
   }
+
+  /// The keyboard bar the PRD asks for: save and export without the mouse.
+  /// Both are prevented from reaching the webview's own handlers.
+  function onShortcut(event: KeyboardEvent) {
+    if (!(event.ctrlKey || event.metaKey)) return;
+    const key = event.key.toLowerCase();
+
+    if (key === "s") {
+      event.preventDefault();
+      void save();
+    } else if (key === "p" && !isNew) {
+      event.preventDefault();
+      void exportPdf();
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener("keydown", onShortcut);
+    return () => window.removeEventListener("keydown", onShortcut);
+  });
 
   async function saveTemplate() {
     try {
@@ -431,6 +459,12 @@
 
 <div class="card">
   <h2>Totals</h2>
+  {#if previewError}
+    <p class="error" role="alert">
+      The live preview could not be calculated, so these figures may be out of date. Saving
+      recomputes them.
+    </p>
+  {/if}
   <div class="grid-2">
     <div>
       <div class="field">

@@ -7,11 +7,26 @@
     amount,
     open = $bindable(false),
   }: { amount: string; open?: boolean } = $props();
+
+  let closeButton = $state<HTMLButtonElement | null>(null);
+
+  // It covers the screen, so it has to be dismissible without a mouse: focus
+  // lands on Close, and Escape closes it.
+  $effect(() => {
+    if (open) queueMicrotask(() => closeButton?.focus());
+  });
+
+  function onKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      open = false;
+    }
+  }
 </script>
 
 {#if open}
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-  <div class="scrim" role="presentation" onclick={() => (open = false)}>
+  <div class="scrim" role="presentation" onclick={() => (open = false)} onkeydown={onKeydown}>
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
     <div
       class="sheet rise"
@@ -22,7 +37,9 @@
       <Mascot expression="celebrating" size={80} />
       <p class="amount">{amount}</p>
       <p class="receipt">stamped paid</p>
-      <button class="btn secondary" onclick={() => (open = false)}>Close</button>
+      <button class="btn secondary" bind:this={closeButton} onclick={() => (open = false)}>
+        Close
+      </button>
     </div>
   </div>
 {/if}

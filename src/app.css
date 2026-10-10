@@ -78,15 +78,15 @@
   --radius-xl: 20px;
   --radius-full: 999px;
 
-  /* Depth. Two levels only; borders do the rest. */
-  --shadow-1: 0 1px 2px oklch(0.24 0.014 70 / 0.06);
+  /* Depth. One elevation, for the few things that genuinely float: the lock
+   * card, the palette, the toast. Borders do everything else. */
   --shadow-2: 0 8px 24px oklch(0.24 0.014 70 / 0.12);
 
-  /* Motion. Product motion is short and functional. */
+  /* Motion. Product motion is short and functional, and decelerates sharply:
+   * an overshoot would read as a toy rather than a tool. */
   --dur-fast: 120ms;
   --dur-base: 180ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.32, 0.64, 1);
 
   /* Type. Compressed at the low end for density, opening up at the top. */
   --text-xs: 0.75rem;
@@ -104,13 +104,11 @@
 [data-motion="none"] {
   --dur-fast: 0.01ms;
   --dur-base: 0.01ms;
-  --ease-spring: linear;
 }
 
 [data-motion="reduced"] {
   --dur-fast: 60ms;
   --dur-base: 90ms;
-  --ease-spring: var(--ease-out);
 }
 
 [data-motion="enhanced"] {
@@ -123,7 +121,6 @@
   [data-motion="enhanced"] {
     --dur-fast: 60ms;
     --dur-base: 90ms;
-    --ease-spring: var(--ease-out);
   }
 }
 
