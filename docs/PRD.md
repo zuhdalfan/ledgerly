@@ -522,7 +522,11 @@ Indicative tables (abridged):
 ## 11. Accessibility, Performance & Quality Bars
 
 - **Keyboard-first:** `Ctrl/Cmd+N` new invoice, `Ctrl/Cmd+S` save, `Ctrl/Cmd+P` export PDF, `/` to search, arrow-key navigation in tables, `Esc` closes modals.
-- **Virtualized** lists for 10k+ invoices/clients.
+- **Virtualized** lists for 10k+ invoices/clients. **Declined after measuring.** At
+  10,000 invoices the query returns the whole set in ~43 ms, so paging in SQL buys
+  nothing; the cost is the DOM. The list pages now render a 250-row prefix and
+  state the real total in words. Reproduce with
+  `cargo test --manifest-path src-tauri/Cargo.toml -- --ignored --nocapture shows_how_the_list_scales`.
 - **No blocking the UI thread:** PDF generation and backups run off the main thread; progress for long operations.
 - **Deterministic totals:** a test suite asserts that subtotal − discount + tax = total to the cent across rounding modes and mixed tax-inclusive/exclusive lines.
 - **Golden-file PDF tests:** render fixture invoices and compare extracted text/structure to guard against regressions.
