@@ -54,18 +54,21 @@
   );
 
   const aging = $derived.by(() => {
+    // `key` is the filter the invoices list understands, so a bucket and the
+    // rows behind it cannot drift apart.
     const buckets = [
-      { label: "Not yet due", amountMinor: 0 },
-      { label: "1–30 days", amountMinor: 0 },
-      { label: "31–60 days", amountMinor: 0 },
-      { label: "61–90 days", amountMinor: 0 },
-      { label: "90+ days", amountMinor: 0 },
+      { key: "not_due", label: "Not yet due", amountMinor: 0, count: 0 },
+      { key: "1-30", label: "1–30 days", amountMinor: 0, count: 0 },
+      { key: "31-60", label: "31–60 days", amountMinor: 0, count: 0 },
+      { key: "61-90", label: "61–90 days", amountMinor: 0, count: 0 },
+      { key: "90plus", label: "90+ days", amountMinor: 0, count: 0 },
     ];
 
     for (const invoice of open) {
       const days = invoice.daysPastDue ?? 0;
       const index = days <= 0 ? 0 : days <= 30 ? 1 : days <= 60 ? 2 : days <= 90 ? 3 : 4;
       buckets[index].amountMinor += invoice.balanceMinor;
+      buckets[index].count += 1;
     }
 
     return buckets;
@@ -74,6 +77,7 @@
   const agingRows = $derived(
     aging.map((bucket, index) => ({
       ...bucket,
+      href: `/invoices?age=${bucket.key}`,
       tone: index === 4 ? ("danger" as const) : ("ink" as const),
     }))
   );
@@ -166,6 +170,9 @@
         label: monthLabel(row.period),
         primary: row.paidMinor,
         secondary: row.invoicedMinor,
+        // A month's link goes to what was *billed* then, which is the series
+        // that has invoices behind it.
+        href: `/invoices?issued=${row.period}`,
       }));
       error = "";
     } catch (e) {
@@ -286,11 +293,15 @@
       label="Outstanding balance by age"
       columnLabel="Share of the largest bucket"
     />
+    <p class="muted hint">Follow a bucket to the invoices in it.</p>
   </div>
 
   <div class="card rise" style="--i: 4">
     <h2>Billed and collected</h2>
-    <p class="muted">The last six months. The gap between the bars is money you are owed.</p>
+    <p class="muted">
+      The last six months. The gap between the bars is money you are owed. Follow a month to the
+      invoices billed in it.
+    </p>
     <ColumnChart
       points={revenue}
       {currency}
@@ -394,6 +405,12 @@
     display: flex;
     gap: var(--space-2);
     justify-content: flex-end;
+  }
+
+  .hint {
+    margin-top: var(--space-3);
+    margin-bottom: 0;
+    font-size: var(--text-sm);
   }
 
   @media (max-width: 720px) {

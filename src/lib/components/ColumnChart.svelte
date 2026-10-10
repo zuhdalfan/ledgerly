@@ -4,7 +4,9 @@
   // Two series over time: what you billed and what actually landed. The gap
   // between them is the whole point, so the columns sit side by side.
   //
-  // The chart is decorative; the hidden table is the accessible equivalent.
+  // A column may carry a link. When it does, the whole column is an anchor with
+  // the figures and the action in its accessible name, and the bars stay
+  // hidden from the tree because the values are already in that name.
   let {
     points,
     currency,
@@ -12,7 +14,7 @@
     primaryName,
     secondaryName = "",
   }: {
-    points: { label: string; primary: number; secondary?: number }[];
+    points: { label: string; primary: number; secondary?: number; href?: string }[];
     currency: string;
     label: string;
     primaryName: string;
@@ -24,6 +26,15 @@
   );
 
   const share = (value: number | undefined) => `${Math.round(((value ?? 0) / peak) * 100)}%`;
+
+  function name(point: { label: string; primary: number; secondary?: number }): string {
+    const parts = [point.label, `${primaryName.toLowerCase()} ${fromMinor(point.primary, currency)}`];
+    if (secondaryName) {
+      parts.push(`${secondaryName.toLowerCase()} ${fromMinor(point.secondary ?? 0, currency)}`);
+    }
+    parts.push("show those invoices");
+    return parts.join(", ");
+  }
 </script>
 
 <figure class="chart">
@@ -37,13 +48,13 @@
   <div class="plot">
     {#each points as point (point.label)}
       <div class="column">
-        <span class="track" aria-hidden="true">
-          {#if secondaryName}
-            <span class="bar secondary" style={`--h: ${share(point.secondary)}`}></span>
-          {/if}
-          <span class="bar primary" style={`--h: ${share(point.primary)}`}></span>
-        </span>
-        <span class="tick">{point.label}</span>
+        {#if point.href}
+          <a class="hit" href={point.href} aria-label={name(point)}>
+            {@render column(point)}
+          </a>
+        {:else}
+          {@render column(point)}
+        {/if}
       </div>
     {/each}
   </div>
@@ -68,6 +79,16 @@
     </tbody>
   </table>
 </figure>
+
+{#snippet column(point: { label: string; primary: number; secondary?: number })}
+  <span class="track" aria-hidden="true">
+    {#if secondaryName}
+      <span class="bar secondary" style={`--h: ${share(point.secondary)}`}></span>
+    {/if}
+    <span class="bar primary" style={`--h: ${share(point.primary)}`}></span>
+  </span>
+  <span class="tick">{point.label}</span>
+{/snippet}
 
 <style>
   .chart {
@@ -116,8 +137,29 @@
     flex: 1 1 0;
     display: flex;
     flex-direction: column;
+  }
+
+  .hit {
+    display: flex;
+    flex-direction: column;
     align-items: center;
     gap: var(--space-2);
+    width: 100%;
+    color: inherit;
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+  }
+
+  .hit:hover .tick,
+  .hit:focus-visible .tick {
+    color: var(--ink-1);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .hit:focus-visible {
+    outline: 2px solid var(--accent-text);
+    outline-offset: 2px;
   }
 
   .track {
@@ -145,6 +187,7 @@
   }
 
   .tick {
+    align-self: center;
     font-size: var(--text-sm);
     color: var(--ink-2);
   }

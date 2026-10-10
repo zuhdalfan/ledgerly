@@ -200,18 +200,41 @@ pub fn load_items(conn: &Connection, invoice_id: &str) -> rusqlite::Result<Vec<I
     rows.collect()
 }
 
-pub fn list(
-    conn: &Connection,
-    query: Option<&str>,
-    status: Option<&str>,
-    client_id: Option<&str>,
-) -> rusqlite::Result<Vec<Invoice>> {
-    let search = query
+/// Everything the list can be narrowed by.
+///
+/// Named fields rather than positional arguments: five of these are
+/// `Option<&str>`, and a caller that swapped two of them would compile happily.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct ListFilter<'a> {
+    pub query: Option<&'a str>,
+    pub status: Option<&'a str>,
+    pub client_id: Option<&'a str>,
+    /// An aging bucket, matching the dashboard's: `not_due`, `1-30`, `31-60`,
+    /// `61-90`, `90plus`.
+    pub age: Option<&'a str>,
+    /// An issue month, `YYYY-MM`.
+    pub issued_month: Option<&'a str>,
+}
+
+pub fn list(conn: &Connection, filter: &ListFilter) -> rusqlite::Result<Vec<Invoice>> {
+    let search = filter
+        .query
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(|value| format!("%{value}%"));
-    let status = status.map(str::trim).filter(|value| !value.is_empty());
-    let client_id = client_id.map(str::trim).filter(|value| !value.is_empty());
+    let status = filter
+        .status
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let client_id = filter
+        .client_id
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let age = filter.age.map(str::trim).filter(|value| !value.is_empty());
+    let issued_month = filter
+        .issued_month
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
 
     let sql = format!(
         "SELECT {columns} FROM invoice i
@@ -227,14 +250,31 @@ pub fn list(
                                    AND (i.total_minor - {PAID_EXPR}) > 0))
            AND (?2 IS NULL OR i.number LIKE ?2 OR IFNULL(c.display_name, '') LIKE ?2)
            AND (?3 IS NULL OR i.client_id = ?3)
+           -- An aging bucket, expressed to match the dashboard exactly: unpaid,
+           -- not void, and inside the bucket's day range. The count a bucket
+           -- shows has to equal the rows this returns.
+           AND (?4 IS NULL OR (
+                 i.status <> 'void'
+                 AND (i.total_minor - {PAID_EXPR}) > 0
+                 AND CASE ?4
+                       WHEN 'not_due' THEN {DAYS_PAST_DUE_EXPR} <= 0
+                       WHEN '1-30'    THEN {DAYS_PAST_DUE_EXPR} BETWEEN 1 AND 30
+                       WHEN '31-60'   THEN {DAYS_PAST_DUE_EXPR} BETWEEN 31 AND 60
+                       WHEN '61-90'   THEN {DAYS_PAST_DUE_EXPR} BETWEEN 61 AND 90
+                       WHEN '90plus'  THEN {DAYS_PAST_DUE_EXPR} > 90
+                       ELSE 0
+                     END
+               ))
+           AND (?5 IS NULL OR substr(i.issue_date, 1, 7) = ?5)
          ORDER BY i.issue_date DESC, i.number DESC",
         columns = columns()
     );
 
     let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map(params![status, search, client_id], |row| {
-        map_invoice(row, Vec::new())
-    })?;
+    let rows = stmt.query_map(
+        params![status, search, client_id, age, issued_month],
+        |row| map_invoice(row, Vec::new()),
+    )?;
     rows.collect()
 }
 
@@ -593,12 +633,15 @@ mod tests {
         let first = create(&t.conn, &with_client).unwrap();
         create(&t.conn, &input(vec![item("Two", 2_000, None)])).unwrap();
 
-        assert_eq!(list(&t.conn, None, None, None).unwrap().len(), 2);
-        assert_eq!(list(&t.conn, Some("acme"), None, None).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, &filter(None, None)).unwrap().len(), 2);
+        assert_eq!(list(&t.conn, &filter(Some("acme"), None)).unwrap().len(), 1);
 
         set_void(&t.conn, &first.id, true).unwrap();
-        assert_eq!(list(&t.conn, None, Some("void"), None).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, Some("draft"), None).unwrap().len(), 1);
+        assert_eq!(list(&t.conn, &filter(None, Some("void"))).unwrap().len(), 1);
+        assert_eq!(
+            list(&t.conn, &filter(None, Some("draft"))).unwrap().len(),
+            1
+        );
     }
 
     #[test]
@@ -752,10 +795,24 @@ mod tests {
         set_sent(&t.conn, &settled.id, true).unwrap();
         payments::create(&t.conn, &settled.id, &payment(10_000)).unwrap();
 
-        assert_eq!(list(&t.conn, None, Some("overdue"), None).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, Some("paid"), None).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, Some("unpaid"), None).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, Some("sent"), None).unwrap().len(), 2);
+        assert_eq!(
+            list(&t.conn, &filter(None, Some("overdue"))).unwrap().len(),
+            1
+        );
+        assert_eq!(list(&t.conn, &filter(None, Some("paid"))).unwrap().len(), 1);
+        assert_eq!(
+            list(&t.conn, &filter(None, Some("unpaid"))).unwrap().len(),
+            1
+        );
+        assert_eq!(list(&t.conn, &filter(None, Some("sent"))).unwrap().len(), 2);
+    }
+
+    fn filter<'a>(query: Option<&'a str>, status: Option<&'a str>) -> ListFilter<'a> {
+        ListFilter {
+            query,
+            status,
+            ..Default::default()
+        }
     }
 
     fn make_client(conn: &Connection, name: &str) -> String {
@@ -796,12 +853,156 @@ mod tests {
         second.client_id = Some(globex.clone());
         create(&t.conn, &second).unwrap();
 
-        assert_eq!(list(&t.conn, None, None, None).unwrap().len(), 2);
-        assert_eq!(list(&t.conn, None, None, Some(&acme)).unwrap().len(), 1);
-        assert_eq!(list(&t.conn, None, None, Some(&globex)).unwrap().len(), 1);
-        assert!(list(&t.conn, None, None, Some("nobody"))
+        assert_eq!(list(&t.conn, &filter(None, None)).unwrap().len(), 2);
+        assert_eq!(
+            list(
+                &t.conn,
+                &ListFilter {
+                    client_id: Some(&acme),
+                    ..Default::default()
+                }
+            )
             .unwrap()
-            .is_empty());
+            .len(),
+            1
+        );
+        assert_eq!(
+            list(
+                &t.conn,
+                &ListFilter {
+                    client_id: Some(&globex),
+                    ..Default::default()
+                }
+            )
+            .unwrap()
+            .len(),
+            1
+        );
+        assert!(list(
+            &t.conn,
+            &ListFilter {
+                client_id: Some("nobody"),
+                ..Default::default()
+            }
+        )
+        .unwrap()
+        .is_empty());
+    }
+
+    fn today(conn: &Connection) -> String {
+        conn.query_row("SELECT date('now', 'localtime')", [], |row| row.get(0))
+            .unwrap()
+    }
+
+    /// Creates an invoice whose due date sits `days` from today, so the aging
+    /// buckets can be exercised without hard-coding dates.
+    fn invoice_due_in(conn: &Connection, days: i64) -> String {
+        let created = create(conn, &input(vec![item("Work", 1_000, None)])).unwrap();
+        conn.execute(
+            "UPDATE invoice SET due_date = date('now', 'localtime', ?1) WHERE id = ?2",
+            rusqlite::params![format!("{days} days"), created.id],
+        )
+        .unwrap();
+        created.id
+    }
+
+    #[test]
+    fn the_age_filter_matches_the_dashboard_buckets() {
+        let t = temp_db();
+
+        invoice_due_in(&t.conn, 10); // not yet due
+        invoice_due_in(&t.conn, -5); // 1-30
+        invoice_due_in(&t.conn, -45); // 31-60
+        invoice_due_in(&t.conn, -75); // 61-90
+        invoice_due_in(&t.conn, -120); // 90plus
+
+        let count = |age: &str| {
+            list(
+                &t.conn,
+                &ListFilter {
+                    age: Some(age),
+                    ..Default::default()
+                },
+            )
+            .unwrap()
+            .len()
+        };
+
+        for age in ["not_due", "1-30", "31-60", "61-90", "90plus"] {
+            assert_eq!(count(age), 1, "the {age} bucket should hold one invoice");
+        }
+
+        // The buckets together account for every open invoice: none dropped,
+        // none counted twice. This is what makes a bucket's number safe to
+        // click on.
+        let total: usize = ["not_due", "1-30", "31-60", "61-90", "90plus"]
+            .iter()
+            .map(|age| count(age))
+            .sum();
+        assert_eq!(total, 5);
+    }
+
+    #[test]
+    fn a_settled_invoice_leaves_every_age_bucket() {
+        use crate::db::payments;
+        let t = temp_db();
+
+        let id = invoice_due_in(&t.conn, -45);
+        assert_eq!(
+            list(
+                &t.conn,
+                &ListFilter {
+                    age: Some("31-60"),
+                    ..Default::default()
+                }
+            )
+            .unwrap()
+            .len(),
+            1
+        );
+
+        payments::create(&t.conn, &id, &payment(1_000)).unwrap();
+
+        // Fully paid, so it is owed nothing and belongs to no bucket.
+        assert!(list(
+            &t.conn,
+            &ListFilter {
+                age: Some("31-60"),
+                ..Default::default()
+            }
+        )
+        .unwrap()
+        .is_empty());
+    }
+
+    #[test]
+    fn the_issued_month_filter_matches_the_month() {
+        let t = temp_db();
+
+        let mut this_month = input(vec![item("This month", 1_000, None)]);
+        this_month.issue_date = today(&t.conn);
+        create(&t.conn, &this_month).unwrap();
+
+        let month = this_month.issue_date[..7].to_string();
+        let in_month = list(
+            &t.conn,
+            &ListFilter {
+                issued_month: Some(&month),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(in_month.len(), 1);
+
+        let elsewhere = list(
+            &t.conn,
+            &ListFilter {
+                issued_month: Some("1999-01"),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert!(elsewhere.is_empty());
     }
 
     /// Opt-in capacity check, so the paging decision rests on a number rather
@@ -837,15 +1038,15 @@ mod tests {
         t.conn.execute_batch("COMMIT").unwrap();
 
         let started = std::time::Instant::now();
-        let all = list(&t.conn, None, None, None).unwrap();
+        let all = list(&t.conn, &filter(None, None)).unwrap();
         let unfiltered = started.elapsed();
 
         let started = std::time::Instant::now();
-        let found = list(&t.conn, Some("INV-09999"), None, None).unwrap();
+        let found = list(&t.conn, &filter(Some("INV-09999"), None)).unwrap();
         let searched = started.elapsed();
 
         let started = std::time::Instant::now();
-        let overdue = list(&t.conn, None, Some("overdue"), None).unwrap();
+        let overdue = list(&t.conn, &filter(None, Some("overdue"))).unwrap();
         let filtered = started.elapsed();
 
         println!(

@@ -287,14 +287,20 @@ pub fn invoices_list(
     query: Option<String>,
     status: Option<String>,
     client_id: Option<String>,
+    age: Option<String>,
+    issued_month: Option<String>,
 ) -> AppResult<Vec<Invoice>> {
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
     Ok(invoices::list(
         &conn,
-        query.as_deref(),
-        status.as_deref(),
-        client_id.as_deref(),
+        &invoices::ListFilter {
+            query: query.as_deref(),
+            status: status.as_deref(),
+            client_id: client_id.as_deref(),
+            age: age.as_deref(),
+            issued_month: issued_month.as_deref(),
+        },
     )?)
 }
 
@@ -460,10 +466,16 @@ pub fn pdf_export_statement(
         let business = business::get(&conn)?;
 
         // Only what is still owed, oldest first: that is what a statement is for.
-        let mut open: Vec<Invoice> = invoices::list(&conn, None, None, Some(&client_id))?
-            .into_iter()
-            .filter(|invoice| invoice.display_status != "void" && invoice.balance_minor > 0)
-            .collect();
+        let mut open: Vec<Invoice> = invoices::list(
+            &conn,
+            &invoices::ListFilter {
+                client_id: Some(&client_id),
+                ..Default::default()
+            },
+        )?
+        .into_iter()
+        .filter(|invoice| invoice.display_status != "void" && invoice.balance_minor > 0)
+        .collect();
         open.sort_by(|a, b| a.issue_date.cmp(&b.issue_date));
 
         (client, open, business, locale, issued)

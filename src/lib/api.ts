@@ -76,11 +76,13 @@ export const api = {
   },
 
   invoices: {
-    list: (query?: string, status?: string, clientId?: string) =>
+    list: (query?: string, status?: string, clientId?: string, age?: string, issuedMonth?: string) =>
       invoke<Invoice[]>("invoices_list", {
         query: query ?? null,
         status: status ?? null,
         clientId: clientId ?? null,
+        age: age ?? null,
+        issuedMonth: issuedMonth ?? null,
       }),
     get: (id: string) => invoke<Invoice | null>("invoices_get", { id }),
     totals: (input: InvoiceInput) => invoke<InvoiceTotals>("invoices_totals", { input }),

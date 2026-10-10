@@ -23,13 +23,25 @@
   // button behaves.
   const query = $derived(page.url.searchParams.get("q") ?? "");
   const status = $derived(page.url.searchParams.get("status") ?? "");
+  const age = $derived(page.url.searchParams.get("age") ?? "");
+  const issued = $derived(page.url.searchParams.get("issued") ?? "");
+
+  const AGE_LABELS: Record<string, string> = {
+    not_due: "not yet due",
+    "1-30": "1–30 days late",
+    "31-60": "31–60 days late",
+    "61-90": "61–90 days late",
+    "90plus": "more than 90 days late",
+  };
+  const ageLabel = $derived(AGE_LABELS[age] ?? "");
 
   async function load() {
     loading = true;
     try {
       const [business, rows] = await Promise.all([
         api.business.get(),
-        api.invoices.list(query, status),
+        // No client filter here: this page is the whole book.
+        api.invoices.list(query, status, undefined, age, issued),
       ]);
       currency = business.defaultCurrency;
       invoices = rows;
@@ -56,15 +68,21 @@
   // Reload when the URL changes, including via the back button.
   let applied = "";
   $effect(() => {
-    const key = `${query}|${status}`;
+    const key = `${query}|${status}|${age}|${issued}`;
     if (key === applied) return;
     applied = key;
     search = query;
     void load();
   });
 
-  const filtered = $derived(Boolean(query) || Boolean(status));
+  const filtered = $derived(Boolean(query) || Boolean(status) || Boolean(age) || Boolean(issued));
   const visible = $derived(capped(invoices));
+
+  async function clearFilters() {
+    const next = new URL(page.url);
+    for (const key of ["q", "status", "age", "issued"]) next.searchParams.delete(key);
+    await goto(next, { replaceState: true, keepFocus: true, noScroll: true });
+  }
 </script>
 
 <PageHeader title="Invoices">
@@ -88,9 +106,16 @@
     </select>
   </label>
   {#if filtered}
-    <button class="btn secondary" onclick={() => setParam("status", "")}>Clear filter</button>
+    <button class="btn secondary" onclick={clearFilters}>Clear filter</button>
   {/if}
 </div>
+
+{#if ageLabel || issued}
+  <p class="muted describing">
+    {#if issued}Invoices issued in {issued}.{/if}
+    {#if ageLabel} {ageLabel[0].toUpperCase()}{ageLabel.slice(1)}.{/if}
+  </p>
+{/if}
 
 <AsyncState {loading} {error} rows={6} columns={7}>
   <div class="card">
@@ -159,5 +184,9 @@
 
   .truncation {
     margin-top: var(--space-3);
+  }
+
+  .describing {
+    margin-bottom: var(--space-3);
   }
 </style>

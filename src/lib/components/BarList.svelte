@@ -2,14 +2,21 @@
   import { fromMinor } from "$lib/format";
 
   // A bar list rather than an abstract chart: the label and the number are the
-  // accessible content, the bar is the reading aid.
+  // accessible content, the bar is the reading aid. A row may carry a link, in
+  // which case the link is a real anchor with the action in its name.
   let {
     rows,
     currency,
     label,
     columnLabel = "Share",
   }: {
-    rows: { label: string; amountMinor: number; tone?: "ink" | "danger" }[];
+    rows: {
+      label: string;
+      amountMinor: number;
+      count?: number;
+      href?: string;
+      tone?: "ink" | "danger";
+    }[];
     currency: string;
     label: string;
     columnLabel?: string;
@@ -29,7 +36,22 @@
   <tbody>
     {#each rows as row (row.label)}
       <tr>
-        <td>{row.label}</td>
+        <td>
+          {#if row.href}
+            <a
+              class="link"
+              href={row.href}
+              aria-label={`${row.label}, ${fromMinor(row.amountMinor, currency)} across ${row.count ?? 0} ${row.count === 1 ? "invoice" : "invoices"}. Show them.`}
+            >
+              {row.label}
+            </a>
+          {:else}
+            {row.label}
+          {/if}
+          {#if row.count !== undefined}
+            <span class="muted"> · {row.count}</span>
+          {/if}
+        </td>
         <td class="numeric">{fromMinor(row.amountMinor, currency)}</td>
         <td class="share">
           {#if row.amountMinor > 0}
