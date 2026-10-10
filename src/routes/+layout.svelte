@@ -5,6 +5,7 @@
   import { page } from "$app/state";
   import { api } from "$lib/api";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
+  import Mascot from "$lib/components/Mascot.svelte";
   import type { SecurityStatus } from "$lib/types";
 
   let { children } = $props();
@@ -87,6 +88,23 @@
     return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || element.isContentEditable;
   }
 
+  async function applyMotion() {
+    let level = "standard";
+    try {
+      level = (await api.settings.get("ui.motion")) ?? "standard";
+    } catch {
+      // A failed preference read must not hold up the shell.
+    }
+    document.documentElement.dataset.motion = level;
+  }
+
+  // The motion preference lives in the database, so it applies once it can be
+  // read. The OS setting can still only lower it from there.
+  $effect(() => {
+    if (!security || security.locked) return;
+    void applyMotion();
+  });
+
   function onKeydown(event: KeyboardEvent) {
     // Nothing in the shell responds while the gate is up.
     if (!security || security.locked) return;
@@ -130,6 +148,7 @@
 {:else if gateError}
   <div class="gate">
     <div class="card">
+      <div class="mark"><Mascot expression="worried" size={56} /></div>
       <h2>Ledgerly could not open</h2>
       <p class="muted">
         The app lock state could not be read, so your data has not been shown. Nothing is lost.
@@ -143,6 +162,7 @@
 {:else if security?.locked}
   <div class="gate">
     <div class="card">
+      <div class="mark"><Mascot expression="idle" size={56} /></div>
       <h2>Ledgerly is locked</h2>
       <div class="field">
         <label for="passphrase">Passphrase</label>
@@ -201,6 +221,12 @@
     max-width: 360px;
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-2);
+  }
+
+  .mark {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--space-3);
   }
 
   .skip {

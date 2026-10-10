@@ -370,7 +370,7 @@
 <div class="card">
   <h2>Data export</h2>
   <p class="muted">
-    A single JSON file containing every table — clients, invoices, payments, estimates and
+    A single JSON file containing every table: clients, invoices, payments, estimates and
     settings. Yours to keep, readable without this app.
   </p>
   <button class="btn secondary" onclick={saveJson}>Export all data (JSON)</button>

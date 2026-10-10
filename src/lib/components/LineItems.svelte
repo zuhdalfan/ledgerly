@@ -49,7 +49,7 @@
         <td><input bind:value={item.price} inputmode="decimal" placeholder="0.00" /></td>
         <td>
           <select bind:value={item.discountType}>
-            <option value="">—</option>
+            <option value="">None</option>
             <option value="percent">%</option>
             <option value="fixed">Fixed</option>
           </select>
@@ -61,7 +61,7 @@
         </td>
         <td>
           <select bind:value={item.taxRateId}>
-            <option value="">—</option>
+            <option value="">None</option>
             {#each taxRates as rate (rate.id)}
               <option value={rate.id}>{rate.name}</option>
             {/each}

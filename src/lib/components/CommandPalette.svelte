@@ -72,8 +72,8 @@
         })),
         ...invoices.slice(0, 100).map((invoice) => ({
           id: `invoice-${invoice.id}`,
-          label: `${invoice.number} — ${invoice.clientName ?? "No client"}`,
-          hint: "Invoice",
+          label: invoice.clientName ?? "No client",
+          hint: `Invoice ${invoice.number}`,
           href: `/invoices/${invoice.id}`,
         })),
       ];

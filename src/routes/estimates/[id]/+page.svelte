@@ -231,7 +231,7 @@
   </div>
 {:else if daysUntilExpiry !== null && daysUntilExpiry <= 7}
   <div class="card">
-    <p class="muted">Expires in {daysUntilExpiry} day(s) — on {validUntil}.</p>
+    <p class="muted">Expires in {daysUntilExpiry} day(s), on {validUntil}.</p>
   </div>
 {/if}
 
@@ -241,7 +241,7 @@
     <div class="field">
       <label for="client">Client</label>
       <select id="client" bind:value={clientId}>
-        <option value="">— none —</option>
+        <option value="">None</option>
         {#each clients as client (client.id)}
           <option value={client.id}>{client.displayName}</option>
         {/each}

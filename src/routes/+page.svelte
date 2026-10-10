@@ -100,7 +100,7 @@
 
 <AsyncState {loading} {error} rows={4} columns={3}>
   {#if remaining > 0}
-    <div class="card setup">
+    <div class="card setup rise" style="--i: 0">
       <h2>Finish setting up</h2>
       <ul>
         {#each steps as step (step.label)}
@@ -120,7 +120,7 @@
     </div>
   {/if}
 
-  <div class="card hero">
+  <div class="card hero rise" style="--i: 1">
     <div class="hero-main">
       <h2>Outstanding</h2>
       <p class="figure">{fromMinor(outstanding, currency)}</p>
@@ -146,7 +146,7 @@
   </div>
 
   {#if overdueInvoices.length > 0}
-    <div class="card">
+    <div class="card rise" style="--i: 2">
       <div class="card-head">
         <h2>Needs chasing</h2>
         <a class="link" href="/invoices?status=overdue">View all overdue</a>
@@ -176,7 +176,7 @@
     </div>
   {/if}
 
-  <div class="card">
+  <div class="card rise" style="--i: 3">
     <h2>Aged receivables</h2>
     <table>
       <thead>
@@ -197,7 +197,7 @@
     </table>
   </div>
 
-  <div class="card">
+  <div class="card rise" style="--i: 4">
     <h2>Your data</h2>
     <p class="muted">
       Everything is stored on this machine. No account, no cloud, no network.

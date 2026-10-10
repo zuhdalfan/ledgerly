@@ -9,6 +9,7 @@
     { href: "/settings/security", label: "Security" },
     { href: "/settings/data", label: "Data" },
     { href: "/settings/licence", label: "Licence" },
+    { href: "/settings/appearance", label: "Appearance" },
     { href: "/settings/about", label: "About" },
   ];
 

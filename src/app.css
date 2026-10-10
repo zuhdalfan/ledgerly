@@ -95,6 +95,55 @@
   --text-3xl: 2.5rem;
 }
 
+/* Motion is a preference, not a constant. The shell sets data-motion from the
+ * user's setting; the operating system's setting can only ever lower it. */
+[data-motion="none"] {
+  --dur-fast: 0.01ms;
+  --dur-base: 0.01ms;
+  --ease-spring: linear;
+}
+
+[data-motion="reduced"] {
+  --dur-fast: 60ms;
+  --dur-base: 90ms;
+  --ease-spring: var(--ease-out);
+}
+
+[data-motion="enhanced"] {
+  --dur-fast: 180ms;
+  --dur-base: 320ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-motion="standard"],
+  [data-motion="enhanced"] {
+    --dur-fast: 60ms;
+    --dur-base: 90ms;
+    --ease-spring: var(--ease-out);
+  }
+}
+
+/* The three-beat entrance: appear, overshoot, settle. Never on a money table. */
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+  60% {
+    opacity: 0.9;
+    transform: translateY(0) scale(1.004);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.rise {
+  animation: rise var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 20ms);
+}
+
 * {
   box-sizing: border-box;
 }

@@ -1,15 +1,23 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import Mascot from "./Mascot.svelte";
 
   // The empty state is the onboarding. Say what belongs here, and what fills it.
   let {
     title,
     body = "",
+    mood = "idle",
     children,
-  }: { title: string; body?: string; children?: Snippet } = $props();
+  }: {
+    title: string;
+    body?: string;
+    mood?: "idle" | "pleased" | "worried" | "celebrating";
+    children?: Snippet;
+  } = $props();
 </script>
 
 <div class="empty">
+  <Mascot expression={mood} size={64} />
   <p class="title">{title}</p>
   {#if body}<p class="muted">{body}</p>{/if}
   {#if children}
@@ -21,6 +29,7 @@
   .empty {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: var(--space-2);
     padding: var(--space-6) var(--space-4);
     text-align: center;

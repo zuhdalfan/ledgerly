@@ -14,6 +14,7 @@
     toMinor,
   } from "$lib/format";
   import LineItems from "$lib/components/LineItems.svelte";
+  import Celebration from "$lib/components/Celebration.svelte";
   import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
   import type {
     Client,
@@ -70,6 +71,9 @@
   let payNote = $state("");
   let paymentError = $state("");
   let paymentBusy = $state(false);
+
+  let celebrating = $state(false);
+  let celebrationAmount = $state("");
 
   const id = $derived(page.params.id ?? "");
   const isNew = $derived(id === "new");
@@ -241,9 +245,10 @@
     paymentError = "";
     paymentBusy = true;
     try {
+      const amountMinor = toMinor(payAmount);
       await api.payments.create(id, {
         paidOn: payDate || localDate(),
-        amountMinor: toMinor(payAmount),
+        amountMinor,
         method: emptyToNull(payMethod),
         reference: emptyToNull(payReference),
         note: emptyToNull(payNote),
@@ -253,6 +258,12 @@
       payReference = "";
       payNote = "";
       await reloadPayments();
+
+      // The one earned celebration: this payment settled the invoice.
+      if (balanceMinor <= 0) {
+        celebrationAmount = fromMinor(amountMinor, currency);
+        celebrating = true;
+      }
     } catch (e) {
       paymentError = String(e);
     } finally {
@@ -313,7 +324,7 @@
     <div class="field">
       <label for="client">Client</label>
       <select id="client" bind:value={clientId}>
-        <option value="">— none —</option>
+        <option value="">None</option>
         {#each clients as client (client.id)}
           <option value={client.id}>{client.displayName}</option>
         {/each}
@@ -508,3 +519,5 @@
     </div>
   </div>
 {/if}
+
+<Celebration bind:open={celebrating} amount={celebrationAmount} />
