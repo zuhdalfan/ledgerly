@@ -45,6 +45,8 @@ export const api = {
     update: (id: string, input: ClientInput) => invoke<Client>("clients_update", { id, input }),
     setArchived: (id: string, archived: boolean) =>
       invoke<Client>("clients_set_archived", { id, archived }),
+    exportStatement: (id: string, path: string, template?: string) =>
+      invoke<string>("pdf_export_statement", { clientId: id, path, template }),
   },
 
   catalog: {

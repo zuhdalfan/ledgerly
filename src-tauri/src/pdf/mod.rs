@@ -30,12 +30,22 @@ pub struct PdfOptions {
     pub locale: Locale,
 }
 
-/// Invoices and estimates share one layout. Only the title, the date line and
-/// the final total's wording differ.
+/// The documents share one layout. Only the title, the date line and the final
+/// total's wording differ.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DocumentKind {
     Invoice,
     Estimate,
+    Statement,
+}
+
+/// What the letterhead block prints, so a statement can use it without
+/// pretending to be an invoice.
+struct DocumentHead<'a> {
+    number: &'a str,
+    issued: &'a str,
+    due: Option<&'a str>,
+    reference: Option<&'a str>,
 }
 
 impl DocumentKind {
@@ -43,6 +53,7 @@ impl DocumentKind {
         match self {
             DocumentKind::Invoice => labels.invoice,
             DocumentKind::Estimate => labels.estimate,
+            DocumentKind::Statement => labels.statement,
         }
     }
 
@@ -50,6 +61,7 @@ impl DocumentKind {
         match self {
             DocumentKind::Invoice => labels.due,
             DocumentKind::Estimate => labels.valid_until,
+            DocumentKind::Statement => labels.due,
         }
     }
 
@@ -57,6 +69,15 @@ impl DocumentKind {
         match self {
             DocumentKind::Invoice => labels.total_due,
             DocumentKind::Estimate => labels.total_plain,
+            DocumentKind::Statement => labels.total_outstanding,
+        }
+    }
+
+    fn page_name(self) -> &'static str {
+        match self {
+            DocumentKind::Invoice => "Invoice",
+            DocumentKind::Estimate => "Estimate",
+            DocumentKind::Statement => "Statement",
         }
     }
 }
@@ -78,6 +99,9 @@ const COL_PRICE: f32 = 142.0;
 const COL_DISC: f32 = 162.0;
 const COL_TAX: f32 = 178.0;
 const COL_TOTAL: f32 = CONTENT_RIGHT;
+/// Statement columns: documents rather than line items.
+const COL_ISSUED: f32 = 78.0;
+const COL_DUE: f32 = 118.0;
 const DESC_WIDTH: f32 = COL_QTY - 24.0 - MARGIN;
 
 /// An RGB colour as plain floats, so themes stay cheap to copy.
@@ -233,7 +257,7 @@ impl Painter {
         self.pages.push((page, layer));
     }
 
-    fn letterhead(&self, business: &Business, invoice: &Invoice) -> f32 {
+    fn letterhead(&self, business: &Business, head: &DocumentHead) -> f32 {
         let theme = self.theme;
 
         if let Some(band) = theme.band {
@@ -265,14 +289,10 @@ impl Painter {
             theme.accent,
         );
         ry -= 7.5;
-        self.text_right(&invoice.number, 10.5, CONTENT_RIGHT, ry, true, theme.ink);
+        self.text_right(head.number, 10.5, CONTENT_RIGHT, ry, true, theme.ink);
         ry -= 5.0;
         self.text_right(
-            &format!(
-                "{} {}",
-                self.labels.issued,
-                format_date(&invoice.issue_date)
-            ),
+            &format!("{} {}", self.labels.issued, format_date(head.issued)),
             8.5,
             CONTENT_RIGHT,
             ry,
@@ -281,7 +301,7 @@ impl Painter {
         );
         ry -= 4.2;
 
-        if let Some(due) = non_empty(&invoice.due_date) {
+        if let Some(due) = head.due.filter(|value| !value.trim().is_empty()) {
             self.text_right(
                 &format!("{} {}", self.kind.date_label(self.labels), format_date(due)),
                 8.5,
@@ -293,7 +313,7 @@ impl Painter {
             ry -= 4.2;
         }
 
-        if let Some(reference) = non_empty(&invoice.po_reference) {
+        if let Some(reference) = head.reference.filter(|value| !value.trim().is_empty()) {
             self.text_right(
                 &format!("{} {reference}", self.labels.reference),
                 8.5,
@@ -344,6 +364,70 @@ impl Painter {
         self.text_right(self.labels.total, size, COL_TOTAL, y, true, theme.muted);
 
         y - 6.0
+    }
+
+    /// Column headings for a statement: documents, not line items.
+    fn statement_header(&self, y: f32) -> f32 {
+        let theme = self.theme;
+        let size = 7.5;
+        self.text(self.labels.invoice, size, MARGIN, y, true, theme.muted);
+        self.text(self.labels.issued, size, COL_ISSUED, y, true, theme.muted);
+        self.text(self.labels.due, size, COL_DUE, y, true, theme.muted);
+        self.text_right(
+            self.labels.balance,
+            size,
+            CONTENT_RIGHT,
+            y,
+            true,
+            theme.muted,
+        );
+        y - 6.0
+    }
+
+    fn statement_row(&mut self, invoice: &Invoice, mut y: f32) -> f32 {
+        let row_height = 6.0;
+        if y - row_height < CONTENT_BOTTOM {
+            self.new_page();
+            y = PAGE_H - MARGIN - 6.0;
+            y = self.statement_header(y);
+        }
+
+        let theme = self.theme;
+        let size = 9.0;
+
+        self.text(&invoice.number, size, MARGIN, y, false, theme.ink);
+        self.text(
+            &format_date(&invoice.issue_date),
+            size,
+            COL_ISSUED,
+            y,
+            false,
+            theme.ink,
+        );
+        self.text(
+            &invoice
+                .due_date
+                .as_deref()
+                .map(format_date)
+                .unwrap_or_else(|| "—".to_string()),
+            size,
+            COL_DUE,
+            y,
+            false,
+            theme.ink,
+        );
+        self.text_right(
+            &format_money(invoice.balance_minor, &invoice.currency),
+            size,
+            CONTENT_RIGHT,
+            y,
+            false,
+            theme.ink,
+        );
+
+        let next = y - 5.0;
+        self.rect(MARGIN, next + 2.0, CONTENT_RIGHT - MARGIN, 0.2, theme.rule);
+        next
     }
 
     fn table_row(
@@ -786,19 +870,13 @@ fn estimate_item_as_invoice_item(item: &EstimateItem) -> InvoiceItem {
     }
 }
 
-fn render_document(
-    invoice: &Invoice,
-    business: &Business,
-    client: Option<&Client>,
-    options: PdfOptions,
-    kind: DocumentKind,
-) -> Result<Vec<u8>, String> {
+fn build_painter(options: PdfOptions, kind: DocumentKind) -> Result<Painter, String> {
     let measure = TextMeasure::new(FONT_REGULAR)
         .ok_or_else(|| "could not read the regular font".to_string())?;
     let bold_measure =
         TextMeasure::new(FONT_BOLD).ok_or_else(|| "could not read the bold font".to_string())?;
 
-    let (doc, page, layer) = PdfDocument::new("Invoice", Mm(PAGE_W), Mm(PAGE_H), "content");
+    let (doc, page, layer) = PdfDocument::new(kind.page_name(), Mm(PAGE_W), Mm(PAGE_H), "content");
 
     let mut regular_reader = std::io::Cursor::new(FONT_REGULAR);
     let font_regular = doc
@@ -809,7 +887,7 @@ fn render_document(
         .add_external_font(&mut bold_reader)
         .map_err(|error| error.to_string())?;
 
-    let mut painter = Painter {
+    Ok(Painter {
         doc,
         font_regular,
         font_bold,
@@ -821,14 +899,32 @@ fn render_document(
         page,
         layer,
         pages: vec![(page, layer)],
-    };
+    })
+}
+
+fn render_document(
+    invoice: &Invoice,
+    business: &Business,
+    client: Option<&Client>,
+    options: PdfOptions,
+    kind: DocumentKind,
+) -> Result<Vec<u8>, String> {
+    let mut painter = build_painter(options, kind)?;
 
     let totals = totals::compute(
         &invoices::stored_line_inputs(&invoice.items),
         line_items::discount_from(&invoice.discount_type, &invoice.discount_value),
     );
 
-    let mut y = painter.letterhead(business, invoice);
+    let mut y = painter.letterhead(
+        business,
+        &DocumentHead {
+            number: &invoice.number,
+            issued: &invoice.issue_date,
+            due: invoice.due_date.as_deref(),
+            reference: invoice.po_reference.as_deref(),
+        },
+    );
     y = painter.client_block(client, y);
     y -= 4.0;
     y = painter.table_header(y);
@@ -852,6 +948,82 @@ fn render_document(
     y = painter.totals_block(&totals, &invoice.currency, y);
     painter.notes_block(invoice, y);
     painter.watermark(invoice);
+    painter.footers(business);
+
+    painter
+        .doc
+        .save_to_bytes()
+        .map_err(|error| error.to_string())
+}
+
+/// Render a statement: one client's open invoices and what they add up to.
+///
+/// A statement is addressed to the client and lists documents rather than
+/// lines, so it shares the letterhead, themes and footer but not the invoice
+/// table.
+pub fn render_statement(
+    client: &Client,
+    open: &[Invoice],
+    business: &Business,
+    options: PdfOptions,
+    issued: &str,
+) -> Result<Vec<u8>, String> {
+    let mut painter = build_painter(options, DocumentKind::Statement)?;
+
+    // The client's name takes the slot an invoice uses for its number.
+    let mut y = painter.letterhead(
+        business,
+        &DocumentHead {
+            number: &client.display_name,
+            issued,
+            due: None,
+            reference: None,
+        },
+    );
+
+    for line in client_lines(client) {
+        painter.text(&line, 8.5, MARGIN, y, false, painter.theme.muted);
+        y -= 4.0;
+    }
+
+    y -= 2.0;
+    y = painter.statement_header(y);
+
+    for invoice in open {
+        y = painter.statement_row(invoice, y);
+    }
+
+    let total: i64 = open.iter().map(|invoice| invoice.balance_minor).sum();
+    let currency = open
+        .first()
+        .map(|invoice| invoice.currency.as_str())
+        .unwrap_or(business.default_currency.as_str());
+
+    let label_y = y - 5.0;
+    painter.rect(
+        MARGIN,
+        label_y + 4.5,
+        CONTENT_RIGHT - MARGIN,
+        0.3,
+        painter.theme.rule,
+    );
+    painter.text(
+        painter.kind.total_label(painter.labels),
+        11.0,
+        MARGIN,
+        label_y,
+        true,
+        painter.theme.ink,
+    );
+    painter.text_right(
+        &format_money(total, currency),
+        11.0,
+        CONTENT_RIGHT,
+        label_y,
+        true,
+        painter.theme.ink,
+    );
+
     painter.footers(business);
 
     painter
@@ -940,6 +1112,85 @@ mod tests {
             chase_count: 0,
             items,
         }
+    }
+
+    fn client() -> Client {
+        Client {
+            id: "client-1".to_string(),
+            display_name: "Acme Pte Ltd".to_string(),
+            company: None,
+            contact_person: None,
+            email: Some("ap@acme.example".to_string()),
+            phone: None,
+            address_line1: Some("1 Example Street".to_string()),
+            address_line2: None,
+            city: Some("Singapore".to_string()),
+            region: None,
+            postal_code: Some("123456".to_string()),
+            country: Some("Singapore".to_string()),
+            tax_id: None,
+            currency: None,
+            notes: None,
+            archived_at: None,
+            created_at: "2026-01-01 00:00:00".to_string(),
+            updated_at: "2026-01-01 00:00:00".to_string(),
+        }
+    }
+
+    fn statement_invoices(count: usize) -> Vec<Invoice> {
+        (0..count)
+            .map(|index| {
+                let mut open = invoice(vec![item("Work", "1", 10_000)], "sent");
+                open.number = format!("INV-{index:04}");
+                open
+            })
+            .collect()
+    }
+
+    #[test]
+    fn renders_a_statement() {
+        let bytes = render_statement(
+            &client(),
+            &statement_invoices(3),
+            &business(),
+            options(Template::Classic),
+            "2026-10-10",
+        )
+        .expect("a statement should render");
+
+        assert!(bytes.starts_with(b"%PDF-"));
+        assert_eq!(page_count(&bytes), 1);
+    }
+
+    #[test]
+    fn an_empty_statement_still_renders() {
+        let bytes = render_statement(
+            &client(),
+            &[],
+            &business(),
+            options(Template::Classic),
+            "2026-10-10",
+        )
+        .expect("a client who owes nothing should still produce a document");
+
+        assert_eq!(page_count(&bytes), 1);
+    }
+
+    #[test]
+    fn a_long_statement_paginates() {
+        let bytes = render_statement(
+            &client(),
+            &statement_invoices(80),
+            &business(),
+            options(Template::Classic),
+            "2026-10-10",
+        )
+        .expect("a long statement should render");
+
+        assert!(
+            page_count(&bytes) > 1,
+            "the rows should continue onto another page"
+        );
     }
 
     fn options(template: Template) -> PdfOptions {

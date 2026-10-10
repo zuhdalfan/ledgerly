@@ -435,6 +435,56 @@ pub fn pdf_export_estimate(
     Ok(path)
 }
 
+/// Save a statement of a client's open invoices as a PDF.
+///
+/// Still local: a statement is a document the user sends themselves, not
+/// something the app delivers.
+#[tauri::command]
+pub fn pdf_export_statement(
+    state: State<'_, AppState>,
+    client_id: String,
+    path: String,
+    template: Option<String>,
+) -> AppResult<String> {
+    let template_name = template.as_deref().unwrap_or("classic").to_string();
+
+    let (client, open, business, locale, issued) = {
+        let conn = state.db.lock().unwrap();
+        require_unlocked(&state)?;
+        let locale = settings::get(&conn, "pdf.locale")?.unwrap_or_else(|| "en".to_string());
+        let issued: String =
+            conn.query_row("SELECT date('now', 'localtime')", [], |row| row.get(0))?;
+
+        let client = clients::get(&conn, &client_id)?
+            .ok_or_else(|| AppError::Pdf("client not found".to_string()))?;
+        let business = business::get(&conn)?;
+
+        // Only what is still owed, oldest first: that is what a statement is for.
+        let mut open: Vec<Invoice> = invoices::list(&conn, None, None, Some(&client_id))?
+            .into_iter()
+            .filter(|invoice| invoice.display_status != "void" && invoice.balance_minor > 0)
+            .collect();
+        open.sort_by(|a, b| a.issue_date.cmp(&b.issue_date));
+
+        (client, open, business, locale, issued)
+    };
+
+    let bytes = pdf::render_statement(
+        &client,
+        &open,
+        &business,
+        pdf::PdfOptions {
+            template: pdf::Template::parse(&template_name),
+            locale: pdf::DocumentLocale::parse(&locale),
+        },
+        &issued,
+    )
+    .map_err(AppError::Pdf)?;
+
+    std::fs::write(&path, &bytes)?;
+    Ok(path)
+}
+
 /// Open a file (usually the PDF just exported) in the OS default viewer.
 #[tauri::command]
 pub fn open_in_viewer(app: tauri::AppHandle, path: String) -> AppResult<()> {

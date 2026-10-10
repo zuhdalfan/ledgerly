@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import { save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
   import { emptyToNull, formatDate, fromMinor, nullToEmpty, statusLabel } from "$lib/format";
   import type { ClientInput, Estimate, Invoice } from "$lib/types";
@@ -115,6 +116,32 @@
     }
   }
 
+  let statementBusy = $state(false);
+  let statementMessage = $state("");
+
+  /// A statement is a document the user sends themselves: the app builds it and
+  /// opens it, and stops there.
+  async function exportStatement() {
+    statementMessage = "";
+    statementBusy = true;
+    try {
+      const name = (form.displayName || "client").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
+      const path = await saveDialog({
+        defaultPath: `statement-${name || "client"}.pdf`,
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+      if (!path) return;
+
+      await api.clients.exportStatement(id, path);
+      await api.openInViewer(path);
+      statementMessage = `Statement saved to ${path}`;
+    } catch (e) {
+      statementMessage = String(e);
+    } finally {
+      statementBusy = false;
+    }
+  }
+
   function toInput(): ClientInput {
     return {
       displayName: form.displayName.trim(),
@@ -181,8 +208,17 @@
   {#if !isNew}
     <a class="btn" href={`/invoices/new?client=${id}`}>New invoice</a>
     <a class="btn secondary" href={`/estimates/new?client=${id}`}>New estimate</a>
+    <button
+      class="btn secondary"
+      onclick={exportStatement}
+      disabled={statementBusy || outstanding.length === 0}
+    >
+      {statementBusy ? "Building…" : "Statement"}
+    </button>
   {/if}
 </PageHeader>
+
+{#if statementMessage}<p class="ok">{statementMessage}</p>{/if}
 
 {#if loadError}
   <p class="error">{loadError}</p>
