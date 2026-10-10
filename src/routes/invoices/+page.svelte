@@ -1,95 +1,152 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import { api } from "$lib/api";
   import { formatDate, fromMinor, statusLabel } from "$lib/format";
   import type { Invoice } from "$lib/types";
+  import AsyncState from "$lib/components/AsyncState.svelte";
+  import EmptyState from "$lib/components/EmptyState.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
+  import SearchField from "$lib/components/SearchField.svelte";
+
+  const statuses = ["draft", "sent", "unpaid", "overdue", "paid", "void"] as const;
 
   let invoices = $state<Invoice[]>([]);
-  let currency = $state("USD");
-  let query = $state("");
-  let status = $state("");
+  let currency = $state("");
+  let loading = $state(true);
   let error = $state("");
+  let search = $state("");
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  async function refresh() {
+  // The filter lives in the URL, so "show overdue" is a real link and the back
+  // button behaves.
+  const query = $derived(page.url.searchParams.get("q") ?? "");
+  const status = $derived(page.url.searchParams.get("status") ?? "");
+
+  async function load() {
+    loading = true;
     try {
-      invoices = await api.invoices.list(query, status);
+      const [business, rows] = await Promise.all([
+        api.business.get(),
+        api.invoices.list(query, status),
+      ]);
+      currency = business.defaultCurrency;
+      invoices = rows;
       error = "";
     } catch (e) {
       error = String(e);
+    } finally {
+      loading = false;
     }
+  }
+
+  async function setParam(key: string, value: string) {
+    const next = new URL(page.url);
+    if (value) next.searchParams.set(key, value);
+    else next.searchParams.delete(key);
+    await goto(next, { replaceState: true, keepFocus: true, noScroll: true });
   }
 
   function onSearch() {
     clearTimeout(timer);
-    timer = setTimeout(() => void refresh(), 200);
+    timer = setTimeout(() => void setParam("q", search), 200);
   }
 
-  onMount(async () => {
-    try {
-      currency = (await api.business.get()).defaultCurrency;
-    } catch {
-      // fall back to the default currency label
-    }
-    await refresh();
+  // Reload when the URL changes, including via the back button.
+  let applied = "";
+  $effect(() => {
+    const key = `${query}|${status}`;
+    if (key === applied) return;
+    applied = key;
+    search = query;
+    void load();
   });
+
+  const filtered = $derived(Boolean(query) || Boolean(status));
 </script>
 
-<div class="page-head">
-  <h1>Invoices</h1>
+<PageHeader title="Invoices">
   <a class="btn" href="/invoices/new">New invoice</a>
-</div>
+</PageHeader>
 
 <div class="toolbar">
-  <input placeholder="Search number or client…" bind:value={query} oninput={onSearch} />
-  <select bind:value={status} onchange={() => refresh()} style="width: auto;">
-    <option value="">All statuses</option>
-    <option value="draft">Draft</option>
-    <option value="sent">Sent</option>
-    <option value="unpaid">Unpaid</option>
-    <option value="overdue">Overdue</option>
-    <option value="paid">Paid</option>
-    <option value="void">Void</option>
-  </select>
-</div>
-
-{#if error}<p class="error">{error}</p>{/if}
-
-<div class="card">
-  {#if invoices.length === 0}
-    <p class="muted">
-      No invoices yet. <a class="link" href="/invoices/new">Create your first invoice</a>.
-    </p>
-  {:else}
-    <table>
-      <thead>
-        <tr>
-          <th>Number</th>
-          <th>Client</th>
-          <th>Issued</th>
-          <th>Due</th>
-          <th class="numeric">Total</th>
-          <th class="numeric">Balance</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each invoices as invoice (invoice.id)}
-          <tr>
-            <td><a class="link" href={`/invoices/${invoice.id}`}>{invoice.number}</a></td>
-            <td>{invoice.clientName ?? "—"}</td>
-            <td>{formatDate(invoice.issueDate)}</td>
-            <td>{formatDate(invoice.dueDate)}</td>
-            <td class="numeric">{fromMinor(invoice.totalMinor, invoice.currency)}</td>
-            <td class="numeric">{fromMinor(invoice.balanceMinor, invoice.currency)}</td>
-            <td>
-              <span class={`badge ${invoice.displayStatus}`}>
-                {statusLabel(invoice.displayStatus)}
-              </span>
-            </td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
+  <SearchField
+    bind:value={search}
+    label="Search invoices by number or client"
+    example="Number or client"
+    oninput={onSearch}
+  />
+  <label class="filter">
+    <span class="sr-only">Filter invoices by status</span>
+    <select value={status} onchange={(e) => setParam("status", e.currentTarget.value)}>
+      <option value="">All statuses</option>
+      {#each statuses as value (value)}
+        <option {value}>{statusLabel(value)}</option>
+      {/each}
+    </select>
+  </label>
+  {#if filtered}
+    <button class="btn secondary" onclick={() => setParam("status", "")}>Clear filter</button>
   {/if}
 </div>
+
+<AsyncState {loading} {error} rows={6} columns={7}>
+  <div class="card">
+    {#if invoices.length === 0}
+      {#if filtered}
+        <EmptyState
+          title="Nothing matches that"
+          body="No invoice has that number or client with this status."
+        />
+      {:else}
+        <EmptyState
+          title="No invoices yet"
+          body="An invoice records what you did, what it cost, and when it is due."
+        >
+          <a class="btn" href="/invoices/new">Create your first invoice</a>
+        </EmptyState>
+      {/if}
+    {:else}
+      <table>
+        <thead>
+          <tr>
+            <th>Number</th>
+            <th>Client</th>
+            <th>Issued</th>
+            <th>Due</th>
+            <th class="numeric">Total</th>
+            <th class="numeric">Balance</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each invoices as invoice (invoice.id)}
+            <tr>
+              <td><a class="link" href={`/invoices/${invoice.id}`}>{invoice.number}</a></td>
+              <td>{invoice.clientName ?? "—"}</td>
+              <td>{formatDate(invoice.issueDate)}</td>
+              <td>{formatDate(invoice.dueDate)}</td>
+              <td class="numeric">{fromMinor(invoice.totalMinor, invoice.currency)}</td>
+              <td class="numeric">{fromMinor(invoice.balanceMinor, invoice.currency)}</td>
+              <td>
+                <span class={`badge ${invoice.displayStatus}`}>
+                  {statusLabel(invoice.displayStatus)}
+                </span>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    {/if}
+  </div>
+</AsyncState>
+
+<style>
+  .filter {
+    flex: 0 0 auto;
+  }
+
+  .filter select {
+    width: auto;
+  }
+</style>

@@ -1,15 +1,20 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import { api } from "$lib/api";
   import { emptyToNull, fromMinor, toMinor } from "$lib/format";
   import type { CatalogItem } from "$lib/types";
+  import AsyncState from "$lib/components/AsyncState.svelte";
+  import EmptyState from "$lib/components/EmptyState.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
+  import SearchField from "$lib/components/SearchField.svelte";
 
   let items = $state<CatalogItem[]>([]);
-  let currency = $state("USD");
-  let query = $state("");
-  let includeArchived = $state(false);
+  let currency = $state("");
+  let loading = $state(true);
   let error = $state("");
   let adding = $state(false);
+  let search = $state("");
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   let name = $state("");
@@ -17,27 +22,45 @@
   let unit = $state("");
   let description = $state("");
 
-  async function refresh() {
+  const query = $derived(page.url.searchParams.get("q") ?? "");
+  const includeArchived = $derived(page.url.searchParams.get("archived") === "1");
+
+  async function load() {
+    loading = true;
     try {
-      items = await api.catalog.list(query, includeArchived);
+      const [business, rows] = await Promise.all([
+        api.business.get(),
+        api.catalog.list(query, includeArchived),
+      ]);
+      currency = business.defaultCurrency;
+      items = rows;
       error = "";
     } catch (e) {
       error = String(e);
+    } finally {
+      loading = false;
     }
+  }
+
+  async function setParam(key: string, value: string) {
+    const next = new URL(page.url);
+    if (value) next.searchParams.set(key, value);
+    else next.searchParams.delete(key);
+    await goto(next, { replaceState: true, keepFocus: true, noScroll: true });
   }
 
   function onSearch() {
     clearTimeout(timer);
-    timer = setTimeout(() => void refresh(), 200);
+    timer = setTimeout(() => void setParam("q", search), 200);
   }
 
-  onMount(async () => {
-    try {
-      currency = (await api.business.get()).defaultCurrency;
-    } catch {
-      // fall back to the default currency label
-    }
-    await refresh();
+  let applied = "";
+  $effect(() => {
+    const key = `${query}|${includeArchived}`;
+    if (key === applied) return;
+    applied = key;
+    search = query;
+    void load();
   });
 
   async function add() {
@@ -56,7 +79,7 @@
       price = "";
       unit = "";
       description = "";
-      await refresh();
+      await load();
     } catch (e) {
       error = String(e);
     } finally {
@@ -67,27 +90,28 @@
   async function toggleArchive(item: CatalogItem) {
     try {
       await api.catalog.setArchived(item.id, item.archivedAt === null);
-      await refresh();
+      await load();
     } catch (e) {
       error = String(e);
     }
   }
 </script>
 
-<div class="page-head">
-  <h1>Catalog</h1>
-</div>
+<PageHeader
+  title="Catalog"
+  subtitle="What you sell, priced once, so a line item is a pick rather than a typing job."
+/>
 
 <div class="card">
   <h2>Add item</h2>
   <div class="grid-2">
     <div class="field">
       <label for="itemName">Name *</label>
-      <input id="itemName" bind:value={name} placeholder="e.g. Design hour" />
+      <input id="itemName" bind:value={name} placeholder="Design hour" />
     </div>
     <div class="field">
-      <label for="itemPrice">Unit price ({currency})</label>
-      <input id="itemPrice" bind:value={price} placeholder="0.00" />
+      <label for="itemPrice">Unit price ({currency || "—"})</label>
+      <input id="itemPrice" bind:value={price} placeholder="0.00" inputmode="decimal" />
     </div>
     <div class="field">
       <label for="itemUnit">Unit</label>
@@ -101,53 +125,74 @@
   <button class="btn" onclick={add} disabled={adding || !name.trim()}>Add item</button>
 </div>
 
-<div class="toolbar" style="margin-top: 1.25rem;">
-  <input placeholder="Search by name or SKU…" bind:value={query} oninput={onSearch} />
-  <label class="row muted" style="white-space: nowrap;">
+<div class="toolbar spaced">
+  <SearchField
+    bind:value={search}
+    label="Search catalog by name or SKU"
+    example="Name or SKU"
+    oninput={onSearch}
+  />
+  <label class="row muted archived">
     <input
       type="checkbox"
-      bind:checked={includeArchived}
-      onchange={() => refresh()}
-      style="width: auto;"
+      checked={includeArchived}
+      onchange={(e) => setParam("archived", e.currentTarget.checked ? "1" : "")}
     />
     Show archived
   </label>
 </div>
 
-{#if error}<p class="error">{error}</p>{/if}
-
-<div class="card">
-  {#if items.length === 0}
-    <p class="muted">No catalog items yet.</p>
-  {:else}
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Description</th>
-          <th>Unit</th>
-          <th>Price</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each items as item (item.id)}
+<AsyncState {loading} {error} rows={5} columns={4}>
+  <div class="card">
+    {#if items.length === 0}
+      <EmptyState
+        title="Nothing in the catalog yet"
+        body="Add the things you bill for. Then an invoice line is a pick, not a typing job."
+      />
+    {:else}
+      <table>
+        <thead>
           <tr>
-            <td>
-              {item.name}
-              {#if item.archivedAt}<span class="muted"> (archived)</span>{/if}
-            </td>
-            <td>{item.description ?? "—"}</td>
-            <td>{item.unit ?? "—"}</td>
-            <td>{fromMinor(item.unitPriceMinor, item.currency ?? currency)}</td>
-            <td>
-              <button class="btn secondary" onclick={() => toggleArchive(item)}>
-                {item.archivedAt ? "Restore" : "Archive"}
-              </button>
-            </td>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Unit</th>
+            <th class="numeric">Price</th>
+            <th></th>
           </tr>
-        {/each}
-      </tbody>
-    </table>
-  {/if}
-</div>
+        </thead>
+        <tbody>
+          {#each items as item (item.id)}
+            <tr>
+              <td>
+                {item.name}
+                {#if item.archivedAt}<span class="muted"> (archived)</span>{/if}
+              </td>
+              <td>{item.description ?? "—"}</td>
+              <td>{item.unit ?? "—"}</td>
+              <td class="numeric">{fromMinor(item.unitPriceMinor, item.currency ?? currency)}</td>
+              <td>
+                <button class="btn secondary" onclick={() => toggleArchive(item)}>
+                  {item.archivedAt ? "Restore" : "Archive"}
+                </button>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    {/if}
+  </div>
+</AsyncState>
+
+<style>
+  .spaced {
+    margin-top: var(--space-4);
+  }
+
+  .archived {
+    white-space: nowrap;
+  }
+
+  .archived input {
+    width: auto;
+  }
+</style>
