@@ -33,6 +33,10 @@ Built with **Rust + Tauri 2**, a **Svelte 5 + TypeScript** frontend, and a local
   auto-lock on idle.
 - **A command palette** (`Ctrl/Cmd+K`), keyboard shortcuts, and a mascot called
   Tally.
+- **AI access over MCP** (optional): a companion `ledgerly-mcp` program lets a
+  desktop AI assistant read your data and, if you allow it, change it — over
+  standard input and output only, so the app still makes no network requests.
+  See [`docs/AI.md`](docs/AI.md).
 
 ## The promise
 
@@ -53,6 +57,7 @@ for everyone. If it saves you time, there is a "buy me a coffee" button in
 ## Layout
 
 ```
+TASKS.json    Cross-session task and feature tracker
 docs/         PRD and release checklist
 src/          Svelte frontend
 src-tauri/    Rust core (Tauri backend), migrations and assets
@@ -88,6 +93,10 @@ npm run check:offline  # no network access
 
 - [`docs/PRD.md`](docs/PRD.md) — the product requirements and design.
 - [`docs/RELEASING.md`](docs/RELEASING.md) — release checklist and signing.
+- [`docs/AI.md`](docs/AI.md) — connecting a desktop AI assistant over MCP.
+- [`docs/screenshots/`](docs/screenshots/) — interface captures at desktop, tablet and phone widths.
+- [`TASKS.json`](TASKS.json) — cross-session task and feature tracker: flip
+  `current` to the id in progress and move finished items to `done`.
 
 ## Status
 

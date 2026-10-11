@@ -74,3 +74,7 @@ jobs:
 
       - name: Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      # The MCP sidecar is a second binary; build it so it cannot silently rot.
+      - name: Build the MCP sidecar
+        run: cargo build --manifest-path src-tauri/Cargo.toml --bin ledgerly-mcp

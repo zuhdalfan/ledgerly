@@ -83,6 +83,42 @@ pub fn app_info(state: State<'_, AppState>) -> AppInfo {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpInfo {
+    pub enabled: bool,
+    pub allow_write: bool,
+    pub server_path: String,
+    pub lock_enabled: bool,
+}
+
+/// Where the `ledgerly-mcp` sidecar lives: bundled next to this executable.
+fn mcp_server_path() -> String {
+    let name = if cfg!(windows) {
+        "ledgerly-mcp.exe"
+    } else {
+        "ledgerly-mcp"
+    };
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join(name)))
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_else(|| name.to_string())
+}
+
+/// Read-only status for the Settings -> AI page.
+#[tauri::command]
+pub fn mcp_info(state: State<'_, AppState>) -> AppResult<McpInfo> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+    Ok(McpInfo {
+        enabled: crate::mcp::enabled(&conn)?,
+        allow_write: crate::mcp::allow_write(&conn)?,
+        server_path: mcp_server_path(),
+        lock_enabled: security::is_enabled(&conn)?,
+    })
+}
+
 #[tauri::command]
 pub fn settings_all(state: State<'_, AppState>) -> AppResult<Vec<Setting>> {
     let conn = state.db.lock().unwrap();

@@ -333,3 +333,10 @@ export type InvoiceTotals = {
   taxMinor: number;
   totalMinor: number;
 };
+
+export type McpInfo = {
+  enabled: boolean;
+  allowWrite: boolean;
+  serverPath: string;
+  lockEnabled: boolean;
+};

@@ -17,6 +17,9 @@ use std::path::Path;
 /// Open the application database and bring the schema up to date.
 pub fn open(path: &Path) -> rusqlite::Result<Connection> {
     let conn = Connection::open(path)?;
+    // The MCP server runs as a separate process against the same file, so a
+    // brief wait for a lock beats failing immediately with SQLITE_BUSY.
+    conn.busy_timeout(std::time::Duration::from_secs(5))?;
     // journal_mode reports the resulting mode, so read it rather than execute it.
     let _mode: String = conn.query_row("PRAGMA journal_mode = WAL", [], |row| row.get(0))?;
     conn.execute_batch("PRAGMA foreign_keys = ON;")?;

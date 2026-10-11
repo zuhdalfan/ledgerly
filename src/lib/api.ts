@@ -12,6 +12,7 @@ import type {
   MethodRow,
   PeriodRow,
   TaxRow,
+  McpInfo,
   CatalogItem,
   CatalogItemInput,
   Client,
@@ -115,6 +116,10 @@ export const api = {
   settings: {
     get: (key: string) => invoke<string | null>("settings_get", { key }),
     set: (key: string, value: string) => invoke<void>("settings_set", { key, value }),
+  },
+
+  mcp: {
+    info: () => invoke<McpInfo>("mcp_info"),
   },
 
   security: {

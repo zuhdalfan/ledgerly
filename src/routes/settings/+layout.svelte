@@ -7,6 +7,7 @@
     { href: "/settings", label: "Business" },
     { href: "/settings/invoicing", label: "Invoicing" },
     { href: "/settings/security", label: "Security" },
+    { href: "/settings/ai", label: "AI" },
     { href: "/settings/data", label: "Data" },
     { href: "/settings/support", label: "Support" },
     { href: "/settings/appearance", label: "Appearance" },

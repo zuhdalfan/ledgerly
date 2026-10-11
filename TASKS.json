@@ -1,0 +1,214 @@
+{
+  "project": "Ledgerly",
+  "updated": "2026-10-11",
+  "current": null,
+  "nextUp": ["RELEASE-SIGN", "RELEASE-MANUAL"],
+  "usage": "Single source of truth for cross-session progress. Set `current` to the id being worked on (null when idle), keep `updated` in YYYY-MM-DD, and move finished items to status `done` instead of deleting them. Milestone ids track docs/PRD.md section 14.",
+  "statusLegend": {
+    "done": "Implemented, verified, committed.",
+    "in_progress": "Actively being worked on in the current session.",
+    "todo": "Agreed and unblocked, not started.",
+    "blocked": "Waiting on a dependency or decision.",
+    "deferred": "Intentionally postponed; not needed for the current release.",
+    "dropped": "No longer planned; kept for history."
+  },
+  "priorityLegend": {
+    "P0": "Release blocker.",
+    "P1": "Should ship before the next release.",
+    "P2": "Nice to have; safe to defer."
+  },
+  "tasks": [
+    {
+      "id": "M0",
+      "title": "Skeleton",
+      "status": "done",
+      "priority": "P0",
+      "area": "infrastructure",
+      "notes": "Tauri 2 + Svelte scaffold, bundled SQLite, migrations, settings store, 3-OS CI (fmt, clippy, test, build)."
+    },
+    {
+      "id": "M1",
+      "title": "Identity & clients",
+      "status": "done",
+      "priority": "P0",
+      "area": "clients",
+      "notes": "Business profile, logo upload, client CRUD + search, catalog CRUD."
+    },
+    {
+      "id": "M2",
+      "title": "Invoices",
+      "status": "done",
+      "priority": "P0",
+      "area": "invoices",
+      "notes": "Editor, line items, taxes, discounts, rounding, numbering, live totals, autosave, duplicate/void."
+    },
+    {
+      "id": "M3",
+      "title": "PDF generation",
+      "status": "done",
+      "priority": "P0",
+      "area": "pdf",
+      "notes": "Rust renderer, built-in templates, embedded fonts, multipage, save-as and open in viewer."
+    },
+    {
+      "id": "M4",
+      "title": "Payments & dashboard",
+      "status": "done",
+      "priority": "P0",
+      "area": "payments",
+      "notes": "Payments CRUD, statuses, aging, dashboard with revenue vs outstanding."
+    },
+    {
+      "id": "M5",
+      "title": "Estimates",
+      "status": "done",
+      "priority": "P1",
+      "area": "estimates",
+      "notes": "Estimate editor, statuses, convert-to-invoice."
+    },
+    {
+      "id": "M6",
+      "title": "Reports & export",
+      "status": "done",
+      "priority": "P1",
+      "area": "reports",
+      "notes": "Revenue/aged/tax reports, CSV/JSON export, batch PDF."
+    },
+    {
+      "id": "M7",
+      "title": "Data safety",
+      "status": "done",
+      "priority": "P0",
+      "area": "backup",
+      "notes": "Backup/restore, scheduled backups, data-location screen."
+    },
+    {
+      "id": "M8",
+      "title": "Licensing & freemium",
+      "status": "dropped",
+      "priority": "P2",
+      "area": "licensing",
+      "notes": "App is now free/MIT; licensing tables dropped in migration 0008_drop_licensing.sql."
+    },
+    {
+      "id": "SEC-LOCK",
+      "title": "App lock",
+      "status": "done",
+      "priority": "P1",
+      "area": "security",
+      "notes": "Argon2id passphrase verifier with auto-lock; see src-tauri/src/security/mod.rs."
+    },
+    {
+      "id": "SEC-ENCRYPT",
+      "title": "Encrypted database at rest",
+      "status": "deferred",
+      "priority": "P2",
+      "area": "security",
+      "notes": "Decided 2026-10-11: not needed now. The OS already encrypts at rest for most users, and the cost is high -- vendored OpenSSL on 3 OSes (perl + nasm), an exemption in scripts/check-offline.mjs (which forbids openssl/openssl-sys), and an unrecoverable DB if the passphrase is forgotten. Revisit only if backups move to the cloud or the machine is shared/resold."
+    },
+    {
+      "id": "SEC-CSP",
+      "title": "Content Security Policy",
+      "status": "done",
+      "priority": "P0",
+      "area": "security",
+      "notes": "CSP set in src-tauri/tauri.conf.json (devCsp null for HMR). Static checks pass. Runtime smoke-test still required before release -- a bad CSP makes the app look empty; see RELEASE-MANUAL."
+    },
+    {
+      "id": "I18N",
+      "title": "UI & PDF localization",
+      "status": "deferred",
+      "priority": "P2",
+      "area": "i18n",
+      "notes": "Only the PDF document-locale setting exists today; full UI localization not started."
+    },
+    {
+      "id": "RECURRING",
+      "title": "Recurring invoices",
+      "status": "deferred",
+      "priority": "P2",
+      "area": "invoices",
+      "notes": "PRD M10 / P2; no code yet."
+    },
+    {
+      "id": "A11Y",
+      "title": "Accessibility pass",
+      "status": "done",
+      "priority": "P1",
+      "area": "quality",
+      "notes": "Contrast check plus a11y sweep; enforced in CI via check:contrast."
+    },
+    {
+      "id": "RELEASE-SIGN",
+      "title": "Packaging, signing & notarization",
+      "status": "blocked",
+      "priority": "P0",
+      "area": "release",
+      "notes": "Blocked on signing credentials only the owner holds: Windows code-signing cert, and Apple Developer ID + notarization secrets. A release workflow can be scaffolded, but it cannot be verified without them."
+    },
+    {
+      "id": "RELEASE-MANUAL",
+      "title": "Manual pre-release checks",
+      "status": "todo",
+      "priority": "P1",
+      "area": "release",
+      "notes": "Cannot be automated: needs a human at a GUI on each OS. See docs/RELEASING.md 'Manual checks CI cannot do': first-run, app-lock unlock, catalog-to-invoice, installer size."
+    },
+    {
+      "id": "DONATE",
+      "title": "Donation link",
+      "status": "done",
+      "priority": "P2",
+      "area": "release",
+      "notes": "Wired to https://ganknow.com/zuhdalfan; opened in the user's browser via the opener plugin (target=_blank anchor)."
+    },
+    {
+      "id": "TABLET-UI",
+      "title": "Tablet & narrow-window layout",
+      "status": "done",
+      "priority": "P1",
+      "area": "frontend",
+      "notes": "Below 820px the sidebar becomes a slide-in drawer behind a top bar (menu button; Escape, backdrop and nav links close it; inert when closed). Main padding tightens, page headers and toolbars wrap, and data tables scroll inside their card. Window minimum lowered to 480x480 in tauri.conf.json. Static checks and build pass; a visual pass on a tablet or narrow window is still worth doing."
+    },
+    {
+      "id": "MOBILE-APP",
+      "title": "Mobile app (iOS & Android)",
+      "status": "deferred",
+      "priority": "P2",
+      "area": "platform",
+      "notes": "PRD section 3.2 marks a mobile app a v1 non-goal (Tauri mobile may be revisited in v2). Tauri 2 can target iOS/Android, but it needs mobile layouts, mobile storage paths, and its own signing, store and release setup."
+    },
+    {
+      "id": "MCP-SERVER",
+      "title": "AI access (MCP server)",
+      "status": "done",
+      "priority": "P1",
+      "area": "integrations",
+      "notes": "Console binary src/bin/ledgerly-mcp.rs over src/mcp: stdio JSON-RPC, 40 tools (read always; writes gated by mcp.allowWrite; passphrase required when the app lock is on). No new crates, so the offline guard still passes. 9 unit tests; docs/PRD.md section 6.14."
+    },
+    {
+      "id": "MCP-SETTINGS-UI",
+      "title": "Settings > AI page",
+      "status": "done",
+      "priority": "P1",
+      "area": "frontend",
+      "notes": "src/routes/settings/ai with the two switches, the resolved server path and a copy-paste MCP config; api.mcp.info() + McpInfo type; new settings nav entry."
+    },
+    {
+      "id": "MCP-PACKAGING",
+      "title": "MCP sidecar packaging",
+      "status": "done",
+      "priority": "P1",
+      "area": "release",
+      "notes": "ledgerly-mcp ships as a Tauri sidecar (bundle.externalBin). scripts/build-mcp-sidecar.mjs builds it and names it with the target triple; wired into beforeBuildCommand/beforeDevCommand and CI. The bundled-installer path is covered by the manual release checks."
+    },
+    {
+      "id": "MCP-DOCS",
+      "title": "AI/MCP documentation",
+      "status": "done",
+      "priority": "P1",
+      "area": "docs",
+      "notes": "docs/AI.md (Claude Desktop and generic MCP setup, lock passphrase, read vs write, exclusions). README, PRD section 6.14 and RELEASING manual checks updated."
+    }
+  ]
+}

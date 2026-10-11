@@ -4,6 +4,7 @@ mod db;
 mod domain;
 mod error;
 mod export;
+pub mod mcp;
 mod pdf;
 mod security;
 
@@ -46,6 +47,47 @@ fn db_path(data_dir: &Path) -> PathBuf {
     data_dir.join("ledgerly.db")
 }
 
+/// Where the app keeps its data, resolved the same way Tauri resolves
+/// `app_data_dir()` for the `com.ledgerly.desktop` bundle id.
+///
+/// The MCP server is a separate process with no Tauri handle, so it repeats
+/// this calculation to find the one database the two of them share.
+/// `LEDGERLY_DATA_DIR` overrides it, which is handy for tests and for anyone
+/// who has moved the folder by hand.
+pub fn resolve_data_dir() -> PathBuf {
+    match std::env::var_os("LEDGERLY_DATA_DIR") {
+        Some(dir) => PathBuf::from(dir),
+        None => data_base_dir().join("com.ledgerly.desktop"),
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn data_base_dir() -> PathBuf {
+    std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
+#[cfg(target_os = "macos")]
+fn data_base_dir() -> PathBuf {
+    home_dir().join("Library").join("Application Support")
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn data_base_dir() -> PathBuf {
+    match std::env::var_os("XDG_DATA_HOME") {
+        Some(dir) => PathBuf::from(dir),
+        None => home_dir().join(".local").join("share"),
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn home_dir() -> PathBuf {
+    std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -69,6 +111,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
+            commands::mcp_info,
             commands::settings_all,
             commands::settings_get,
             commands::settings_set,
@@ -136,4 +179,16 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod data_dir_tests {
+    use super::*;
+
+    #[test]
+    fn the_default_data_dir_is_scoped_to_the_bundle_id() {
+        assert!(resolve_data_dir()
+            .to_string_lossy()
+            .ends_with("com.ledgerly.desktop"));
+    }
 }

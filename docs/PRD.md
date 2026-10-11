@@ -298,6 +298,20 @@ Requirements are prioritized **P0 (must-have for v1)**, **P1 (should-have)**, **
 
 ---
 
+### 6.14 AI Access (MCP) — P1
+
+| ID | Requirement |
+|---|---|
+| FR-AI-1 | The app ships a companion `ledgerly-mcp` program that exposes its data and actions to a desktop AI assistant over the **Model Context Protocol**, using **stdio only** — no socket, no port and no network call, so the §7 offline guarantee is unchanged. |
+| FR-AI-2 | AI access is **off by default** and switched on by the user in **Settings → AI**. |
+| FR-AI-3 | Reads (clients, catalog, tax rates, invoices, estimates, payments, business profile, settings, reports) are available once access is on. |
+| FR-AI-4 | Writes (create/update/duplicate/mark sent or chased, record payments, convert estimates, take a backup) require a second, independent **Allow changes** switch. |
+| FR-AI-5 | When the app lock is on, the assistant must supply the passphrase from its client config; without a verifying passphrase every request is refused. |
+| FR-AI-6 | Destructive and identity-changing actions — restore a backup, void an invoice, delete a payment, change the app lock, open files, export the database — are **never** exposed to the assistant. |
+| FR-AI-7 | The assistant and the app share one SQLite database and may run at the same time. |
+
+---
+
 ## 7. Non-Functional Requirements
 
 | Category | Requirement |

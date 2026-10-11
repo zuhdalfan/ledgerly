@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:mcp": "node scripts/build-mcp-sidecar.mjs",
+    "build:mcp:release": "node scripts/build-mcp-sidecar.mjs --release",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

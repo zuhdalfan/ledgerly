@@ -76,9 +76,6 @@ there is no cross-compilation story for Tauri bundles.
 - **Encrypted database at rest.** Not implemented. SQLCipher needs a vendored
   OpenSSL build (perl + nasm); the app lock protects the running app, not the
   file.
-- **Wire up the donation link.** Put the URL in `src/lib/support.ts`, allowlist
-  the host in `scripts/check-offline.mjs`, and grant `opener:allow-open-url` in
-  `src-tauri/capabilities/default.json`.
 
 ## Manual checks CI cannot do
 
@@ -91,6 +88,15 @@ CI runs on all three platforms, but it does not drive the GUI. Before publishing
 3. Add a catalog item, then create an invoice and pull that item in from the
    catalog picker. Export the invoice as a PDF, and export a quote as one too.
 4. Confirm the installer size is still in the expected range (roughly 4–20 MB).
+5. Shrink the window below ~820px (or open the app on a tablet) and confirm the
+   sidebar collapses into a drawer: the menu button opens it, and Escape, the
+   backdrop or a nav link closes it.
+6. Run `npm run build:mcp:release` and confirm `npm run tauri build` bundles the
+   `ledgerly-mcp` sidecar next to the app.
+7. In **Settings → AI**, switch access on, add the shown program to an MCP client,
+   and confirm a read ("list unpaid invoices") and a write ("create a client")
+   both land in the app. Confirm writes are refused with **Allow changes** off,
+   and that the app lock refuses everything without the passphrase.
 
 ## Rollback
 

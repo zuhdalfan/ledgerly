@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.ledgerly.desktop",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "node scripts/build-mcp-sidecar.mjs && npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run build && node scripts/build-mcp-sidecar.mjs --release",
     "frontendDist": "../build"
   },
   "app": {
@@ -15,17 +15,19 @@
         "title": "Ledgerly",
         "width": 1100,
         "height": 720,
-        "minWidth": 900,
-        "minHeight": 600
+        "minWidth": 480,
+        "minHeight": 480
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      "devCsp": null
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": ["binaries/ledgerly-mcp"],
     "category": "Business",
     "publisher": "Ledgerly",
     "copyright": "© 2026 Muhammad Zuhdi",
