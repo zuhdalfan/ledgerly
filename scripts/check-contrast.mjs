@@ -88,7 +88,7 @@ const pairs = [
   ["ink-3", "paper-0", UI, "control border on hover"],
   ["accent-text", "paper-0", UI, "focus ring"],
   ["accent", "paper-0", UI, "mascot accent rule"],
-  ["accent", "ink-1", UI, "celebration amount on the dark toast"],
+  ["paper-4", "ink-1", TEXT, "toast action on the dark toast"],
 ];
 
 // Decorative edges. WCAG 1.4.11 covers the visual information needed to

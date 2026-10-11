@@ -32,7 +32,7 @@
       it changes nothing inside the app.
     </p>
     {#if SUPPORT_URL}
-      <a class="btn" href={SUPPORT_URL} rel="noreferrer">Buy me a coffee</a>
+      <a class="btn" href={SUPPORT_URL} target="_blank" rel="noreferrer">Buy me a coffee</a>
     {:else}
       <button class="btn" disabled>Buy me a coffee</button>
       <p class="muted note">

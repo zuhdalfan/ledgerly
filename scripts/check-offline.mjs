@@ -112,7 +112,7 @@ for (const path of sources) {
 // 4. No remote URLs in *code*. Documentation links in comments are harmless,
 //    but a URL in markup or script is how a CDN dependency sneaks in.
 const urlPattern = /https?:\/\//;
-const allowedHosts = /^https?:\/\/([a-z0-9-]+\.)*(github\.com|tauri\.app|svelte\.dev|vite\.dev|w3\.org)/i;
+const allowedHosts = /^https?:\/\/([a-z0-9-]+\.)*(github\.com|tauri\.app|svelte\.dev|vite\.dev|w3\.org|ganknow\.com)/i;
 const isComment = (line) => /^\s*(\/\/|#|\*|\/\*|<!--)/.test(line);
 
 for (const path of sources) {

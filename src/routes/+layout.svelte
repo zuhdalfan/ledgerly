@@ -31,6 +31,8 @@
   let unlocking = $state(false);
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
   let paletteOpen = $state(false);
+  let navOpen = $state(false);
+  let narrow = $state(false);
 
   async function loadSecurity() {
     checking = true;
@@ -105,9 +107,23 @@
     void applyMotion();
   });
 
+  // A tap on a nav link must always close the drawer, including when the link
+  // points at the page already open, so this cannot rely on the route changing.
+  $effect(() => {
+    void page.url.pathname;
+    navOpen = false;
+  });
+
   function onKeydown(event: KeyboardEvent) {
     // Nothing in the shell responds while the gate is up.
     if (!security || security.locked) return;
+
+    // Escape closes the drawer. The command palette handles its own Escape.
+    if (event.key === "Escape" && navOpen) {
+      event.preventDefault();
+      navOpen = false;
+      return;
+    }
 
     const mod = event.ctrlKey || event.metaKey;
 
@@ -138,6 +154,18 @@
     }
 
     window.addEventListener("keydown", onKeydown);
+
+    // The drawer only exists below the breakpoint. Track it so the closed
+    // drawer can be made inert, and so widening the window closes it.
+    const query = window.matchMedia("(max-width: 820px)");
+    const syncNarrow = () => {
+      narrow = query.matches;
+      if (!narrow) navOpen = false;
+    };
+    syncNarrow();
+    query.addEventListener("change", syncNarrow);
+
+    return () => query.removeEventListener("change", syncNarrow);
   });
 </script>
 
@@ -186,7 +214,22 @@
 {:else}
   <div class="app" inert={paletteOpen}>
     <a class="skip" href="#main">Skip to content</a>
-    <aside>
+
+    <header class="topbar">
+      <button
+        class="menu"
+        type="button"
+        aria-label="Open navigation"
+        aria-expanded={navOpen}
+        aria-controls="sidebar"
+        onclick={() => (navOpen = true)}
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+      <span class="brand">Ledgerly</span>
+    </header>
+
+    <aside id="sidebar" class:open={navOpen} inert={narrow && !navOpen}>
       <div class="brand">Ledgerly</div>
       <button class="search" onclick={() => (paletteOpen = true)}>
         <span>Search</span>
@@ -194,10 +237,22 @@
       </button>
       <nav>
         {#each nav as item (item.href)}
-          <a href={item.href} class:active={isActive(item.href)}>{item.label}</a>
+          <a href={item.href} class:active={isActive(item.href)} onclick={() => (navOpen = false)}>
+            {item.label}
+          </a>
         {/each}
       </nav>
     </aside>
+
+    {#if navOpen}
+      <button
+        class="scrim"
+        type="button"
+        tabindex="-1"
+        aria-label="Close navigation"
+        onclick={() => (navOpen = false)}
+      ></button>
+    {/if}
 
     <main id="main" tabindex="-1">
       {@render children()}

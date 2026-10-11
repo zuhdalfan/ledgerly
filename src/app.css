@@ -46,12 +46,13 @@
   --ink-3: oklch(0.52 0.012 70);
   --ink-inverse: oklch(0.99 0.002 80);
 
-  /* Accent — persimmon. Three roles, because one hue cannot serve text on
-   * paper, text on itself, and decoration at the same lightness. */
-  --accent: oklch(0.68 0.16 45);
-  --accent-text: oklch(0.50 0.16 40);
-  --accent-fill: oklch(0.50 0.16 40);
-  --accent-soft: oklch(0.95 0.03 45);
+  /* Accent — charcoal. The brand is a dark neutral, so one value serves text
+   * on paper, a filled control's label, and decoration; emphasis comes from
+   * weight and placement rather than hue. */
+  --accent: oklch(0.30 0.006 75);
+  --accent-text: oklch(0.30 0.006 75);
+  --accent-fill: oklch(0.30 0.006 75);
+  --accent-soft: oklch(0.95 0.004 75);
 
   /* State. All five sit at L 0.48-0.52 so each clears 4.5:1 as text on paper.
    * They are a vocabulary, and they are never the only signal: every badge
@@ -169,6 +170,16 @@ body {
   display: grid;
   grid-template-columns: 220px 1fr;
   height: 100vh;
+}
+
+/* The narrow layout trades the sidebar for a top bar and a slide-in drawer.
+ * Both are hidden at full width; see the tablet block at the end of the file. */
+.topbar {
+  display: none;
+}
+
+.scrim {
+  display: none;
 }
 
 aside {
@@ -433,12 +444,13 @@ tbody tr:last-child td {
 
 a.link {
   color: var(--accent-text);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--accent-text) 35%, transparent);
+  text-underline-offset: 2px;
 }
 
 a.link:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration-color: currentColor;
 }
 
 code {
@@ -534,6 +546,108 @@ code {
   input,
   select {
     min-height: 44px;
+  }
+}
+
+/* Tablet and narrow windows. The breakpoint sits under the old 900px window
+ * minimum so a tablet in portrait, or a desktop window snapped to half a
+ * screen, gets the drawer instead of a squeezed sidebar. */
+@media (max-width: 820px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    background: var(--paper-0);
+    border-bottom: 1px solid var(--paper-3);
+  }
+
+  .topbar .brand {
+    padding: 0;
+  }
+
+  .menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    font-size: var(--text-lg);
+    line-height: 1;
+    color: var(--ink-1);
+    background: var(--paper-0);
+    border: 1px solid var(--paper-4);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  aside {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(80vw, 300px);
+    z-index: 30;
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+
+  aside.open {
+    transform: translateX(0);
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 0;
+    background: oklch(0.24 0.014 70 / 0.45);
+    border: 0;
+  }
+
+  main {
+    min-height: 0;
+    /* A grid item defaults to min-width:auto, so a wide table would otherwise
+     * stretch the whole column past the viewport instead of scrolling in its
+     * own card. */
+    min-width: 0;
+    padding: var(--space-4);
+  }
+
+  .page-head,
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  /* A data table is the one thing that cannot reflow, so its card scrolls
+   * sideways rather than squashing the columns past readability. */
+  main .card {
+    overflow-x: auto;
+  }
+
+  main .card table {
+    min-width: 600px;
+  }
+}
+
+/* A phone-sized canvas: give the search its own line so the filter or buttons
+ * wrap below instead of being pushed off the edge. The app window itself does
+ * not go this small, but the layout should not overflow if it does. */
+@media (max-width: 560px) {
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  main .toolbar .search {
+    flex-basis: 100%;
+    min-width: 0;
   }
 }
 

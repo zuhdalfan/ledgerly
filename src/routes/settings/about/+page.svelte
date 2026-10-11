@@ -29,6 +29,12 @@
       Fully local and fully offline. No account, no cloud, no telemetry, and no network code at
       all: the build fails if an HTTP client ever appears in the dependency graph.
     </p>
+    <p class="muted spaced">
+      Source code:
+      <a class="link" href="https://github.com/zuhdalfan/ledgerly" target="_blank" rel="noreferrer">
+        github.com/zuhdalfan/ledgerly
+      </a>
+    </p>
   </div>
 
   <div class="card">

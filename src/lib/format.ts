@@ -4,11 +4,14 @@ export function toMinor(value: string): number {
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
 }
 
-/** Render integer minor units as a currency string. */
+/** Render integer minor units as a currency string. The ISO code is always
+ * shown, so mixed-currency lists read unambiguously ("USD 3,000.00", never a
+ * bare "$" that could mean several dollars). */
 export function fromMinor(minor: number, currency = "USD"): string {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
+    currencyDisplay: "code",
   }).format(minor / 100);
 }
 

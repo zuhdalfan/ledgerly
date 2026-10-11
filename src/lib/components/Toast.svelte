@@ -58,7 +58,7 @@
     font: inherit;
     font-size: var(--text-md);
     font-weight: 700;
-    color: var(--accent);
+    color: var(--paper-4);
     background: transparent;
     border: 0;
     cursor: pointer;

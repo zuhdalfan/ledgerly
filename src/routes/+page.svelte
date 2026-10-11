@@ -363,6 +363,10 @@
     align-items: center;
   }
 
+  .hero-main {
+    min-width: 0;
+  }
+
   .figure {
     margin: 0;
     font-size: var(--text-3xl);
@@ -374,8 +378,10 @@
 
   .hero-side {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-5);
     margin: 0;
+    min-width: 0;
   }
 
   .hero-side dt {
@@ -413,7 +419,7 @@
     font-size: var(--text-sm);
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 820px) {
     .hero {
       grid-template-columns: 1fr;
     }
