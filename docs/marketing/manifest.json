@@ -1,0 +1,184 @@
+{
+  "cuts": [
+    {
+      "id": "hero",
+      "format": "landscape",
+      "title": "Get paid, without the busywork",
+      "status": "ok",
+      "error": null,
+      "trimStart": 3.038,
+      "file": "out-marketing\\landscape\\hero.webm",
+      "artifacts": [
+        "hero-landscape.mp4"
+      ],
+      "sizesKB": {
+        "hero-landscape.mp4": 590.7
+      }
+    },
+    {
+      "id": "create",
+      "format": "landscape",
+      "title": "An invoice in seconds",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.053,
+      "file": "out-marketing\\landscape\\create.webm",
+      "artifacts": [
+        "create-landscape.mp4"
+      ],
+      "sizesKB": {
+        "create-landscape.mp4": 540.9
+      }
+    },
+    {
+      "id": "offline",
+      "format": "landscape",
+      "title": "No account, no cloud, no network",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.881,
+      "file": "out-marketing\\landscape\\offline.webm",
+      "artifacts": [
+        "offline-landscape.mp4"
+      ],
+      "sizesKB": {
+        "offline-landscape.mp4": 187.0
+      }
+    },
+    {
+      "id": "estimate",
+      "format": "landscape",
+      "title": "Quote it, then invoice it",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.521,
+      "file": "out-marketing\\landscape\\estimate.webm",
+      "artifacts": [
+        "estimate-landscape.mp4"
+      ],
+      "sizesKB": {
+        "estimate-landscape.mp4": 275.6
+      }
+    },
+    {
+      "id": "chase",
+      "format": "landscape",
+      "title": "Chase late payments",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.053,
+      "file": "out-marketing\\landscape\\chase.webm",
+      "artifacts": [
+        "chase-landscape.mp4"
+      ],
+      "sizesKB": {
+        "chase-landscape.mp4": 299.8
+      }
+    },
+    {
+      "id": "mcp",
+      "format": "landscape",
+      "title": "Your AI assistant can read your books",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.038,
+      "file": "out-marketing\\landscape\\mcp.webm",
+      "artifacts": [
+        "mcp-landscape.mp4"
+      ],
+      "sizesKB": {
+        "mcp-landscape.mp4": 417.0
+      }
+    },
+    {
+      "id": "hero",
+      "format": "portrait",
+      "title": "Get paid, without the busywork",
+      "status": "ok",
+      "error": null,
+      "trimStart": 3.74,
+      "file": "out-marketing\\portrait\\hero.webm",
+      "artifacts": [
+        "hero-portrait.mp4"
+      ],
+      "sizesKB": {
+        "hero-portrait.mp4": 734.6
+      }
+    },
+    {
+      "id": "create",
+      "format": "portrait",
+      "title": "An invoice in seconds",
+      "status": "ok",
+      "error": null,
+      "trimStart": 1.991,
+      "file": "out-marketing\\portrait\\create.webm",
+      "artifacts": [
+        "create-portrait.mp4"
+      ],
+      "sizesKB": {
+        "create-portrait.mp4": 578.6
+      }
+    },
+    {
+      "id": "offline",
+      "format": "portrait",
+      "title": "No account, no cloud, no network",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.006,
+      "file": "out-marketing\\portrait\\offline.webm",
+      "artifacts": [
+        "offline-portrait.mp4"
+      ],
+      "sizesKB": {
+        "offline-portrait.mp4": 297.9
+      }
+    },
+    {
+      "id": "estimate",
+      "format": "portrait",
+      "title": "Quote it, then invoice it",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.007,
+      "file": "out-marketing\\portrait\\estimate.webm",
+      "artifacts": [
+        "estimate-portrait.mp4"
+      ],
+      "sizesKB": {
+        "estimate-portrait.mp4": 302.2
+      }
+    },
+    {
+      "id": "chase",
+      "format": "portrait",
+      "title": "Chase late payments",
+      "status": "ok",
+      "error": null,
+      "trimStart": 1.912,
+      "file": "out-marketing\\portrait\\chase.webm",
+      "artifacts": [
+        "chase-portrait.mp4"
+      ],
+      "sizesKB": {
+        "chase-portrait.mp4": 359.9
+      }
+    },
+    {
+      "id": "mcp",
+      "format": "portrait",
+      "title": "Your AI assistant can read your books",
+      "status": "ok",
+      "error": null,
+      "trimStart": 1.913,
+      "file": "out-marketing\\portrait\\mcp.webm",
+      "artifacts": [
+        "mcp-portrait.mp4"
+      ],
+      "sizesKB": {
+        "mcp-portrait.mp4": 576.0
+      }
+    }
+  ]
+}

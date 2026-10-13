@@ -148,6 +148,28 @@ class Demo:
         self.page.keyboard.press(combo)
         self.wait(settle)
 
+    # --- marketing overlay (no-ops unless marketing.js is injected) --------
+    def brand(self, show: bool = True, settle: int = 300):
+        self.page.evaluate("v => window.__marketing && window.__marketing.brand(v)", show)
+        self.wait(settle)
+
+    def caption(self, title: str, sub: str = "", settle: int = 900):
+        self.page.evaluate(
+            "([t, s]) => window.__marketing && window.__marketing.caption(t, s)", [title, sub]
+        )
+        self.wait(settle)
+
+    def clear_caption(self, settle: int = 250):
+        self.page.evaluate("() => window.__marketing && window.__marketing.clearCaption()")
+        self.wait(settle)
+
+    def end_card(self, title: str, sub: str = "", cta: str = "", hold: int = 2200):
+        self.page.evaluate(
+            "([t, s, c]) => window.__marketing && window.__marketing.endCard(t, s, c)",
+            [title, sub, cta],
+        )
+        self.wait(hold)
+
     def assert_visible(self, selector: str, note: str = ""):
         if self.page.locator(selector).count() == 0:
             raise RuntimeError(f"expected {selector!r} to be present {note}".strip())

@@ -1,3 +1,4 @@
-# Recorded webm + manifest (regenerate with record.py).
+# Recorded webm + manifest (regenerate with record.py / marketing.py).
 out/
+out-marketing/
 __pycache__/

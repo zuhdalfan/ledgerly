@@ -18,8 +18,11 @@ Development tooling only: it is not part of the app build and ships with nothing
 | `cursor.js` | A visible cursor + click ripple that follows Playwright's mouse events (the video recorder does not draw the OS cursor). |
 | `record.py` | Starts the dev server, runs each segment's script in a fresh browser context, and records one webm per segment. Also `--list`, `--only <ids>`, `--scale`. |
 | `segments.py` | The walkthrough scripts — one per chapter — plus the segment table (id, chapter, title, start route). |
+| `marketing.py` | The **marketing** runner: short payoff-first cuts (hero, create, offline, estimate, chase, mcp) with a brand chip, captions and an end card, at landscape/square/portrait viewports. Reuses `record.Demo`. |
+| `marketing.js` | The marketing overlay (brand chip, caption card, end card). Injected only for marketing recordings. |
 | `encode.py` | Trims each clip's page-load lead-in and writes mp4 (all) and gif (the focused ones) into `docs/preview/`. |
-| `out/` | Recorded webm + `manifest.json` (gitignored). |
+| `encode_marketing.py` | Encodes the marketing cuts into `docs/marketing/` — mp4 by default, `--gif` for the image fallback. |
+| `out/`, `out-marketing/` | Recorded webm + manifests (gitignored). |
 
 ## Run it
 
