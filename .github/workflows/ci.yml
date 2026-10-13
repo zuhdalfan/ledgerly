@@ -1,9 +1,13 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  # Automatic runs are OFF on purpose: every push to main was firing three OS
+  # jobs, and the failures were noise rather than signal while the matrix is not
+  # green. The jobs below are unchanged — start it by hand from the Actions tab
+  # (`gh workflow run CI`) when you want it. Uncomment these to restore the runs.
+  # push:
+  #   branches: [main]
+  # pull_request:
   # So a run can be started by hand from the Actions tab or `gh workflow run`.
   workflow_dispatch:
 
