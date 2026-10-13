@@ -5,6 +5,7 @@
   import { page } from "$app/state";
   import { api } from "$lib/api";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
+  import Logo from "$lib/components/Logo.svelte";
   import Mascot from "$lib/components/Mascot.svelte";
   import type { SecurityStatus } from "$lib/types";
 
@@ -190,7 +191,7 @@
 {:else if security?.locked}
   <div class="gate">
     <div class="card">
-      <div class="mark"><Mascot expression="idle" size={56} /></div>
+      <div class="mark"><Logo size={56} /></div>
       <h2>Ledgerly is locked</h2>
       <div class="field">
         <label for="passphrase">Passphrase</label>
@@ -226,11 +227,11 @@
       >
         <span aria-hidden="true">☰</span>
       </button>
-      <span class="brand">Ledgerly</span>
+      <span class="brand"><Logo size={22} />Ledgerly</span>
     </header>
 
     <aside id="sidebar" class:open={navOpen} inert={narrow && !navOpen}>
-      <div class="brand">Ledgerly</div>
+      <div class="brand"><Logo size={26} />Ledgerly</div>
       <button class="search" onclick={() => (paletteOpen = true)}>
         <span>Search</span>
         <kbd>Ctrl K</kbd>

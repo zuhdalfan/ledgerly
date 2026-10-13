@@ -28,13 +28,13 @@
   <div>
     <h2>Keep it going</h2>
     <p class="muted">
-      If Ledgerly saves you time, you can buy me a coffee. It is entirely optional and
+      If Ledgerly saves you time, you can support us. It is entirely optional and
       it changes nothing inside the app.
     </p>
     {#if SUPPORT_URL}
-      <a class="btn" href={SUPPORT_URL} target="_blank" rel="noreferrer">Buy me a coffee</a>
+      <a class="btn" href={SUPPORT_URL} target="_blank" rel="noreferrer">Support us</a>
     {:else}
-      <button class="btn" disabled>Buy me a coffee</button>
+      <button class="btn" disabled>Support us</button>
       <p class="muted note">
         Not wired up yet: no donation page has been chosen, so this button is switched
         off rather than pointing somewhere wrong. See <code>src/lib/support.ts</code>.

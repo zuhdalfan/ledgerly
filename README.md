@@ -51,7 +51,7 @@ remote URL appears anywhere in the dependency graph or source.
 with no warranty.
 
 There is no paid tier, no trial and no licence key: every feature is unlocked
-for everyone. If it saves you time, there is a "buy me a coffee" button in
+for everyone. If it saves you time, there is a "support us" button in
 `Settings → Support` — entirely optional, and it changes nothing inside the app.
 
 ## Layout

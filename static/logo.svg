@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Ledgerly">
+  <!-- A torn paper slip on charcoal: the artifact the product is about. -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#2F2D2A" />
+  <g transform="translate(256 260) scale(4.6) translate(-48 -40)">
+    <path
+      d="M24 22A10 10 0 0 1 34 12H62A10 10 0 0 1 72 22V62L66 68 60 62 54 68 48 62 42 68 36 62 30 68 24 62Z"
+      fill="#FBF8F2"
+    />
+    <path d="M35 31H61" stroke="#2F2D2A" stroke-width="5" stroke-linecap="round" />
+    <path d="M35 44H61" stroke="#2F2D2A" stroke-width="5" stroke-linecap="round" />
+  </g>
+</svg>
