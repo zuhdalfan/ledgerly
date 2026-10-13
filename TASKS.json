@@ -1,7 +1,7 @@
 {
   "project": "Ledgerly",
-  "updated": "2026-10-11",
-  "current": null,
+  "updated": "2026-10-13",
+  "current": "I18N",
   "nextUp": ["RELEASE-SIGN", "RELEASE-MANUAL"],
   "usage": "Single source of truth for cross-session progress. Set `current` to the id being worked on (null when idle), keep `updated` in YYYY-MM-DD, and move finished items to status `done` instead of deleting them. Milestone ids track docs/PRD.md section 14.",
   "statusLegend": {
@@ -117,10 +117,10 @@
     {
       "id": "I18N",
       "title": "UI & PDF localization",
-      "status": "deferred",
+      "status": "in_progress",
       "priority": "P2",
       "area": "i18n",
-      "notes": "Only the PDF document-locale setting exists today; full UI localization not started."
+      "notes": "Bahasa Indonesia, in progress. Done: the i18n core (src/lib/i18n.svelte.ts plus locales/en.ts and id.ts, type-checked for key parity), the shell and nav, the shared components (command palette, line items shell, charts, toast, celebration), the reminder email, and Settings > Appearance with a language switch (setting key ui.locale). Locale-aware money/dates follow the UI language. Remaining: the content routes (dashboard, invoices, estimates, clients, catalog, reports and the other settings pages) still render English literal strings, and the PDF document locale (pdf/labels.rs) is still English-only."
     },
     {
       "id": "RECURRING",

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Mascot from "./Mascot.svelte";
+  import { t } from "$lib/i18n.svelte";
 
   // The one earned celebration in the product: a payment landed. It is a
   // confirmation, not a slot machine, and it respects the motion setting.
@@ -36,9 +37,9 @@
     >
       <Mascot expression="celebrating" size={80} />
       <p class="amount">{amount}</p>
-      <p class="receipt">stamped paid</p>
+      <p class="receipt">{t("celebration.stamped")}</p>
       <button class="btn secondary" bind:this={closeButton} onclick={() => (open = false)}>
-        Close
+        {t("action.close")}
       </button>
     </div>
   </div>

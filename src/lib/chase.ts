@@ -1,4 +1,5 @@
 import { formatDate, fromMinor } from "./format";
+import { t, plural } from "./i18n.svelte";
 
 export type Reminder = { subject: string; body: string };
 
@@ -24,31 +25,31 @@ export function reminder(invoice: ReminderInput, signature = ""): Reminder {
   const amount = fromMinor(invoice.balanceMinor, invoice.currency);
   const late = invoice.daysPastDue ?? 0;
   const overdue = invoice.displayStatus === "overdue" && late > 0;
-  const days = `${late} ${late === 1 ? "day" : "days"}`;
+  const days = plural(late, "chase.daysOne", "chase.daysOther", { count: late });
 
   const due = invoice.dueDate ? formatDate(invoice.dueDate) : "";
   const subject = overdue
-    ? `Invoice ${invoice.number} is ${days} overdue`
-    : `Invoice ${invoice.number} for ${amount}`;
+    ? t("chase.subjectOverdue", { number: invoice.number, days })
+    : t("chase.subjectFor", { number: invoice.number, amount });
 
   const status = overdue
-    ? `This is a reminder that invoice ${invoice.number} for ${amount} was due on ${due} and is now ${days} overdue.`
+    ? t("chase.bodyOverdue", { number: invoice.number, amount, due, days })
     : due
-      ? `A reminder that invoice ${invoice.number} for ${amount} is due on ${due}.`
-      : `A reminder that invoice ${invoice.number} for ${amount} is still outstanding.`;
+      ? t("chase.bodyDue", { number: invoice.number, amount, due })
+      : t("chase.bodyOutstanding", { number: invoice.number, amount });
 
   const instructions = invoice.paymentInstructions?.trim();
   const name = signature.trim();
 
   const lines = [
-    invoice.clientName ? `Hello ${invoice.clientName},` : "Hello,",
+    invoice.clientName ? t("chase.helloNamed", { name: invoice.clientName }) : t("chase.hello"),
     "",
     status,
-    ...(instructions ? ["", "Payment instructions:", instructions] : []),
+    ...(instructions ? ["", t("chase.paymentInstructions"), instructions] : []),
     "",
-    "If this has already been paid, thank you, and please ignore this note.",
+    t("chase.ifPaid"),
     "",
-    name ? `Thanks,\n${name}` : "Thanks,",
+    name ? t("chase.thanksNamed", { name }) : t("chase.thanks"),
   ];
 
   return { subject, body: lines.join("\n") };

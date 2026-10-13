@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fromMinor } from "$lib/format";
+  import { t } from "$lib/i18n.svelte";
 
   // Two series over time: what you billed and what actually landed. The gap
   // between them is the whole point, so the columns sit side by side.
@@ -32,7 +33,7 @@
     if (secondaryName) {
       parts.push(`${secondaryName.toLowerCase()} ${fromMinor(point.secondary ?? 0, currency)}`);
     }
-    parts.push("show those invoices");
+    parts.push(t("chart.showThoseInvoices"));
     return parts.join(", ");
   }
 </script>
@@ -63,7 +64,7 @@
     <caption>{label}</caption>
     <thead>
       <tr>
-        <th>Period</th>
+        <th>{t("common.period")}</th>
         <th>{primaryName}</th>
         {#if secondaryName}<th>{secondaryName}</th>{/if}
       </tr>

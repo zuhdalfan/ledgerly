@@ -4,6 +4,7 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { api } from "$lib/api";
+  import { t, setLocale, localeFromSetting } from "$lib/i18n.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
   import Logo from "$lib/components/Logo.svelte";
   import Mascot from "$lib/components/Mascot.svelte";
@@ -12,14 +13,14 @@
   let { children } = $props();
 
   const nav = [
-    { href: "/", label: "Dashboard" },
-    { href: "/invoices", label: "Invoices" },
-    { href: "/estimates", label: "Estimates" },
-    { href: "/reports", label: "Reports" },
-    { href: "/clients", label: "Clients" },
-    { href: "/catalog", label: "Catalog" },
-    { href: "/settings", label: "Settings" },
-  ];
+    { href: "/", key: "nav.dashboard" },
+    { href: "/invoices", key: "nav.invoices" },
+    { href: "/estimates", key: "nav.estimates" },
+    { href: "/reports", key: "nav.reports" },
+    { href: "/clients", key: "nav.clients" },
+    { href: "/catalog", key: "nav.catalog" },
+    { href: "/settings", key: "nav.settings" },
+  ] as const;
 
   function isActive(href: string): boolean {
     return href === "/" ? page.url.pathname === "/" : page.url.pathname.startsWith(href);
@@ -101,11 +102,22 @@
     document.documentElement.dataset.motion = level;
   }
 
-  // The motion preference lives in the database, so it applies once it can be
-  // read. The OS setting can still only lower it from there.
+  async function applyLocale() {
+    let value: string | null = null;
+    try {
+      value = await api.settings.get("ui.locale");
+    } catch {
+      // A failed preference read must not hold up the shell.
+    }
+    setLocale(localeFromSetting(value));
+  }
+
+  // The preferences live in the database, so they apply once they can be read.
+  // The OS setting can still only lower the motion from there.
   $effect(() => {
     if (!security || security.locked) return;
     void applyMotion();
+    void applyLocale();
   });
 
   // A tap on a nav link must always close the drawer, including when the link
@@ -172,19 +184,17 @@
 
 {#if checking}
   <div class="gate">
-    <p class="muted">Checking the app lock…</p>
+    <p class="muted">{t("gate.checking")}</p>
   </div>
 {:else if gateError}
   <div class="gate">
     <div class="card">
       <div class="mark"><Mascot expression="worried" size={56} /></div>
-      <h2>Ledgerly could not open</h2>
-      <p class="muted">
-        The app lock state could not be read, so your data has not been shown. Nothing is lost.
-      </p>
+      <h2>{t("gate.couldNotOpen")}</h2>
+      <p class="muted">{t("gate.couldNotOpenBody")}</p>
       <p class="error">{gateError}</p>
       <div class="row wrap">
-        <button class="btn" onclick={loadSecurity}>Try again</button>
+        <button class="btn" onclick={loadSecurity}>{t("gate.tryAgain")}</button>
       </div>
     </div>
   </div>
@@ -192,9 +202,9 @@
   <div class="gate">
     <div class="card">
       <div class="mark"><Logo size={56} /></div>
-      <h2>Ledgerly is locked</h2>
+      <h2>{t("gate.locked")}</h2>
       <div class="field">
-        <label for="passphrase">Passphrase</label>
+        <label for="passphrase">{t("gate.passphrase")}</label>
         <!-- svelte-ignore a11y_autofocus -->
         <input
           id="passphrase"
@@ -206,7 +216,7 @@
       </div>
       <div class="row wrap">
         <button class="btn" onclick={unlock} disabled={unlocking || !passphrase}>
-          {unlocking ? "Unlocking…" : "Unlock"}
+          {unlocking ? t("gate.unlocking") : t("gate.unlock")}
         </button>
         {#if gateError}<span class="error">{gateError}</span>{/if}
       </div>
@@ -214,13 +224,13 @@
   </div>
 {:else}
   <div class="app" inert={paletteOpen}>
-    <a class="skip" href="#main">Skip to content</a>
+    <a class="skip" href="#main">{t("app.skipToContent")}</a>
 
     <header class="topbar">
       <button
         class="menu"
         type="button"
-        aria-label="Open navigation"
+        aria-label={t("app.openNavigation")}
         aria-expanded={navOpen}
         aria-controls="sidebar"
         onclick={() => (navOpen = true)}
@@ -233,13 +243,13 @@
     <aside id="sidebar" class:open={navOpen} inert={narrow && !navOpen}>
       <div class="brand"><Logo size={26} />Ledgerly</div>
       <button class="search" onclick={() => (paletteOpen = true)}>
-        <span>Search</span>
+        <span>{t("search.label")}</span>
         <kbd>Ctrl K</kbd>
       </button>
       <nav>
         {#each nav as item (item.href)}
           <a href={item.href} class:active={isActive(item.href)} onclick={() => (navOpen = false)}>
-            {item.label}
+            {t(item.key)}
           </a>
         {/each}
       </nav>
@@ -250,7 +260,7 @@
         class="scrim"
         type="button"
         tabindex="-1"
-        aria-label="Close navigation"
+        aria-label={t("app.closeNavigation")}
         onclick={() => (navOpen = false)}
       ></button>
     {/if}

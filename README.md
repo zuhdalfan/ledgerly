@@ -164,6 +164,8 @@ npm run check:offline  # no network access
 ## Status
 
 Feature-complete against the PRD milestones M0–M10. Known gaps: the database is
-**not encrypted at rest** (SQLCipher needs a vendored OpenSSL build), the app UI
-is English-only with document labels localized, and recurring invoices are not
-implemented. See `docs/RELEASING.md`.
+**not encrypted at rest** (SQLCipher needs a vendored OpenSSL build), the
+interface is mid-translation — Bahasa Indonesia covers the shell, the shared
+components and Settings, while the content screens still render English (see the
+`I18N` task in `TASKS.json`) — and recurring invoices are not implemented. See
+`docs/RELEASING.md`.

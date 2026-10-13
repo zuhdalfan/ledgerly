@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fromMinor } from "$lib/format";
+  import { t, plural } from "$lib/i18n.svelte";
 
   // A bar list rather than an abstract chart: the label and the number are the
   // accessible content, the bar is the reading aid. A row may carry a link, in
@@ -8,7 +9,7 @@
     rows,
     currency,
     label,
-    columnLabel = "Share",
+    columnLabel = "",
   }: {
     rows: {
       label: string;
@@ -28,9 +29,9 @@
 <table aria-label={label}>
   <thead>
     <tr>
-      <th>Age</th>
-      <th class="numeric">Balance</th>
-      <th class="share-head"><span class="sr-only">{columnLabel}</span></th>
+      <th>{t("common.age")}</th>
+      <th class="numeric">{t("common.balance")}</th>
+      <th class="share-head"><span class="sr-only">{columnLabel || t("barlist.share")}</span></th>
     </tr>
   </thead>
   <tbody>
@@ -41,7 +42,10 @@
             <a
               class="link"
               href={row.href}
-              aria-label={`${row.label}, ${fromMinor(row.amountMinor, currency)} across ${row.count ?? 0} ${row.count === 1 ? "invoice" : "invoices"}. Show them.`}
+              aria-label={plural(row.count ?? 0, "barlist.rowAriaOne", "barlist.rowAriaOther", {
+                label: row.label,
+                amount: fromMinor(row.amountMinor, currency),
+              })}
             >
               {row.label}
             </a>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { api } from "$lib/api";
+  import { t } from "$lib/i18n.svelte";
 
   let { open = $bindable(false) }: { open?: boolean } = $props();
 
@@ -11,39 +12,63 @@
   let loading = $state(false);
   let input = $state<HTMLInputElement | null>(null);
 
-  const base: Command[] = [
-    { id: "new-invoice", label: "New invoice", hint: "Create", href: "/invoices/new" },
-    { id: "new-estimate", label: "New estimate", hint: "Create", href: "/estimates/new" },
-    { id: "new-client", label: "New client", hint: "Create", href: "/clients/new" },
-    { id: "dashboard", label: "Dashboard", hint: "Go to", href: "/" },
-    { id: "invoices", label: "Invoices", hint: "Go to", href: "/invoices" },
-    { id: "overdue", label: "Overdue invoices", hint: "Go to", href: "/invoices?status=overdue" },
-    { id: "estimates", label: "Estimates", hint: "Go to", href: "/estimates" },
-    { id: "reports", label: "Reports", hint: "Go to", href: "/reports" },
-    { id: "clients", label: "Clients", hint: "Go to", href: "/clients" },
-    { id: "catalog", label: "Catalog", hint: "Go to", href: "/catalog" },
-    { id: "settings", label: "Settings: Business", hint: "Settings", href: "/settings" },
-    {
-      id: "settings-invoicing",
-      label: "Settings: Invoicing",
-      hint: "Settings",
-      href: "/settings/invoicing",
-    },
-    {
-      id: "settings-security",
-      label: "Settings: Security",
-      hint: "Settings",
-      href: "/settings/security",
-    },
-    { id: "settings-data", label: "Settings: Data", hint: "Settings", href: "/settings/data" },
-    {
-      id: "settings-support",
-      label: "Settings: Support",
-      hint: "Settings",
-      href: "/settings/support",
-    },
-    { id: "settings-about", label: "Settings: About", hint: "Settings", href: "/settings/about" },
-  ];
+  // Built when the palette opens (and after a language change), so the labels
+  // reflect the current locale.
+  function baseCommands(): Command[] {
+    return [
+      { id: "new-invoice", label: t("palette.newInvoice"), hint: t("palette.create"), href: "/invoices/new" },
+      { id: "new-estimate", label: t("palette.newEstimate"), hint: t("palette.create"), href: "/estimates/new" },
+      { id: "new-client", label: t("palette.newClient"), hint: t("palette.create"), href: "/clients/new" },
+      { id: "dashboard", label: t("nav.dashboard"), hint: t("palette.goTo"), href: "/" },
+      { id: "invoices", label: t("nav.invoices"), hint: t("palette.goTo"), href: "/invoices" },
+      {
+        id: "overdue",
+        label: t("palette.overdueInvoices"),
+        hint: t("palette.goTo"),
+        href: "/invoices?status=overdue",
+      },
+      { id: "estimates", label: t("nav.estimates"), hint: t("palette.goTo"), href: "/estimates" },
+      { id: "reports", label: t("nav.reports"), hint: t("palette.goTo"), href: "/reports" },
+      { id: "clients", label: t("nav.clients"), hint: t("palette.goTo"), href: "/clients" },
+      { id: "catalog", label: t("nav.catalog"), hint: t("palette.goTo"), href: "/catalog" },
+      {
+        id: "settings",
+        label: t("palette.settingsBusiness"),
+        hint: t("palette.settingsHint"),
+        href: "/settings",
+      },
+      {
+        id: "settings-invoicing",
+        label: t("palette.settingsInvoicing"),
+        hint: t("palette.settingsHint"),
+        href: "/settings/invoicing",
+      },
+      {
+        id: "settings-security",
+        label: t("palette.settingsSecurity"),
+        hint: t("palette.settingsHint"),
+        href: "/settings/security",
+      },
+      {
+        id: "settings-data",
+        label: t("palette.settingsData"),
+        hint: t("palette.settingsHint"),
+        href: "/settings/data",
+      },
+      {
+        id: "settings-support",
+        label: t("palette.settingsSupport"),
+        hint: t("palette.settingsHint"),
+        href: "/settings/support",
+      },
+      {
+        id: "settings-about",
+        label: t("palette.settingsAbout"),
+        hint: t("palette.settingsHint"),
+        href: "/settings/about",
+      },
+    ];
+  }
 
   const filtered = $derived.by(() => {
     const needle = query.trim().toLowerCase();
@@ -63,23 +88,23 @@
     try {
       const [clients, invoices] = await Promise.all([api.clients.list(), api.invoices.list()]);
       options = [
-        ...base,
+        ...baseCommands(),
         ...clients.map((client) => ({
           id: `client-${client.id}`,
           label: client.displayName,
-          hint: "Client",
+          hint: t("palette.clientHint"),
           href: `/clients/${client.id}`,
         })),
         ...invoices.slice(0, 100).map((invoice) => ({
           id: `invoice-${invoice.id}`,
-          label: invoice.clientName ?? "No client",
-          hint: `Invoice ${invoice.number}`,
+          label: invoice.clientName ?? t("palette.noClient"),
+          hint: t("palette.invoiceHint", { number: invoice.number }),
           href: `/invoices/${invoice.id}`,
         })),
       ];
     } catch {
       // Navigation still works without the record commands.
-      options = base;
+      options = baseCommands();
     } finally {
       loading = false;
     }
@@ -93,7 +118,7 @@
     if (open) {
       previousFocus = document.activeElement as HTMLElement | null;
       query = "";
-      options = base;
+      options = baseCommands();
       void loadRecords();
       // Let the element mount before focusing it.
       queueMicrotask(() => input?.focus());
@@ -186,7 +211,7 @@
       class="palette"
       role="dialog"
       aria-modal="true"
-      aria-label="Command palette"
+      aria-label={t("palette.title")}
       tabindex="-1"
       onclick={(event) => event.stopPropagation()}
       onkeydown={onTrapKeydown}
@@ -195,14 +220,14 @@
         bind:this={input}
         bind:value={query}
         onkeydown={onKeydown}
-        aria-label="Search commands, clients and invoices"
-        placeholder="Search, or jump to…"
+        aria-label={t("palette.inputLabel")}
+        placeholder={t("palette.placeholder")}
         spellcheck="false"
       />
 
       {#if filtered.length === 0}
         <p class="none muted">
-          {loading ? "Searching…" : "Nothing matches that."}
+          {loading ? t("palette.searching") : t("palette.nothing")}
         </p>
       {:else}
         <ul>

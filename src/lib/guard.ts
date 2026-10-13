@@ -1,6 +1,7 @@
 import { beforeNavigate, goto } from "$app/navigation";
 import { onMount } from "svelte";
 import { ask } from "@tauri-apps/plugin-dialog";
+import { t } from "./i18n.svelte";
 
 /// Warns before a filled-in form is thrown away.
 ///
@@ -14,7 +15,7 @@ export function useDirtyGuard(isDirty: () => boolean, message: string) {
     if (bypass || !isDirty()) return;
 
     navigation.cancel();
-    const discard = await ask(message, { title: "Discard changes?", kind: "warning" });
+    const discard = await ask(message, { title: t("guard.discardTitle"), kind: "warning" });
     if (!discard || !navigation.to) return;
 
     bypass = true;

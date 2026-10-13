@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { t } from "$lib/i18n.svelte";
+
   // Recoverable actions get an undo rather than a confirmation. The toast says
   // what happened, in the past tense, and offers the way back.
   let {
     open = $bindable(false),
     message = "",
-    actionLabel = "Undo",
+    actionLabel = "",
     onaction,
   }: {
     open?: boolean;
@@ -25,10 +27,10 @@
           onaction();
         }}
       >
-        {actionLabel}
+        {actionLabel || t("action.undo")}
       </button>
     {/if}
-    <button class="dismiss" onclick={() => (open = false)} aria-label="Dismiss">×</button>
+    <button class="dismiss" onclick={() => (open = false)} aria-label={t("action.dismiss")}>×</button>
   </div>
 {/if}
 
