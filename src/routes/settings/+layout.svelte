@@ -1,28 +1,29 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import { t } from "$lib/i18n.svelte";
 
   let { children } = $props();
 
   const sections = [
-    { href: "/settings", label: "Business" },
-    { href: "/settings/invoicing", label: "Invoicing" },
-    { href: "/settings/security", label: "Security" },
-    { href: "/settings/ai", label: "AI" },
-    { href: "/settings/data", label: "Data" },
-    { href: "/settings/support", label: "Support" },
-    { href: "/settings/appearance", label: "Appearance" },
-    { href: "/settings/about", label: "About" },
-  ];
+    { href: "/settings", key: "settings.nav.business" },
+    { href: "/settings/invoicing", key: "settings.nav.invoicing" },
+    { href: "/settings/security", key: "settings.nav.security" },
+    { href: "/settings/ai", key: "settings.nav.ai" },
+    { href: "/settings/data", key: "settings.nav.data" },
+    { href: "/settings/support", key: "settings.nav.support" },
+    { href: "/settings/appearance", key: "settings.nav.appearance" },
+    { href: "/settings/about", key: "settings.nav.about" },
+  ] as const;
 
   function isActive(href: string): boolean {
     return href === "/settings" ? page.url.pathname === "/settings" : page.url.pathname === href;
   }
 </script>
 
-<nav class="sections" aria-label="Settings sections">
+<nav class="sections" aria-label={t("settings.sectionsLabel")}>
   {#each sections as section (section.href)}
     <a href={section.href} class:active={isActive(section.href)} aria-current={isActive(section.href) ? "page" : undefined}>
-      {section.label}
+      {t(section.key)}
     </a>
   {/each}
 </nav>

@@ -1,23 +1,24 @@
 <script lang="ts">
   import { page } from "$app/state";
   import Mascot from "$lib/components/Mascot.svelte";
+  import { t } from "$lib/i18n.svelte";
 
   const isMissing = $derived(page.status === 404);
 </script>
 
 <div class="error-page">
   <Mascot expression={isMissing ? "thinking" : "worried"} size={88} />
-  <h1>{isMissing ? "That page is not here" : "Something went wrong"}</h1>
+  <h1>{isMissing ? t("error.notHere") : t("error.wentWrong")}</h1>
   <p class="muted">
     {isMissing
-      ? "The link may be old, or the record may have been removed."
-      : page.error?.message ?? "Ledgerly could not finish that. Your data has not been changed."}
+      ? t("error.notHereBody")
+      : (page.error?.message ?? t("error.wentWrongBody"))}
   </p>
   {#if page.status !== 404}
-    <p class="muted status">Error {page.status}</p>
+    <p class="muted status">{t("error.status", { status: page.status })}</p>
   {/if}
   <div class="row wrap">
-    <a class="btn" href="/">Back to the dashboard</a>
+    <a class="btn" href="/">{t("error.backToDashboard")}</a>
   </div>
 </div>
 

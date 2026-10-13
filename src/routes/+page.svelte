@@ -7,6 +7,7 @@
   import ColumnChart from "$lib/components/ColumnChart.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import { reminder } from "$lib/chase";
+  import { t, plural } from "$lib/i18n.svelte";
 
   let info = $state<AppInfo | null>(null);
   let business = $state<Business | null>(null);
@@ -57,11 +58,11 @@
     // `key` is the filter the invoices list understands, so a bucket and the
     // rows behind it cannot drift apart.
     const buckets = [
-      { key: "not_due", label: "Not yet due", amountMinor: 0, count: 0 },
-      { key: "1-30", label: "1–30 days", amountMinor: 0, count: 0 },
-      { key: "31-60", label: "31–60 days", amountMinor: 0, count: 0 },
-      { key: "61-90", label: "61–90 days", amountMinor: 0, count: 0 },
-      { key: "90plus", label: "90+ days", amountMinor: 0, count: 0 },
+      { key: "not_due", label: t("dash.bucket.notYetDue"), amountMinor: 0, count: 0 },
+      { key: "1-30", label: t("dash.bucket.days1to30"), amountMinor: 0, count: 0 },
+      { key: "31-60", label: t("dash.bucket.days31to60"), amountMinor: 0, count: 0 },
+      { key: "61-90", label: t("dash.bucket.days61to90"), amountMinor: 0, count: 0 },
+      { key: "90plus", label: t("dash.bucket.days90plus"), amountMinor: 0, count: 0 },
     ];
 
     for (const invoice of open) {
@@ -86,20 +87,20 @@
   // teaches the product without a separate tour.
   const steps = $derived([
     {
-      label: "Fill in your business profile",
-      hint: "Your name, address and currency. They print on every invoice.",
+      label: t("dash.setup.business"),
+      hint: t("dash.setup.businessHint"),
       href: "/settings",
       done: Boolean(business?.displayName?.trim()),
     },
     {
-      label: "Add a client",
-      hint: "Who you bill.",
+      label: t("dash.setup.client"),
+      hint: t("dash.setup.clientHint"),
       href: "/clients/new",
       done: clientCount > 0,
     },
     {
-      label: "Create your first invoice",
-      hint: "Then export it and send it.",
+      label: t("dash.setup.invoice"),
+      hint: t("dash.setup.invoiceHint"),
       href: "/invoices/new",
       done: invoices.length > 0,
     },
@@ -111,9 +112,9 @@
     const { subject, body } = reminder(invoice, business?.displayName ?? "");
     try {
       await navigator.clipboard.writeText(`${subject}\n\n${body}`);
-      chaseMessage = `Reminder for ${invoice.number} copied. Paste it into your email.`;
+      chaseMessage = t("dash.reminderCopied", { number: invoice.number });
     } catch {
-      chaseMessage = "Could not reach the clipboard. Open the invoice to copy it by hand.";
+      chaseMessage = t("dash.reminderFailed");
     }
   }
 
@@ -187,16 +188,16 @@
   });
 </script>
 
-<PageHeader title="Dashboard" subtitle={business?.displayName?.trim() || undefined}>
-  <a class="btn" href="/invoices/new">New invoice</a>
+<PageHeader title={t("dash.title")} subtitle={business?.displayName?.trim() || undefined}>
+  <a class="btn" href="/invoices/new">{t("dash.newInvoice")}</a>
 </PageHeader>
 
 <AsyncState {loading} {error} rows={4} columns={3}>
   {#if remaining > 0}
     <div class="card setup rise" style="--i: 0">
-      <h2>Finish setting up</h2>
+      <h2>{t("dash.setup.title")}</h2>
       <ul>
-        {#each steps as step (step.label)}
+        {#each steps as step (step.href)}
           <li class:done={step.done}>
             <span class="mark" aria-hidden="true">{step.done ? "✓" : ""}</span>
             <span class="text">
@@ -215,24 +216,25 @@
 
   <div class="card hero rise" style="--i: 1">
     <div class="hero-main">
-      <h2>Outstanding</h2>
+      <h2>{t("dash.outstanding")}</h2>
       <p class="figure">{fromMinor(outstanding, currency)}</p>
       <p class="muted">
-        across {open.length}
-        {open.length === 1 ? "unpaid invoice" : "unpaid invoices"}
+        {plural(open.length, "dash.acrossUnpaidOne", "dash.acrossUnpaidOther", {
+          count: open.length,
+        })}
       </p>
     </div>
     <dl class="hero-side">
       <div>
-        <dt>Overdue</dt>
+        <dt>{t("dash.overdue")}</dt>
         <dd class={overdue > 0 ? "alarm" : ""}>{fromMinor(overdue, currency)}</dd>
       </div>
       <div>
-        <dt>Collected this month</dt>
+        <dt>{t("dash.collectedThisMonth")}</dt>
         <dd>{fromMinor(collectedThisMonth, currency)}</dd>
       </div>
       <div>
-        <dt>Clients</dt>
+        <dt>{t("dash.clients")}</dt>
         <dd>{clientCount}</dd>
       </div>
     </dl>
@@ -241,18 +243,18 @@
   {#if overdueInvoices.length > 0}
     <div class="card rise" style="--i: 2">
       <div class="card-head">
-        <h2>Needs chasing</h2>
-        <a class="link" href="/invoices?status=overdue">View all overdue</a>
+        <h2>{t("dash.needsChasing")}</h2>
+        <a class="link" href="/invoices?status=overdue">{t("action.viewAllOverdue")}</a>
       </div>
       <table>
         <thead>
           <tr>
-            <th>Number</th>
-            <th>Client</th>
-            <th>Due</th>
-            <th class="numeric">Late by</th>
-            <th class="numeric">Balance</th>
-            <th>Chased</th>
+            <th>{t("common.number")}</th>
+            <th>{t("common.client")}</th>
+            <th>{t("common.due")}</th>
+            <th class="numeric">{t("dash.lateBy")}</th>
+            <th class="numeric">{t("common.balance")}</th>
+            <th>{t("dash.chased")}</th>
             <th></th>
           </tr>
         </thead>
@@ -260,20 +262,26 @@
           {#each needsChasing.slice(0, 5) as invoice (invoice.id)}
             <tr>
               <td><a class="link" href={`/invoices/${invoice.id}`}>{invoice.number}</a></td>
-              <td>{invoice.clientName ?? "—"}</td>
+              <td>{invoice.clientName ?? t("common.emDash")}</td>
               <td>{formatDate(invoice.dueDate)}</td>
-              <td class="numeric">{invoice.daysPastDue ?? 0} days</td>
+              <td class="numeric">
+                {plural(invoice.daysPastDue ?? 0, "dash.dayOne", "dash.dayOther", {
+                  count: invoice.daysPastDue ?? 0,
+                })}
+              </td>
               <td class="numeric">{fromMinor(invoice.balanceMinor, invoice.currency)}</td>
               <td>
-                {invoice.lastChasedAt ? formatDate(invoice.lastChasedAt.slice(0, 10)) : "Never"}
+                {invoice.lastChasedAt
+                  ? formatDate(invoice.lastChasedAt.slice(0, 10))
+                  : t("dash.never")}
               </td>
               <td>
                 <div class="row-actions">
                   <button class="btn secondary" onclick={() => copyReminderFor(invoice)}>
-                    Copy
+                    {t("dash.copy")}
                   </button>
                   <button class="btn secondary" onclick={() => toggleChased(invoice)}>
-                    {invoice.lastChasedAt ? "Unmark" : "Mark chased"}
+                    {invoice.lastChasedAt ? t("action.unmark") : t("action.markChased")}
                   </button>
                 </div>
               </td>
@@ -286,38 +294,33 @@
   {/if}
 
   <div class="card rise" style="--i: 3">
-    <h2>Aged receivables</h2>
+    <h2>{t("dash.agedReceivables")}</h2>
     <BarList
       rows={agingRows}
       {currency}
-      label="Outstanding balance by age"
-      columnLabel="Share of the largest bucket"
+      label={t("dash.agedLabel")}
+      columnLabel={t("dash.agedColumn")}
     />
-    <p class="muted hint">Follow a bucket to the invoices in it.</p>
+    <p class="muted hint">{t("dash.agedHint")}</p>
   </div>
 
   <div class="card rise" style="--i: 4">
-    <h2>Billed and collected</h2>
-    <p class="muted">
-      The last six months. The gap between the bars is money you are owed. Follow a month to the
-      invoices billed in it.
-    </p>
+    <h2>{t("dash.billedCollected")}</h2>
+    <p class="muted">{t("dash.billedCollectedBody")}</p>
     <ColumnChart
       points={revenue}
       {currency}
-      label="Billed and collected over the last six months"
-      primaryName="Collected"
-      secondaryName="Billed"
+      label={t("dash.billedCollectedLabel")}
+      primaryName={t("dash.collected")}
+      secondaryName={t("dash.billed")}
     />
   </div>
 
   <div class="card rise" style="--i: 5">
-    <h2>Your data</h2>
-    <p class="muted">
-      Everything is stored on this machine. No account, no cloud, no network.
-    </p>
-    <p class="muted">Data directory</p>
-    <code>{info?.dataDir ?? "—"}</code>
+    <h2>{t("dash.yourData")}</h2>
+    <p class="muted">{t("dash.yourDataBody")}</p>
+    <p class="muted">{t("dash.dataDirectory")}</p>
+    <code>{info?.dataDir ?? t("common.emDash")}</code>
   </div>
 </AsyncState>
 
