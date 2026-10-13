@@ -330,4 +330,26 @@ export const id: Record<MessageKey, string> = {
   "invoices.none": "Belum ada faktur",
   "invoices.noneBody": "Faktur mencatat pekerjaan Anda, biayanya, dan kapan jatuh temponya.",
   "status.unpaid": "Belum dibayar",
+
+  // --- estimates list ----------------------------------------------------
+  "estimates.title": "Estimasi",
+  "estimates.new": "Estimasi baru",
+  "estimates.searchLabel": "Cari estimasi berdasarkan nomor atau klien",
+  "estimates.searchExample": "Nomor atau klien",
+  "estimates.filterSrOnly": "Filter estimasi berdasarkan status",
+  "estimates.nothingMatches": "Tidak ada yang cocok",
+  "estimates.nothingMatchesBody":
+    "Tidak ada estimasi dengan nomor atau klien itu pada status ini.",
+  "estimates.none": "Belum ada estimasi",
+  "estimates.noneBody":
+    "Estimasi adalah penawaran. Kirimkan, lalu ubah menjadi faktur setelah pekerjaan disetujui.",
+
+  // --- clients list ------------------------------------------------------
+  "clients.title": "Klien",
+  "clients.new": "Klien baru",
+  "clients.searchLabel": "Cari klien berdasarkan nama, perusahaan, atau email",
+  "clients.searchExample": "Nama, perusahaan, atau email",
+  "clients.empty": "Belum ada klien",
+  "clients.emptyBody":
+    "Klien adalah pihak yang Anda tagih. Tambahkan satu, dan detailnya terisi sendiri di setiap faktur.",
 };

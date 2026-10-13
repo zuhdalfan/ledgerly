@@ -9,6 +9,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SearchField from "$lib/components/SearchField.svelte";
   import { capped, RENDER_LIMIT } from "$lib/list";
+  import { t } from "$lib/i18n.svelte";
 
   const statuses = ["draft", "sent", "accepted", "declined", "expired", "converted"] as const;
 
@@ -64,28 +65,28 @@
   const filtered = $derived(Boolean(query) || Boolean(status));
 </script>
 
-<PageHeader title="Estimates">
-  <a class="btn" href="/estimates/new">New estimate</a>
+<PageHeader title={t("estimates.title")}>
+  <a class="btn" href="/estimates/new">{t("estimates.new")}</a>
 </PageHeader>
 
 <div class="toolbar">
   <SearchField
     bind:value={search}
-    label="Search estimates by number or client"
-    example="Number or client"
+    label={t("estimates.searchLabel")}
+    example={t("estimates.searchExample")}
     oninput={onSearch}
   />
   <label class="filter">
-    <span class="sr-only">Filter estimates by status</span>
+    <span class="sr-only">{t("estimates.filterSrOnly")}</span>
     <select value={status} onchange={(e) => setParam("status", e.currentTarget.value)}>
-      <option value="">All statuses</option>
+      <option value="">{t("common.allStatuses")}</option>
       {#each statuses as value (value)}
         <option {value}>{statusLabel(value)}</option>
       {/each}
     </select>
   </label>
   {#if filtered}
-    <button class="btn secondary" onclick={() => setParam("status", "")}>Clear filter</button>
+    <button class="btn secondary" onclick={() => setParam("status", "")}>{t("common.clearFilter")}</button>
   {/if}
 </div>
 
@@ -94,34 +95,31 @@
     {#if estimates.length === 0}
       {#if filtered}
         <EmptyState
-          title="Nothing matches that"
-          body="No estimate has that number or client with this status."
+          title={t("estimates.nothingMatches")}
+          body={t("estimates.nothingMatchesBody")}
         />
       {:else}
-        <EmptyState
-          title="No estimates yet"
-          body="An estimate is a quote. Send it, and convert it into an invoice once the work is agreed."
-        >
-          <a class="btn" href="/estimates/new">Create your first estimate</a>
+        <EmptyState title={t("estimates.none")} body={t("estimates.noneBody")}>
+          <a class="btn" href="/estimates/new">{t("action.createFirstEstimate")}</a>
         </EmptyState>
       {/if}
     {:else}
       <table>
         <thead>
           <tr>
-            <th>Number</th>
-            <th>Client</th>
-            <th>Issued</th>
-            <th>Valid until</th>
-            <th class="numeric">Total</th>
-            <th>Status</th>
+            <th>{t("common.number")}</th>
+            <th>{t("common.client")}</th>
+            <th>{t("common.issued")}</th>
+            <th>{t("common.validUntil")}</th>
+            <th class="numeric">{t("common.total")}</th>
+            <th>{t("common.status")}</th>
           </tr>
         </thead>
         <tbody>
           {#each visible.shown as estimate (estimate.id)}
             <tr>
               <td><a class="link" href={`/estimates/${estimate.id}`}>{estimate.number}</a></td>
-              <td>{estimate.clientName ?? "—"}</td>
+              <td>{estimate.clientName ?? t("common.emDash")}</td>
               <td>{formatDate(estimate.issueDate)}</td>
               <td>{formatDate(estimate.validUntil)}</td>
               <td class="numeric">{fromMinor(estimate.totalMinor, estimate.currency)}</td>
@@ -136,7 +134,7 @@
       </table>
       {#if visible.hidden > 0}
         <p class="muted truncation">
-          Showing the first {RENDER_LIMIT} of {estimates.length}. Search or filter to narrow it down.
+          {t("list.showingFirstFilter", { limit: RENDER_LIMIT, total: estimates.length })}
         </p>
       {/if}
     {/if}

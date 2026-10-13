@@ -8,6 +8,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SearchField from "$lib/components/SearchField.svelte";
   import { capped, RENDER_LIMIT } from "$lib/list";
+  import { t } from "$lib/i18n.svelte";
 
   let clients = $state<Client[]>([]);
   let loading = $state(true);
@@ -53,15 +54,15 @@
   });
 </script>
 
-<PageHeader title="Clients">
-  <a class="btn" href="/clients/new">New client</a>
+<PageHeader title={t("clients.title")}>
+  <a class="btn" href="/clients/new">{t("clients.new")}</a>
 </PageHeader>
 
 <div class="toolbar">
   <SearchField
     bind:value={search}
-    label="Search clients by name, company or email"
-    example="Name, company or email"
+    label={t("clients.searchLabel")}
+    example={t("clients.searchExample")}
     oninput={onSearch}
   />
   <label class="row muted archived">
@@ -70,27 +71,24 @@
       checked={includeArchived}
       onchange={(e) => setParam("archived", e.currentTarget.checked ? "1" : "")}
     />
-    Show archived
+    {t("common.showArchived")}
   </label>
 </div>
 
 <AsyncState {loading} {error} rows={6} columns={4}>
   <div class="card">
     {#if clients.length === 0}
-      <EmptyState
-        title="No clients yet"
-        body="A client is who you bill. Add one, and their details fill themselves into every invoice."
-      >
-        <a class="btn" href="/clients/new">Add your first client</a>
+      <EmptyState title={t("clients.empty")} body={t("clients.emptyBody")}>
+        <a class="btn" href="/clients/new">{t("action.addYourFirstClient")}</a>
       </EmptyState>
     {:else}
       <table>
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Company</th>
-            <th>Email</th>
-            <th>Currency</th>
+            <th>{t("common.name")}</th>
+            <th>{t("common.company")}</th>
+            <th>{t("common.email")}</th>
+            <th>{t("common.currency")}</th>
           </tr>
         </thead>
         <tbody>
@@ -98,18 +96,18 @@
             <tr>
               <td>
                 <a class="link" href={`/clients/${client.id}`}>{client.displayName}</a>
-                {#if client.archivedAt}<span class="muted"> (archived)</span>{/if}
+                {#if client.archivedAt}<span class="muted"> {t("common.archived")}</span>{/if}
               </td>
-              <td>{client.company ?? "—"}</td>
-              <td>{client.email ?? "—"}</td>
-              <td>{client.currency ?? "—"}</td>
+              <td>{client.company ?? t("common.emDash")}</td>
+              <td>{client.email ?? t("common.emDash")}</td>
+              <td>{client.currency ?? t("common.emDash")}</td>
             </tr>
           {/each}
         </tbody>
       </table>
       {#if visible.hidden > 0}
         <p class="muted truncation">
-          Showing the first {RENDER_LIMIT} of {clients.length}. Search to narrow it down.
+          {t("list.showingFirstSearch", { limit: RENDER_LIMIT, total: clients.length })}
         </p>
       {/if}
     {/if}

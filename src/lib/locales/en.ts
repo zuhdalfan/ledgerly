@@ -329,6 +329,27 @@ export const en = {
   "invoices.none": "No invoices yet",
   "invoices.noneBody": "An invoice records what you did, what it cost, and when it is due.",
   "status.unpaid": "Unpaid",
+
+  // --- estimates list ----------------------------------------------------
+  "estimates.title": "Estimates",
+  "estimates.new": "New estimate",
+  "estimates.searchLabel": "Search estimates by number or client",
+  "estimates.searchExample": "Number or client",
+  "estimates.filterSrOnly": "Filter estimates by status",
+  "estimates.nothingMatches": "Nothing matches that",
+  "estimates.nothingMatchesBody": "No estimate has that number or client with this status.",
+  "estimates.none": "No estimates yet",
+  "estimates.noneBody":
+    "An estimate is a quote. Send it, and convert it into an invoice once the work is agreed.",
+
+  // --- clients list ------------------------------------------------------
+  "clients.title": "Clients",
+  "clients.new": "New client",
+  "clients.searchLabel": "Search clients by name, company or email",
+  "clients.searchExample": "Name, company or email",
+  "clients.empty": "No clients yet",
+  "clients.emptyBody":
+    "A client is who you bill. Add one, and their details fill themselves into every invoice.",
 };
 
 export type MessageKey = keyof typeof en;
