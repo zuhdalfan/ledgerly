@@ -5,6 +5,9 @@ description = "Offline invoicing for freelancers and small businesses"
 authors = ["Muhammad Zuhdi"]
 license = "MIT"
 edition = "2021"
+# Two binaries: the app and the ledgerly-mcp sidecar. Point `cargo run` (and so
+# `tauri dev`) at the app.
+default-run = "ledgerly"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
