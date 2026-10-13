@@ -311,6 +311,24 @@ export const en = {
   "dash.bucket.days31to60": "31–60 days",
   "dash.bucket.days61to90": "61–90 days",
   "dash.bucket.days90plus": "90+ days",
+
+  // --- invoices list -----------------------------------------------------
+  "invoices.title": "Invoices",
+  "invoices.new": "New invoice",
+  "invoices.searchLabel": "Search invoices by number or client",
+  "invoices.searchExample": "Number or client",
+  "invoices.filterSrOnly": "Filter invoices by status",
+  "invoices.age.notDue": "not yet due",
+  "invoices.age.days1to30": "1–30 days late",
+  "invoices.age.days31to60": "31–60 days late",
+  "invoices.age.days61to90": "61–90 days late",
+  "invoices.age.days90plus": "more than 90 days late",
+  "invoices.issuedIn": "Invoices issued in {issued}.",
+  "invoices.nothingMatches": "Nothing matches that",
+  "invoices.nothingMatchesBody": "No invoice has that number or client with this status.",
+  "invoices.none": "No invoices yet",
+  "invoices.noneBody": "An invoice records what you did, what it cost, and when it is due.",
+  "status.unpaid": "Unpaid",
 };
 
 export type MessageKey = keyof typeof en;

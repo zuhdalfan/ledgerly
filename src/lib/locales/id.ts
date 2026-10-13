@@ -311,4 +311,23 @@ export const id: Record<MessageKey, string> = {
   "dash.bucket.days31to60": "31–60 hari",
   "dash.bucket.days61to90": "61–90 hari",
   "dash.bucket.days90plus": "90+ hari",
+
+  // --- invoices list -----------------------------------------------------
+  "invoices.title": "Faktur",
+  "invoices.new": "Faktur baru",
+  "invoices.searchLabel": "Cari faktur berdasarkan nomor atau klien",
+  "invoices.searchExample": "Nomor atau klien",
+  "invoices.filterSrOnly": "Filter faktur berdasarkan status",
+  "invoices.age.notDue": "belum jatuh tempo",
+  "invoices.age.days1to30": "terlambat 1–30 hari",
+  "invoices.age.days31to60": "terlambat 31–60 hari",
+  "invoices.age.days61to90": "terlambat 61–90 hari",
+  "invoices.age.days90plus": "terlambat lebih dari 90 hari",
+  "invoices.issuedIn": "Faktur yang diterbitkan pada {issued}.",
+  "invoices.nothingMatches": "Tidak ada yang cocok",
+  "invoices.nothingMatchesBody":
+    "Tidak ada faktur dengan nomor atau klien itu pada status ini.",
+  "invoices.none": "Belum ada faktur",
+  "invoices.noneBody": "Faktur mencatat pekerjaan Anda, biayanya, dan kapan jatuh temponya.",
+  "status.unpaid": "Belum dibayar",
 };

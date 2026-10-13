@@ -9,6 +9,8 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SearchField from "$lib/components/SearchField.svelte";
   import { capped, RENDER_LIMIT } from "$lib/list";
+  import { t } from "$lib/i18n.svelte";
+  import type { MessageKey } from "$lib/locales/en";
 
   const statuses = ["draft", "sent", "unpaid", "overdue", "paid", "void"] as const;
 
@@ -26,14 +28,14 @@
   const age = $derived(page.url.searchParams.get("age") ?? "");
   const issued = $derived(page.url.searchParams.get("issued") ?? "");
 
-  const AGE_LABELS: Record<string, string> = {
-    not_due: "not yet due",
-    "1-30": "1–30 days late",
-    "31-60": "31–60 days late",
-    "61-90": "61–90 days late",
-    "90plus": "more than 90 days late",
+  const AGE_KEYS: Record<string, MessageKey> = {
+    not_due: "invoices.age.notDue",
+    "1-30": "invoices.age.days1to30",
+    "31-60": "invoices.age.days31to60",
+    "61-90": "invoices.age.days61to90",
+    "90plus": "invoices.age.days90plus",
   };
-  const ageLabel = $derived(AGE_LABELS[age] ?? "");
+  const ageLabel = $derived(age && AGE_KEYS[age] ? t(AGE_KEYS[age]) : "");
 
   async function load() {
     loading = true;
@@ -85,34 +87,34 @@
   }
 </script>
 
-<PageHeader title="Invoices">
-  <a class="btn" href="/invoices/new">New invoice</a>
+<PageHeader title={t("invoices.title")}>
+  <a class="btn" href="/invoices/new">{t("invoices.new")}</a>
 </PageHeader>
 
 <div class="toolbar">
   <SearchField
     bind:value={search}
-    label="Search invoices by number or client"
-    example="Number or client"
+    label={t("invoices.searchLabel")}
+    example={t("invoices.searchExample")}
     oninput={onSearch}
   />
   <label class="filter">
-    <span class="sr-only">Filter invoices by status</span>
+    <span class="sr-only">{t("invoices.filterSrOnly")}</span>
     <select value={status} onchange={(e) => setParam("status", e.currentTarget.value)}>
-      <option value="">All statuses</option>
+      <option value="">{t("common.allStatuses")}</option>
       {#each statuses as value (value)}
         <option {value}>{statusLabel(value)}</option>
       {/each}
     </select>
   </label>
   {#if filtered}
-    <button class="btn secondary" onclick={clearFilters}>Clear filter</button>
+    <button class="btn secondary" onclick={clearFilters}>{t("common.clearFilter")}</button>
   {/if}
 </div>
 
 {#if ageLabel || issued}
   <p class="muted describing">
-    {#if issued}Invoices issued in {issued}.{/if}
+    {#if issued}{t("invoices.issuedIn", { issued })}{/if}
     {#if ageLabel} {ageLabel[0].toUpperCase()}{ageLabel.slice(1)}.{/if}
   </p>
 {/if}
@@ -122,35 +124,32 @@
     {#if invoices.length === 0}
       {#if filtered}
         <EmptyState
-          title="Nothing matches that"
-          body="No invoice has that number or client with this status."
+          title={t("invoices.nothingMatches")}
+          body={t("invoices.nothingMatchesBody")}
         />
       {:else}
-        <EmptyState
-          title="No invoices yet"
-          body="An invoice records what you did, what it cost, and when it is due."
-        >
-          <a class="btn" href="/invoices/new">Create your first invoice</a>
+        <EmptyState title={t("invoices.none")} body={t("invoices.noneBody")}>
+          <a class="btn" href="/invoices/new">{t("action.createFirstInvoice")}</a>
         </EmptyState>
       {/if}
     {:else}
       <table>
         <thead>
           <tr>
-            <th>Number</th>
-            <th>Client</th>
-            <th>Issued</th>
-            <th>Due</th>
-            <th class="numeric">Total</th>
-            <th class="numeric">Balance</th>
-            <th>Status</th>
+            <th>{t("common.number")}</th>
+            <th>{t("common.client")}</th>
+            <th>{t("common.issued")}</th>
+            <th>{t("common.due")}</th>
+            <th class="numeric">{t("common.total")}</th>
+            <th class="numeric">{t("common.balance")}</th>
+            <th>{t("common.status")}</th>
           </tr>
         </thead>
         <tbody>
           {#each visible.shown as invoice (invoice.id)}
             <tr>
               <td><a class="link" href={`/invoices/${invoice.id}`}>{invoice.number}</a></td>
-              <td>{invoice.clientName ?? "—"}</td>
+              <td>{invoice.clientName ?? t("common.emDash")}</td>
               <td>{formatDate(invoice.issueDate)}</td>
               <td>{formatDate(invoice.dueDate)}</td>
               <td class="numeric">{fromMinor(invoice.totalMinor, invoice.currency)}</td>
@@ -166,7 +165,7 @@
       </table>
       {#if visible.hidden > 0}
         <p class="muted truncation">
-          Showing the first {RENDER_LIMIT} of {invoices.length}. Search or filter to narrow it down.
+          {t("list.showingFirstFilter", { limit: RENDER_LIMIT, total: invoices.length })}
         </p>
       {/if}
     {/if}
