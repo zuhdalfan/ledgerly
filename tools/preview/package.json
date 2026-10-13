@@ -1,0 +1,16 @@
+{
+  "name": "preview",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assets": "node scripts/sync-assets.mjs",
+    "gif": "node scripts/build-gif.mjs",
+    "predev": "node scripts/sync-assets.mjs",
+    "dev": "npx --yes hyperframes@0.8.150 preview",
+    "precheck": "node scripts/sync-assets.mjs",
+    "check": "npx --yes hyperframes@0.8.150 check",
+    "prerender": "node scripts/sync-assets.mjs",
+    "render": "npx --yes hyperframes@0.8.150 render",
+    "publish": "npx --yes hyperframes@0.8.150 publish"
+  }
+}

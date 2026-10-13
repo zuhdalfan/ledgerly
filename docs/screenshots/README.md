@@ -13,6 +13,12 @@ which is what the tablet and phone sets show. The app window itself has a 480px
 minimum width, so the phone set is narrower than the app normally runs — it is
 there to show that the layout holds up, not as a supported size.
 
+`preview.gif` at this folder's root is a short animated tour of the app. A cursor
+navigates the dashboard, the invoice list, the invoice editor, estimates, an
+estimate being converted to an invoice and exported to PDF, and reports — built
+from these desktop captures. The composition lives in `tools/preview/`; `npm run
+gif` there rebuilds it.
+
 ## About the data
 
 These are **development captures with sample data**, not a live database. The

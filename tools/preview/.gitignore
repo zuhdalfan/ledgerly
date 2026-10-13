@@ -1,0 +1,7 @@
+# Synced from the app by scripts/sync-assets.mjs — not committed.
+assets/
+# Render output and caches.
+renders/
+snapshots/
+node_modules/
+.hyperframes/

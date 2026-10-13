@@ -1,0 +1,225 @@
+{
+  "chapters": [
+    {
+      "id": "01-dashboard",
+      "title": "Dashboard, chasing and the command palette",
+      "chapter": "Dashboard & navigation",
+      "status": "ok",
+      "error": null,
+      "trimStart": 4.756,
+      "file": "out\\01-dashboard.webm",
+      "artifacts": [
+        "01-dashboard.mp4",
+        "01-dashboard.gif"
+      ],
+      "sizesKB": {
+        "01-dashboard.mp4": 1326.4,
+        "01-dashboard.gif": 1680.4
+      }
+    },
+    {
+      "id": "02-invoices-list",
+      "title": "Finding an invoice",
+      "chapter": "Invoices",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.756,
+      "file": "out\\02-invoices-list.webm",
+      "artifacts": [
+        "02-invoices-list.mp4",
+        "02-invoices-list.gif"
+      ],
+      "sizesKB": {
+        "02-invoices-list.mp4": 489.0,
+        "02-invoices-list.gif": 546.2
+      }
+    },
+    {
+      "id": "03-invoice-editor",
+      "title": "The invoice editor",
+      "chapter": "Invoices",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.772,
+      "file": "out\\03-invoice-editor.webm",
+      "artifacts": [
+        "03-invoice-editor.mp4",
+        "03-invoice-editor.gif"
+      ],
+      "sizesKB": {
+        "03-invoice-editor.mp4": 373.4,
+        "03-invoice-editor.gif": 569.1
+      }
+    },
+    {
+      "id": "04-payments",
+      "title": "Payments, chasing and sending",
+      "chapter": "Invoices",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.522,
+      "file": "out\\04-payments.webm",
+      "artifacts": [
+        "04-payments.mp4",
+        "04-payments.gif"
+      ],
+      "sizesKB": {
+        "04-payments.mp4": 871.7,
+        "04-payments.gif": 1201.7
+      }
+    },
+    {
+      "id": "05-invoice-create",
+      "title": "Creating an invoice from scratch",
+      "chapter": "Invoices",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.788,
+      "file": "out\\05-invoice-create.webm",
+      "artifacts": [
+        "05-invoice-create.mp4",
+        "05-invoice-create.gif"
+      ],
+      "sizesKB": {
+        "05-invoice-create.mp4": 500.9,
+        "05-invoice-create.gif": 810.2
+      }
+    },
+    {
+      "id": "06-estimates",
+      "title": "Estimates and convert-to-invoice",
+      "chapter": "Estimates",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.771,
+      "file": "out\\06-estimates.webm",
+      "artifacts": [
+        "06-estimates.mp4",
+        "06-estimates.gif"
+      ],
+      "sizesKB": {
+        "06-estimates.mp4": 386.8,
+        "06-estimates.gif": 510.7
+      }
+    },
+    {
+      "id": "07-clients",
+      "title": "Clients and their history",
+      "chapter": "Clients",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.71,
+      "file": "out\\07-clients.webm",
+      "artifacts": [
+        "07-clients.mp4",
+        "07-clients.gif"
+      ],
+      "sizesKB": {
+        "07-clients.mp4": 479.2,
+        "07-clients.gif": 624.5
+      }
+    },
+    {
+      "id": "08-catalog",
+      "title": "The catalog",
+      "chapter": "Catalog",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.787,
+      "file": "out\\08-catalog.webm",
+      "artifacts": [
+        "08-catalog.mp4",
+        "08-catalog.gif"
+      ],
+      "sizesKB": {
+        "08-catalog.mp4": 595.5,
+        "08-catalog.gif": 952.3
+      }
+    },
+    {
+      "id": "09-reports",
+      "title": "Reports and exports",
+      "chapter": "Reports",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.647,
+      "file": "out\\09-reports.webm",
+      "artifacts": [
+        "09-reports.mp4",
+        "09-reports.gif"
+      ],
+      "sizesKB": {
+        "09-reports.mp4": 464.4,
+        "09-reports.gif": 679.6
+      }
+    },
+    {
+      "id": "10-settings",
+      "title": "Business profile and invoicing",
+      "chapter": "Settings",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.569,
+      "file": "out\\10-settings.webm",
+      "artifacts": [
+        "10-settings.mp4",
+        "10-settings.gif"
+      ],
+      "sizesKB": {
+        "10-settings.mp4": 600.8,
+        "10-settings.gif": 887.6
+      }
+    },
+    {
+      "id": "11-settings-data",
+      "title": "Backups and restore",
+      "chapter": "Settings",
+      "status": "ok",
+      "error": null,
+      "trimStart": 3.991,
+      "file": "out\\11-settings-data.webm",
+      "artifacts": [
+        "11-settings-data.mp4",
+        "11-settings-data.gif"
+      ],
+      "sizesKB": {
+        "11-settings-data.mp4": 334.8,
+        "11-settings-data.gif": 509.3
+      }
+    },
+    {
+      "id": "12-ai-mcp",
+      "title": "AI access over MCP",
+      "chapter": "AI access (MCP)",
+      "status": "ok",
+      "error": null,
+      "trimStart": 3.522,
+      "file": "out\\12-ai-mcp.webm",
+      "artifacts": [
+        "12-ai-mcp.mp4",
+        "12-ai-mcp.gif"
+      ],
+      "sizesKB": {
+        "12-ai-mcp.mp4": 470.8,
+        "12-ai-mcp.gif": 654.9
+      }
+    },
+    {
+      "id": "13-settings-more",
+      "title": "App lock, appearance, about and support",
+      "chapter": "Settings",
+      "status": "ok",
+      "error": null,
+      "trimStart": 2.6,
+      "file": "out\\13-settings-more.webm",
+      "artifacts": [
+        "13-settings-more.mp4",
+        "13-settings-more.gif"
+      ],
+      "sizesKB": {
+        "13-settings-more.mp4": 578.0,
+        "13-settings-more.gif": 816.3
+      }
+    }
+  ]
+}
