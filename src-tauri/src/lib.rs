@@ -47,17 +47,28 @@ fn db_path(data_dir: &Path) -> PathBuf {
     data_dir.join("ledgerly.db")
 }
 
+/// The folder under the OS data directory, named after the bundle id in
+/// `tauri.conf.json`.
+///
+/// Debug builds take a `-dev` suffix so `tauri dev` and an installed build never
+/// open the same database. Without that split a developer's test data shows up
+/// in the shipped app, which looks like the installer carried data with it.
+#[cfg(debug_assertions)]
+const DATA_DIR_NAME: &str = "com.ledgerly.desktop-dev";
+#[cfg(not(debug_assertions))]
+const DATA_DIR_NAME: &str = "com.ledgerly.desktop";
+
 /// Where the app keeps its data, resolved the same way Tauri resolves
 /// `app_data_dir()` for the `com.ledgerly.desktop` bundle id.
 ///
-/// The MCP server is a separate process with no Tauri handle, so it repeats
-/// this calculation to find the one database the two of them share.
+/// The app and the MCP server are separate processes with no shared handle, so
+/// both call this to find the one database they share.
 /// `LEDGERLY_DATA_DIR` overrides it, which is handy for tests and for anyone
 /// who has moved the folder by hand.
 pub fn resolve_data_dir() -> PathBuf {
     match std::env::var_os("LEDGERLY_DATA_DIR") {
         Some(dir) => PathBuf::from(dir),
-        None => data_base_dir().join("com.ledgerly.desktop"),
+        None => data_base_dir().join(DATA_DIR_NAME),
     }
 }
 
@@ -94,7 +105,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let data_dir = app.path().app_data_dir()?;
+            // The MCP sidecar has no Tauri handle and repeats this same
+            // resolution, so building the path here keeps the two processes on
+            // one database -- and keeps a debug build off the installed app's.
+            let data_dir = resolve_data_dir();
             std::fs::create_dir_all(&data_dir)?;
             let conn = db::open(&db_path(&data_dir))?;
 
@@ -189,6 +203,17 @@ mod data_dir_tests {
     fn the_default_data_dir_is_scoped_to_the_bundle_id() {
         assert!(resolve_data_dir()
             .to_string_lossy()
-            .ends_with("com.ledgerly.desktop"));
+            .ends_with(DATA_DIR_NAME));
+    }
+
+    /// The point of the debug suffix: `tauri dev` must never write into the
+    /// database the installed app reads.
+    #[cfg(debug_assertions)]
+    #[test]
+    fn a_debug_build_stays_out_of_the_installed_app_folder() {
+        assert_ne!(
+            resolve_data_dir(),
+            data_base_dir().join("com.ledgerly.desktop")
+        );
     }
 }

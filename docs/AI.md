@@ -91,7 +91,10 @@ Both the app and `ledgerly-mcp` resolve the same folder:
 - **Linux:** `$XDG_DATA_HOME/com.ledgerly.desktop` (or `~/.local/share/...`)
 
 Set `LEDGERLY_DATA_DIR` to point the assistant at a different folder, which is
-useful for testing.
+useful for testing. The app honours it too, so both processes move together.
+
+Debug builds (`tauri dev`) use `com.ledgerly.desktop-dev` instead, so developing
+never writes into the database the installed app reads.
 
 ## Troubleshooting
 
