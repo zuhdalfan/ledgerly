@@ -1,6 +1,6 @@
 {
   "project": "Ledgerly",
-  "updated": "2026-10-13",
+  "updated": "2026-10-14",
   "current": "I18N",
   "nextUp": ["RELEASE-SIGN", "RELEASE-MANUAL"],
   "usage": "Single source of truth for cross-session progress. Set `current` to the id being worked on (null when idle), keep `updated` in YYYY-MM-DD, and move finished items to status `done` instead of deleting them. Milestone ids track docs/PRD.md section 14.",
@@ -209,6 +209,22 @@
       "priority": "P1",
       "area": "docs",
       "notes": "docs/AI.md (Claude Desktop and generic MCP setup, lock passphrase, read vs write, exclusions). README, PRD section 6.14 and RELEASING manual checks updated."
+    },
+    {
+      "id": "NOTIFY",
+      "title": "Due-date notifications",
+      "status": "deferred",
+      "priority": "P2",
+      "area": "invoices",
+      "notes": "PRD FR-REC-3. A local OS notification for overdue invoices, at most once a day on launch -- ride the existing backup::auto_backup hook rather than adding a daemon. Decided 2026-10-14: on by default, overdue only (never on the due date). Needs tauri_plugin_notification, which PRD section 18.3 currently lists as deliberately unused and must be reconciled first."
+    },
+    {
+      "id": "TRAY",
+      "title": "Tray & background running",
+      "status": "deferred",
+      "priority": "P2",
+      "area": "platform",
+      "notes": "Opt-in and off by default (decided 2026-10-14): until the user asks to keep running in the tray, the app behaves exactly as today, closing quits, and there is no start-on-login by default. Coupled with NOTIFY -- a resident process is what lets a due-date reminder fire without a launch, and the routine stays on the same once-a-day hook (no polling, no network). Reconciles PRD FR-SEC-4, which already references minimize-to-tray, and needs Tauri's tray feature plus a tray icon."
     }
   ]
 }

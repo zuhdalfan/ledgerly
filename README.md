@@ -120,7 +120,7 @@ for everyone. If it saves you time, there is a "support us" button in
 
 ```
 TASKS.json    Cross-session task and feature tracker
-docs/         PRD and release checklist
+docs/         PRD, roadmap and release checklist
 src/          Svelte frontend
 src-tauri/    Rust core (Tauri backend), migrations and assets
 scripts/      CI helpers
@@ -154,6 +154,8 @@ npm run check:offline  # no network access
 ## Docs
 
 - [`docs/PRD.md`](docs/PRD.md) — the product requirements and design.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — where the product is going and why:
+  the vision, the principles, and what's next with the reasoning behind it.
 - [`docs/RELEASING.md`](docs/RELEASING.md) — release checklist and signing.
 - [`docs/AI.md`](docs/AI.md) — connecting a desktop AI assistant over MCP.
 - [`docs/preview/`](docs/preview/) — the recorded feature walkthrough, chapter by chapter.

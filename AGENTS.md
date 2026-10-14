@@ -19,6 +19,23 @@ TypeScript** frontend talks to it over Tauri IPC; state lives in a single local
 2. **`git status` and `git log`** — the tree often carries uncommitted work.
 3. **Skim `docs/PRD.md`** for the intent behind the area you're touching.
 
+## The roadmap is gated
+
+`docs/ROADMAP.md` carries the vision and the reasoning, not the work. Treat every
+edit as deliberate — the reasoning comes first, the edit second:
+
+- **Reason first, then edit.** Before changing `ROADMAP.md`, state the
+  vision-level case for the change — which theme and principle it serves, and why
+  now — and get it agreed. Never edit it as a side effect of finishing a task.
+- **It is not a status mirror.** Do not sync it from `TASKS.json`. State, dates
+  and task lists live in `TASKS.json` alone; the roadmap holds direction. A change
+  that only reflects progress belongs there, not here.
+- **Hold the standard.** Every deferred item keeps its own revisit trigger, every
+  item references a `TASKS.json` id for state (never inlines it), and the "what we
+  will not build" section stays intact.
+- **Direction changes are top-down.** If the direction really shifts, revise the
+  vision and principles first, then the horizons — never the reverse.
+
 ## Run, build, test
 
 Prerequisites: Rust (stable; MSVC toolchain on Windows), Node 20+, and the
@@ -77,7 +94,7 @@ once. It drives a headless Chromium with the IPC stubbed (`tools/screenshots/`).
 
 ```
 TASKS.json          Cross-session task tracker (read this first)
-docs/               PRD, release checklist, AI/MCP guide, screenshots
+docs/               PRD, roadmap, release checklist, AI/MCP guide, screenshots
 src/                Svelte 5 frontend
   lib/api.ts        The single IPC surface — every backend call lives here
   lib/components/   Shared UI (Logo, Mascot, LineItems, AsyncState, …)

@@ -4,7 +4,14 @@
 **Product type:** Native desktop application (Rust + Tauri)
 **Platforms:** Windows 10/11, macOS 12+, Linux (AppImage / .deb)
 **Owner:** _(fill in)_
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-14
+
+> **Freemium is superseded (2026-10-14).** The project is **MIT with every feature
+> unlocked**; the licensing/freemium plan — the Pro tier, upgrade keys, activation,
+> machine binding and entitlements — was dropped and its subsystem removed from the
+> codebase. Passages in this document that still describe Free/Pro, request codes,
+> upgrade keys or entitlement gating are the original plan, kept as a record; see
+> §13 for the design and its reasoning. Everything else below still stands.
 
 ---
 
@@ -84,11 +91,12 @@ with no runtime dependencies.
 - **No mobile app** (Tauri mobile may be revisited in v2).
 - **No automatic tax filing** or jurisdiction-specific compliance engines; we provide rates and reports, not tax advice.
 - **No auto-update over the network.** Updates are manual downloads (see §12.6).
-- **No online activation or license server.** The app never contacts a licensing backend; the
-  request/upgrade exchange is user-mediated and out of band (see §13).
-- **No hardware dongle, no per-seat cloud enforcement, no account-based DRM** in v1.
-- **No anti-tamper arms race.** We prevent key *forgery* and key *sharing* with cryptography;
-  we do not attempt to defeat a determined user who patches the binary (see §13.7).
+- **No account, no activation, no license server.** The app is MIT and free — there is nothing
+  to activate and no backend of ours to contact. The original freemium plan is kept in §13.
+- **No hardware dongle, no cloud seat enforcement, no account-based DRM.** Moot: there is no
+  key and no paid tier.
+- **No anti-tamper arms race.** The binary is not obfuscated and we do not try to defeat a
+  determined user who patches it.
 
 ---
 
@@ -224,7 +232,7 @@ Requirements are prioritized **P0 (must-have for v1)**, **P1 (should-have)**, **
 |---|---|
 | FR-REC-1 | Define a recurring template with interval (weekly/biweekly/monthly/quarterly/yearly or custom N days), start date, end date/occurrence count, and auto-issue (draft vs sent). |
 | FR-REC-2 | On app launch, generate any invoices whose scheduled date has passed; never generate duplicates; record the run in a log. |
-| FR-REC-3 | Surface a **local notification** for due/overdue invoices (OS notification, no network). |
+| FR-REC-3 | Surface a **local notification** for due/overdue invoices (OS notification, no network). Now its own deliverable, `NOTIFY` (which needs the tray, `TRAY`); see `ROADMAP.md`. |
 
 ### 6.8 PDF Generation & Templates — P0
 
@@ -267,7 +275,7 @@ Requirements are prioritized **P0 (must-have for v1)**, **P1 (should-have)**, **
 | FR-SEC-1 | **No network access** in normal operation. Ship with a strict Content-Security-Policy and no external resource loading in the webview. |
 | FR-SEC-2 | Optional **app lock**: passphrase (Argon2id-derived key) unlocking at launch and after idle timeout. |
 | FR-SEC-3 | Optional **at-rest encryption** of the database (SQLCipher) and of the key stored in the OS keychain (Windows Credential Manager / macOS Keychain / libsecret). |
-| FR-SEC-4 | Auto-lock on idle and on minimize-to-tray, configurable. |
+| FR-SEC-4 | Auto-lock on idle and on minimize-to-tray, configurable. The tray is `TRAY`; until it exists, only the idle lock applies. |
 | FR-SEC-5 | Explicit "no telemetry" statement; document exactly what is stored and where. |
 
 ### 6.12 Localization & Accessibility — P1
@@ -279,7 +287,7 @@ Requirements are prioritized **P0 (must-have for v1)**, **P1 (should-have)**, **
 | FR-A11Y-1 | Full keyboard navigation, focus management, visible focus rings, screen-reader labels, and no color-only status indicators. |
 | FR-A11Y-2 | Respect OS light/dark theme; sufficient contrast. |
 
-### 6.13 Licensing & Offline Activation — P0
+### 6.13 Licensing & Offline Activation — P0 *(superseded — see §13)*
 
 | ID | Requirement |
 |---|---|
@@ -328,7 +336,7 @@ Requirements are prioritized **P0 (must-have for v1)**, **P1 (should-have)**, **
 | **Security** | CSP locked down; IPC surface minimal and validated in Rust; path traversal prevented on all file operations; no `shell` execution. |
 | **Accessibility** | WCAG 2.1 AA for the app UI to the extent a desktop webview allows. |
 | **Portability of install** | Uninstall must not silently delete user data; data directory is preserved unless the user explicitly removes it. |
-| **Licensing** | App code licensed to be determined (recommend MIT or Apache-2.0, or a source-available license); bundled fonts under OFL with attribution. |
+| **Licensing** | App code is **MIT** (see `LICENSE`); bundled fonts under OFL with attribution. |
 
 ---
 
@@ -554,7 +562,7 @@ Primary concern is **unintended data exposure and loss**, not a remote attacker.
 
 ### 12.2 Network
 - **No HTTP/TLS client crate is a dependency.** This is enforced in review and by a CI check.
-- Webview CSP: `default-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'`. Tauri capabilities grant only the minimum plugins needed (dialog, fs-scoped, notification, os).
+- Webview CSP: `default-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'`. Tauri capabilities grant only the minimum plugins needed (dialog, fs-scoped, notification, os); `notification` is planned with `NOTIFY`, not yet shipped.
 - No external fonts, no CDN, no remote images.
 
 ### 12.3 At rest
@@ -744,9 +752,9 @@ verification problem the app **degrades to Free and never hides or deletes user 
 | **M5 — Estimates** | Estimate editor, statuses, convert-to-invoice. | Quote converts with linked records. |
 | **M6 — Reports & Export** | Revenue/aged/tax reports, CSV/JSON export, batch PDF. | Reports reconcile with raw data; exports open in Excel. |
 | **M7 — Data Safety** | Backup/restore, scheduled backups, data-location screen. | Restore on a clean machine reproduces all data. |
-| **M8 — Licensing & Freemium** | Installation serial + at-rest sealing, machine fingerprint, request code (text/file/QR), Ed25519 key verification, entitlements gating, Free/Pro split, optional trial, re-activation, and the vendor-side `ledgerly-licensectl`. | Free tier fully usable; a vendor-issued key unlocks Pro **with the network disabled**; forged/tampered/mismatched/expired keys are rejected (unit tests). |
-| **M9 — Security & i18n** | App lock, optional SQLCipher, notifications, UI/PDF localization. | Lock/unlock + encrypted DB verified; EN complete. |
-| **M10 — Polish & Release** | Recurring invoices, a11y pass, perf pass, packaging/signing/notarization, docs, purchase/issuance runbook. | Signed installers for Win/macOS/Linux; no-network CI check green; offline activation verified on all 3 OSes. |
+| **M8 — Licensing & Freemium** | Installation serial + at-rest sealing, machine fingerprint, request code (text/file/QR), Ed25519 key verification, entitlements gating, Free/Pro split, optional trial, re-activation, and the vendor-side `ledgerly-licensectl`. *(Dropped — the app is free/MIT; see `TASKS.json` M8.)* | Free tier fully usable; a vendor-issued key unlocks Pro **with the network disabled**; forged/tampered/mismatched/expired keys are rejected (unit tests). |
+| **M9 — Security & i18n** | App lock, optional SQLCipher, notifications, UI/PDF localization. *(SQLCipher and notifications split out — `SEC-ENCRYPT` deferred, `NOTIFY` its own item.)* | Lock/unlock verified; EN complete. |
+| **M10 — Polish & Release** | Recurring invoices, a11y pass, perf pass, packaging/signing/notarization, docs. *(Purchase/issuance runbook dropped with licensing.)* | Signed installers for Win/macOS/Linux; no-network CI check green. |
 
 *(Ordering is intentional: data safety and shipping a usable invoice→PDF path early; security and i18n after the core is stable.)*
 
@@ -760,11 +768,10 @@ verification problem the app **degrades to Free and never hides or deletes user 
 - **Zero** outbound network calls in normal operation (CI assertion).
 - Crash-free session rate **> 99.5%** (measured locally via opt-in crash log the user can inspect, never auto-sent).
 
-**Business / licensing**
-- Free → Pro conversion rate (target to be set once pricing is chosen).
-- **First-attempt activation success rate > 98%** (key verifies on the first paste/import).
-- Re-activation support rate (hardware-change requests) **< 2% of Pro users per year** — a signal the fingerprint is too brittle if higher.
-- Zero license-related network calls (same CI assertion as above).
+**Business / licensing — retired with §13.** The freemium model was dropped; the app is
+MIT with every feature unlocked, so conversion, activation and re-activation metrics no
+longer apply. The one assertion worth keeping is already under Product: zero network calls
+in normal operation.
 
 **Technical**
 - Cold start **< 1.5s**; PDF export **< 1s** (1 page).
@@ -779,6 +786,9 @@ verification problem the app **degrades to Free and never hides or deletes user 
 
 ## 16. Risks & Mitigations
 
+The rows marked **(retired)** below belonged to the freemium model dropped in §13; they
+are kept as a record and no longer carry live mitigations.
+
 | Risk | Impact | Mitigation |
 |---|---|---|
 | PDF layout fidelity across platforms | Inconsistent invoices | Generate in Rust with embedded fonts; golden-file tests per OS; keep templates layout-simple. |
@@ -789,35 +799,34 @@ verification problem the app **degrades to Free and never hides or deletes user 
 | Recurring invoices generated twice | Duplicate billing | Idempotent run keyed on `(recurring_id, scheduled_date)`; append-only run log. |
 | Timezone edge cases on due dates | Wrong overdue status | Store dates as local calendar dates, computed with a fixed app timezone/date-only semantics. |
 | Webview differences across OSes | UI bugs | Test on all three OSes in CI + manual smoke; avoid exotic CSS. |
-| **License key sharing / piracy** | Lost revenue | Machine binding so a key only works on the machine it was issued for; signatures prevent forgery. Accept that a patched binary can bypass checks (§13.7). |
-| **Brittle machine fingerprint** (hardware change or VM clone breaks or duplicates binding) | Locked-out paying users / shared keys | Use 2–3 stable signals; clear re-activation flow; monitor re-activation support rate; allow a manual override policy. |
-| **Vendor signing key compromise** | Attackers can mint keys for any machine | Keep the private key air-gapped/HSM, back it up offline, plan rotation via `key_id`, embed current + previous public keys. |
-| **Clock manipulation for term/trial licenses** | Free Pro via rollback | Best-effort monotonic "highest time seen" check; accept residual risk. |
-| **Offline revocation impossible** | Can't disable a leaked key after release | Revocation list can only be honored by *future* releases; keep key issuance tight and bound to one machine. |
-| **Entitlement split feels unfair** | Backlash / churn | Keep the free tier genuinely usable; do not paywall security (app lock/encryption) — confirm in §17. |
+| **(retired)** License key sharing / piracy | Lost revenue | Machine binding so a key only works on the machine it was issued for; signatures prevent forgery. Accept that a patched binary can bypass checks (§13.7). |
+| **(retired)** Brittle machine fingerprint (hardware change or VM clone breaks or duplicates binding) | Locked-out paying users / shared keys | Use 2–3 stable signals; clear re-activation flow; monitor re-activation support rate; allow a manual override policy. |
+| **(retired)** Vendor signing key compromise | Attackers can mint keys for any machine | Keep the private key air-gapped/HSM, back it up offline, plan rotation via `key_id`, embed current + previous public keys. |
+| **(retired)** Clock manipulation for term/trial licenses | Free Pro via rollback | Best-effort monotonic "highest time seen" check; accept residual risk. |
+| **(retired)** Offline revocation impossible | Can't disable a leaked key after release | Revocation list can only be honored by *future* releases; keep key issuance tight and bound to one machine. |
+| **(retired)** Entitlement split feels unfair | Backlash / churn | Keep the free tier genuinely usable; do not paywall security (app lock/encryption) — confirm in §17. |
 
 ---
 
 ## 17. Open Questions
 
-**Resolved (locked in v0.3 — see §13):**
+**Closed by the freemium decision (see §13):** the tier split, upgrade-key delivery,
+fingerprint policy, seats and pricing model are all moot — the app is MIT with every
+feature unlocked.
 
-- **Tier split:** security (app lock + at-rest encryption) stays **Free**; Pro is branding, multi-currency, recurring, reports, batch export/attachments, scheduled backups.
-- **Upgrade-key delivery:** **`.lic` file + QR** is the primary path; typed/pasted text is secondary.
-- **License fingerprint policy:** derive from **2–3 stable signals per OS**, provide a guided **re-activation** flow on mismatch, and document the VM/clone residual risk (§13.7).
-- **Seats:** v1 = **one machine per key**; multi-seat deferred to v2.
+**Resolved since this draft:**
+
+- **App licence** — **MIT** (see `LICENSE`).
+- **Frontend framework** — **Svelte 5**, as shipped.
 
 **Still open:**
 
-1. **Pricing model** — one-time **perpetual** vs **term/subscription**, the actual price, and the **update window** for a perpetual key (all future versions, N months, or version-locked).
-2. **Frontend framework** — Svelte (preferred for size) vs React (larger ecosystem)? Confirm.
-3. **App license** — MIT/Apache-2.0 vs source-available? Affects font/dep choices and contribution model.
-4. **Encryption default** — SQLCipher off by default (opt-in) or offered at first run?
-5. **Recurring invoices in v1** or defer to a point release? (Currently P2.)
-6. **Base-currency reporting** — manual exchange rates only for v1, or a rate-table import?
-7. **Payments ledger model** — simple "payments against invoices" (chosen) vs a general income ledger (needed for expenses?). Confirm non-goal.
-8. **Templates** — ship 3 built-in; do we allow user-authored templates (HTML/Handlebars) in v1 or v2?
-9. **Naming** — "Ledgerly" is a placeholder.
+1. **Encryption default** — deferred with `SEC-ENCRYPT`; opt-in if it is ever built.
+2. **Recurring invoices in v1** or defer to a point release? (Currently P2 — tracked as `RECURRING`.)
+3. **Base-currency reporting** — manual exchange rates only for v1, or a rate-table import?
+4. **Payments ledger model** — simple "payments against invoices" (chosen) vs a general income ledger (needed for expenses?). Confirm non-goal.
+5. **Templates** — ship 3 built-in; do we allow user-authored templates (HTML/Handlebars) in v1 or v2?
+6. **Naming** — "Ledgerly" is a placeholder.
 
 ---
 
@@ -855,7 +864,11 @@ Deliberately **not** used, against the earlier indicative list:
   Rust side's conventions.
 - **A virtual-list library** — declined after measuring; see §11.
 - **A chart library** — the two dashboard charts are hand-rolled CSS.
-- **`plugin-notification`** — the app never pushes anything at the user.
+
+Reversed since this list was written: **`plugin-notification`** was declined on
+the grounds that "the app never pushes anything at the user". Decided 2026-10-14:
+that holds for everything except overdue invoices, notified locally, on by default
+(`NOTIFY`). The plugin is added when `NOTIFY` ships — and only then.
 
 ### 18.4 Reference formats
 - Currency formatting: use CLDR-style rules (symbol placement, grouping) implemented locally, not fetched.
