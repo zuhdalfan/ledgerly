@@ -83,8 +83,11 @@ fn line_item_schema() -> Value {
             "quantity": string("Decimal quantity as text, e.g. \"2\" or \"1.5\"."),
             "unit": string("Unit label, e.g. \"hour\"."),
             "unitPriceMinor": integer("Unit price in minor units (cents)."),
-            "discountType": string("\"percent\" or \"amount\"."),
-            "discountValue": string("Decimal discount as text."),
+            "discountType": string("\"percent\" or \"fixed\"."),
+            "discountValue": string(
+                "Decimal discount as text. A percentage (e.g. \"10\" is 10%) when the type is \
+                 \"percent\", or an amount in minor units when the type is \"fixed\"."
+            ),
             "taxRateId": string("Tax rate id from ledgerly_tax_rates_list, or omit."),
             "taxInclusive": boolean("Whether unitPriceMinor already includes tax.")
         },
@@ -101,8 +104,11 @@ fn document_input_schema(date_field: &str) -> Value {
             date_field: string("Date, YYYY-MM-DD."),
             "currency": string("ISO currency code, e.g. USD. Defaults to the business currency."),
             "poReference": string("Optional reference."),
-            "discountType": string("\"percent\" or \"amount\"."),
-            "discountValue": string("Decimal discount as text."),
+            "discountType": string("\"percent\" or \"fixed\"."),
+            "discountValue": string(
+                "Decimal discount as text. A percentage (e.g. \"10\" is 10%) when the type is \
+                 \"percent\", or an amount in minor units when the type is \"fixed\"."
+            ),
             "notes": string("Notes shown on the document."),
             "terms": string("Terms shown on the document."),
             "paymentInstructions": string("Payment instructions shown on the document."),
