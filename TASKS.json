@@ -1,7 +1,7 @@
 {
   "project": "Ledgerly",
-  "updated": "2026-10-17",
-  "current": "I18N",
+  "updated": "2026-10-20",
+  "current": null,
   "nextUp": ["RELEASE-SIGN", "RELEASE-MANUAL"],
   "usage": "Single source of truth for cross-session progress. Set `current` to the id being worked on (null when idle), keep `updated` in YYYY-MM-DD, and move finished items to status `done` instead of deleting them. Milestone ids track docs/PRD.md section 14.",
   "statusLegend": {
@@ -125,10 +125,10 @@
     {
       "id": "I18N",
       "title": "UI & PDF localization",
-      "status": "in_progress",
+      "status": "done",
       "priority": "P2",
       "area": "i18n",
-      "notes": "Bahasa Indonesia, in progress. Done: the i18n core (src/lib/i18n.svelte.ts plus locales/en.ts and id.ts, type-checked for key parity), the shell and nav, the shared components (command palette, line items shell, charts, toast, celebration), the reminder email, and Settings > Appearance with a language switch (setting key ui.locale). Locale-aware money/dates follow the UI language. Remaining: the content routes (dashboard, invoices, estimates, clients, catalog, reports and the other settings pages) still render English literal strings, and the PDF document locale (pdf/labels.rs) is still English-only."
+      "notes": "Bahasa Indonesia, complete. The i18n core (src/lib/i18n.svelte.ts plus locales/en.ts and id.ts, type-checked for key parity) covers the shell and nav, every shared component, the reminder email, and every route: dashboard, invoices, estimates, clients, catalog, reports and all settings pages plus the document editors. Money, dates and month labels follow the UI language; Settings > Appearance switches ui.locale. Deliberately untranslated: the language endonyms, brand and template names, and example placeholders (INV-, Net 30, USD). The PDF has a separate document language (pdf.locale, chosen in Settings > Invoicing): pdf/labels.rs gained an ID table and Locale::parse now accepts id, ID and id-ID, falling back to English. Report age labels still come from the Rust core in English; the UI and CSV map them by bucket position. Verified with npm run verify (118 Rust tests) and regenerated screenshots."
     },
     {
       "id": "RECURRING",

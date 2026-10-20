@@ -352,4 +352,296 @@ export const id: Record<MessageKey, string> = {
   "clients.empty": "Belum ada klien",
   "clients.emptyBody":
     "Klien adalah pihak yang Anda tagih. Tambahkan satu, dan detailnya terisi sendiri di setiap faktur.",
+
+  // --- catalog -----------------------------------------------------------
+  "catalog.title": "Katalog",
+  "catalog.subtitle":
+    "Apa yang Anda jual, dengan harga sekali isi, jadi baris faktur cukup dipilih, bukan diketik.",
+  "catalog.addTitle": "Tambah item",
+  "catalog.nameLabel": "Nama *",
+  "catalog.namePlaceholder": "Jam desain",
+  "catalog.unitPrice": "Harga satuan ({currency})",
+  "catalog.unitPlaceholder": "jam / hari / item",
+  "catalog.searchLabel": "Cari katalog berdasarkan nama atau SKU",
+  "catalog.searchExample": "Nama atau SKU",
+  "catalog.empty": "Belum ada apa pun di katalog",
+  "catalog.emptyBody":
+    "Tambahkan hal-hal yang Anda tagihkan. Setelah itu baris faktur cukup dipilih, bukan diketik.",
+  "catalog.priceAria": "Harga satuan",
+
+  // --- reports -----------------------------------------------------------
+  "reports.title": "Laporan",
+  "reports.granularityDay": "Harian",
+  "reports.granularityWeek": "Mingguan",
+  "reports.granularityMonth": "Bulanan",
+  "reports.granularityYear": "Tahunan",
+  "reports.revenue": "Pendapatan",
+  "reports.revenueByClient": "Pendapatan per klien",
+  "reports.agedReceivables": "Piutang menurut usia",
+  "reports.taxCollected": "Pajak tertagih",
+  "reports.paymentsByMethod": "Pembayaran diterima menurut metode",
+  "reports.dataExport": "Ekspor data",
+  "reports.dataExportBody":
+    "Satu berkas JSON berisi semua tabel: klien, faktur, pembayaran, estimasi, dan pengaturan. Milik Anda, bisa dibaca tanpa aplikasi ini.",
+  "reports.noInvoices": "Tidak ada faktur dalam rentang ini.",
+  "reports.noTax": "Tidak ada pajak tercatat dalam rentang ini.",
+  "reports.noPayments": "Tidak ada pembayaran dalam rentang ini.",
+  "reports.totalOutstanding": "Total tertunggak",
+  "reports.saved": "{name} disimpan ke {path}",
+  "reports.savedAll": "Semua data disimpan ke {path}",
+  "reports.age.notYetDue": "Belum jatuh tempo",
+  "reports.age.days1to30": "1–30 hari",
+  "reports.age.days31to60": "31–60 hari",
+  "reports.age.days61to90": "61–90 hari",
+  "reports.age.days90plus": "90+ hari",
+
+  // --- settings · business ----------------------------------------------
+  "settings.business.subtitle":
+    "Detail Anda, dan kalimat yang terisi otomatis di setiap faktur baru.",
+  "settings.business.profileTitle": "Profil bisnis",
+  "settings.business.logo": "Logo",
+  "settings.business.logoAlt": "Logo bisnis Anda",
+  "settings.business.chooseImage": "Pilih gambar…",
+  "settings.business.replaceImage": "Ganti gambar…",
+  "settings.business.imagesFilter": "Gambar",
+  "settings.business.logoHint":
+    "PNG atau JPEG, maksimal 2 MB. Tercetak di bagian atas setiap faktur, estimasi, dan laporan tagihan.",
+  "settings.business.name": "Nama bisnis",
+  "settings.business.namePlaceholder": "Bisnis Anda",
+  "settings.business.legalName": "Nama legal",
+  "settings.business.defaultCurrency": "Mata uang bawaan",
+  "settings.business.address": "Alamat",
+  "settings.business.invoiceDefaults": "Bawaan faktur",
+  "settings.business.defaultTerms": "Ketentuan bawaan",
+  "settings.business.defaultNotes": "Catatan bawaan",
+  "settings.business.paymentInstructions": "Instruksi pembayaran",
+
+  // --- settings · security ------------------------------------------------
+  "settings.security.subtitle": "Kunci aplikasi selalu gratis, bukan fitur Pro.",
+  "settings.security.lockOn": "Kunci aplikasi aktif",
+  "settings.security.lockOnBody":
+    "Ledgerly meminta frasa sandi Anda saat mulai, dan lagi setelah {minutes} menit tanpa aktivitas.",
+  "settings.security.lockAfter": "Kunci setelah (menit tanpa aktivitas)",
+  "settings.security.turnOffTitle": "Matikan kunci",
+  "settings.security.currentPassphrase": "Frasa sandi saat ini",
+  "settings.security.enableTitle": "Kunci aplikasi",
+  "settings.security.enableBody":
+    "Opsional: minta frasa sandi untuk membuka Ledgerly, dan kunci ulang otomatis saat Anda meninggalkannya. Frasa sandi tidak pernah disimpan, hanya verifikator Argon2id yang lambat, jadi tidak bisa dibaca kembali.",
+  "settings.security.passphrase": "Frasa sandi",
+  "settings.security.confirmPassphrase": "Konfirmasi frasa sandi",
+  "settings.security.minLength":
+    "Minimal {count} karakter. Tidak ada pemulihan, jadi simpan cadangan jika Anda mungkin lupa.",
+  "settings.security.mismatch": "Kedua frasa sandi tidak cocok.",
+  "settings.security.enabledMessage":
+    "Kunci aplikasi diaktifkan. Akan diminta saat mulai berikutnya.",
+  "settings.security.disabledMessage": "Kunci aplikasi dimatikan.",
+
+  // --- settings · about ---------------------------------------------------
+  "settings.about.tagline": "Faktur offline untuk pekerja lepas dan usaha kecil.",
+  "settings.about.body":
+    "Sepenuhnya lokal dan sepenuhnya offline. Tanpa akun, tanpa cloud, tanpa telemetri, dan tanpa kode jaringan sama sekali: build gagal jika klien HTTP muncul di graf dependensi.",
+  "settings.about.source": "Kode sumber:",
+  "settings.about.where": "Di mana semuanya berada",
+  "settings.about.dataDir": "Direktori data",
+  "settings.about.databaseFile": "Berkas basis data",
+
+  // --- settings · support -------------------------------------------------
+  "settings.support.subtitle":
+    "Ledgerly tidak punya paket berbayar, akun, atau tawaran tambahan. Semua fitur milik Anda.",
+  "settings.support.freeTitle": "Aplikasi ini gratis",
+  "settings.support.freeBody":
+    "Semua fitur terbuka: laporan, semua templat PDF, cadangan terjadwal, ekspor massal, multi-mata uang. Tidak ada Pro, tidak ada uji coba, tidak ada kunci lisensi, dan tidak ada yang perlu diaktifkan. Tidak ada bagian aplikasi yang menghubungi rumah.",
+  "settings.support.freeBody2":
+    "Aplikasi ini sumber terbuka di bawah lisensi MIT, jadi Anda bisa membacanya, mengubahnya, dan membagikannya.",
+  "settings.support.keepGoing": "Bantu kami melanjutkan",
+  "settings.support.keepGoingBody":
+    "Jika Ledgerly menghemat waktu Anda, Anda bisa mendukung kami. Sepenuhnya opsional dan tidak mengubah apa pun di dalam aplikasi.",
+  "settings.support.notWiredStart":
+    "Belum tersambung: halaman donasi belum dipilih, jadi tombol ini dimatikan daripada mengarah ke tempat yang salah. Lihat",
+  "settings.support.notWiredEnd": ".",
+  "settings.support.licence": "Lisensi",
+  "settings.support.licenceBody":
+    "Lisensi MIT. Hak cipta (c) {year} Muhammad Zuhdi. Anda boleh menggunakan, menyalin, mengubah, menggabungkan, menerbitkan, mendistribusikan, mensublisensikan, dan menjual salinan perangkat lunak ini, asalkan pemberitahuan hak cipta dan izin disertakan. Tanpa jaminan apa pun.",
+  "settings.support.licenceBody2Start":
+    "Itu memperbolehkan penggunaan komersial, termasuk menjual perangkat lunaknya. Teks lengkapnya ada di",
+  "settings.support.licenceBody2End": "di akar repositori.",
+
+  // --- settings · invoicing -----------------------------------------------
+  "settings.invoicing.subtitle":
+    "Tarif pajak, cara faktur diberi nomor, dan bahasa yang tercetak di dokumen Anda.",
+  "settings.invoicing.taxRates": "Tarif pajak",
+  "settings.invoicing.taxNamePlaceholder": "PPN",
+  "settings.invoicing.ratePercent": "Tarif %",
+  "settings.invoicing.noTaxRates": "Belum ada tarif pajak.",
+  "settings.invoicing.numbering": "Penomoran faktur",
+  "settings.invoicing.prefix": "Awalan",
+  "settings.invoicing.nextNumber": "Nomor berikutnya",
+  "settings.invoicing.padding": "Nol di depan",
+  "settings.invoicing.yearInNumber": "Tahun dalam nomor",
+  "settings.invoicing.yearToggle": "Sertakan tahun, dan mulai lagi dari 1 setiap Januari",
+  "settings.invoicing.nextPreview": "Faktur berikutnya akan bernomor",
+  "settings.invoicing.documentLanguage": "Bahasa dokumen",
+  "settings.invoicing.documentLanguageBody":
+    "Bahasa untuk label yang tercetak di faktur dan estimasi. Terpisah dari bahasa aplikasi.",
+  "settings.invoicing.languageSaved": "Bahasa dokumen disimpan",
+
+  // --- settings · data ----------------------------------------------------
+  "settings.data.subtitle":
+    "Satu folder, di mesin ini. Cadangkan ke tempat lain dan data Anda tidak akan pernah hilang.",
+  "settings.data.whereTitle": "Di mana data Anda berada",
+  "settings.data.automatic": "Cadangan otomatis",
+  "settings.data.automaticBody":
+    "Saat diaktifkan, cadangan ditulis paling banyak sekali sehari, dan yang lama dirotasi keluar.",
+  "settings.data.schedule": "Jadwal",
+  "settings.data.scheduleToggle": "Cadangkan sekali sehari saat mulai",
+  "settings.data.keepNewest": "Simpan yang terbaru",
+  "settings.data.folder": "Folder cadangan",
+  "settings.data.lastRun": "Jalan otomatis terakhir {when}",
+  "settings.data.recent": "Cadangan terbaru",
+  "settings.data.empty": "Belum ada cadangan",
+  "settings.data.emptyBody": "Tidak ada yang ditemukan di {folder}.",
+  "settings.data.theBackupFolder": "folder cadangan",
+  "settings.data.file": "Berkas",
+  "settings.data.size": "Ukuran",
+  "settings.data.created": "Dibuat",
+  "settings.data.noticeSaved": "Cadangan disimpan ke {path}",
+  "settings.data.noticeSettingsSaved": "Pengaturan cadangan disimpan",
+  "settings.data.confirmRestore":
+    "Ganti semua data saat ini dengan cadangan ini?\n\nSalinan pengaman data Anda saat ini disimpan lebih dulu.",
+  "settings.data.confirmRestoreTitle": "Pulihkan cadangan",
+  "settings.data.restored": "Cadangan dipulihkan.\n\nData Anda sebelumnya disimpan ke:\n{path}",
+  "settings.data.restoredTitle": "Pemulihan selesai",
+  "settings.data.backupFilter": "Cadangan Ledgerly",
+
+  // --- settings · ai ------------------------------------------------------
+  "settings.ai.title": "Akses AI",
+  "settings.ai.subtitle":
+    "Izinkan asisten AI di desktop membaca dan mengubah data Anda. Koneksinya lokal dan tidak pernah menyentuh jaringan.",
+  "settings.ai.access": "Akses",
+  "settings.ai.accessBodyStart": "Ledgerly menyertakan program pendamping kecil,",
+  "settings.ai.accessBodyEnd":
+    "yang berbicara Model Context Protocol lewat input dan output standar. Asisten AI Anda yang menjalankannya; tidak ada yang dibuka di port, dan Ledgerly tetap tidak membuat permintaan jaringan.",
+  "settings.ai.enable": "Aktifkan akses AI",
+  "settings.ai.enableHint": "Izinkan asisten berbicara dengan Ledgerly sama sekali.",
+  "settings.ai.allowChanges": "Izinkan perubahan",
+  "settings.ai.allowChangesHint":
+    "Biarkan asisten membuat dan mengubah catatan. Nonaktif berarti hanya baca.",
+  "settings.ai.saved": "Tersimpan",
+  "settings.ai.clipboardError": "Tidak bisa mengakses papan klip. Pilih dan salin secara manual.",
+  "settings.ai.connect": "Hubungkan asisten",
+  "settings.ai.pointClient": "Arahkan klien MCP Anda ke program ini:",
+  "settings.ai.pathCopied": "Jalur disalin",
+  "settings.ai.claudeDesktop": "Claude Desktop",
+  "settings.ai.claudeOpen": "Buka",
+  "settings.ai.claudeSteps": "Settings → Developer → Edit Config",
+  "settings.ai.claudeAdd": ", tambahkan ini di bawah",
+  "settings.ai.claudeRestart": ", lalu mulai ulang Claude Desktop.",
+  "settings.ai.configCopied": "Konfigurasi disalin",
+  "settings.ai.otherClient":
+    "Klien lain yang mendukung server MCP lokal (stdio) bekerja dengan cara yang sama: beri jalur di atas sebagai perintahnya.",
+  "settings.ai.canDo": "Apa yang bisa dilakukan asisten",
+  "settings.ai.lockBodyStart":
+    "Kunci aplikasi Anda aktif, jadi konfigurasi di atas harus menyertakan frasa sandi Anda sebagai",
+  "settings.ai.lockBodyEnd": ". Tanpanya, setiap permintaan ditolak.",
+  "settings.ai.read": "Baca",
+  "settings.ai.readBody":
+    "klien, katalog, tarif pajak, faktur, estimasi, pembayaran, profil bisnis, pengaturan, dan semua laporan.",
+  "settings.ai.change": "Ubah",
+  "settings.ai.enabled": "aktif",
+  "settings.ai.disabled": "nonaktif",
+  "settings.ai.changeBody":
+    "Membuat dan mengubah klien, item katalog, tarif pajak, faktur, estimasi, dan pembayaran, serta membuat cadangan.",
+  "settings.ai.never": "Tidak pernah",
+  "settings.ai.neverBody":
+    "memulihkan cadangan, membatalkan faktur, menghapus pembayaran, mengubah kunci aplikasi, atau mengekspor basis data. Tindakan destruktif dan identitas tetap manual.",
+
+  // --- line items ---------------------------------------------------------
+  "lineItems.aria": "{column}, baris {line}",
+  "lineItems.unitPrice": "Harga satuan",
+  "lineItems.discountType": "Jenis diskon",
+  "lineItems.discountAmount": "Jumlah diskon",
+  "lineItems.taxRate": "Tarif pajak",
+  "lineItems.includesTax": "Harga termasuk pajak",
+  "lineItems.qty": "Jml",
+  "lineItems.discount": "Disk.",
+  "lineItems.value": "Nilai",
+  "lineItems.incl": "Inkl.",
+  "lineItems.unitPlaceholder": "jam",
+  "lineItems.none": "Tidak ada",
+  "lineItems.fixed": "Tetap",
+  "lineItems.searchCatalog": "Cari di katalog",
+  "lineItems.reading": "Membaca katalog…",
+  "lineItems.noMatchesStart": "Tidak ada yang cocok. Tambahkan item di halaman",
+  "lineItems.catalogPage": "Katalog",
+  "lineItems.noMatchesEnd": ".",
+
+  // --- document editors (shared) ------------------------------------------
+  "editor.details": "Detail",
+  "editor.clientName": "Nama klien",
+  "editor.issueDate": "Tanggal terbit",
+  "editor.lineItems": "Rincian item",
+  "editor.totals": "Total",
+  "editor.previewStale":
+    "Pratinjau langsung tidak bisa dihitung, jadi angka ini mungkin sudah usang. Menyimpan akan menghitungnya ulang.",
+  "editor.notesTerms": "Catatan & ketentuan",
+  "editor.pdfTemplate": "Templat PDF",
+  "editor.templateClassic": "Klasik",
+  "editor.templateModern": "Modern",
+  "editor.templateMinimal": "Minimal",
+  "editor.savedTo": "Disimpan ke {path}",
+
+  // --- invoice editor -----------------------------------------------------
+  "invoice.fallbackTitle": "Faktur",
+  "invoice.notFound": "Faktur tidak ditemukan.",
+  "invoice.unsaved": "Faktur ini punya perubahan yang belum disimpan. Tinggalkan dan hilangkan?",
+  "invoice.voidConfirm":
+    "Batalkan faktur ini? Statusnya akan ditandai batal. Anda bisa memulihkannya nanti.",
+  "invoice.voidTitle": "Batalkan faktur",
+  "invoice.dueDate": "Jatuh tempo",
+  "invoice.discount": "Diskon faktur",
+  "invoice.amountHint": "Masukkan jumlah seperti 250.00.",
+  "invoice.paymentRemoved": "Pembayaran dihapus.",
+  "invoice.copied": "Disalin",
+  "invoice.copyManually": "Pilih teks di atas dan salin secara manual.",
+  "invoice.markedChased": "Ditandai sudah ditagih",
+  "invoice.chaseCleared": "Tanda tagih dihapus",
+  "invoice.noPayments": "Belum ada pembayaran tercatat.",
+  "invoice.recordPayment": "Catat pembayaran",
+  "invoice.chasing": "Menagih yang ini",
+  "invoice.lastChasedOne": "Terakhir ditagih {date}.",
+  "invoice.lastChasedMany": "Terakhir ditagih {date} ({count} kali).",
+  "invoice.notChased": "Belum pernah ditagih.",
+  "invoice.sendsNothing": "Ledgerly tidak mengirim apa pun sendiri. Salin ini ke email Anda.",
+
+  // --- estimate editor ----------------------------------------------------
+  "estimate.fallbackTitle": "Estimasi",
+  "estimate.notFound": "Estimasi tidak ditemukan.",
+  "estimate.unsaved":
+    "Estimasi ini punya perubahan yang belum disimpan. Tinggalkan dan hilangkan?",
+  "estimate.discount": "Diskon estimasi",
+  "estimate.converted": "Estimasi ini sudah diubah menjadi faktur.",
+  "estimate.expired": "Estimasi ini kedaluwarsa pada {date}.",
+  "estimate.expiresInOne": "Kedaluwarsa dalam {count} hari, pada {date}.",
+  "estimate.expiresInOther": "Kedaluwarsa dalam {count} hari, pada {date}.",
+
+  // --- client detail ------------------------------------------------------
+  "client.fallbackTitle": "Klien",
+  "client.notFound": "Klien tidak ditemukan.",
+  "client.unsaved": "Klien ini punya perubahan yang belum disimpan. Tinggalkan dan hilangkan?",
+  "client.nameRequired": "Nama wajib diisi.",
+  "client.statementSaved": "Rekening disimpan ke {path}",
+  "client.addingUp": "Menjumlahkan faktur mereka…",
+  "client.nothingOutstanding": "Tidak ada yang tertunggak. Semua faktur sudah lunas.",
+  "client.overdueOne": "{count} faktur lewat jatuh tempo.",
+  "client.overdueOther": "{count} faktur lewat jatuh tempo.",
+  "client.readingInvoices": "Membaca faktur mereka…",
+  "client.readingEstimates": "Membaca estimasi mereka…",
+  "client.noInvoicesTitle": "Belum ada faktur untuk {client}",
+  "client.noInvoicesBody":
+    "Saat Anda menagih mereka, fakturnya akan muncul di sini beserta sisa tagihannya.",
+  "client.noEstimatesBody":
+    "Penawaran untuk klien ini, siap diubah menjadi faktur setelah pekerjaan disepakati.",
+  "client.theirDetails": "Detail mereka",
+  "client.namePlaceholder": "Nama klien atau perusahaan",
+  "client.billing": "Penagihan",
 };

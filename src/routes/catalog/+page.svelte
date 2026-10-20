@@ -3,6 +3,7 @@
   import { page } from "$app/state";
   import { api } from "$lib/api";
   import { emptyToNull, fromMinor, minorToInput, toMinor } from "$lib/format";
+  import { t } from "$lib/i18n.svelte";
   import type { CatalogItem } from "$lib/types";
   import AsyncState from "$lib/components/AsyncState.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
@@ -134,39 +135,36 @@
   }
 </script>
 
-<PageHeader
-  title="Catalog"
-  subtitle="What you sell, priced once, so a line item is a pick rather than a typing job."
-/>
+<PageHeader title={t("catalog.title")} subtitle={t("catalog.subtitle")} />
 
 <div class="card">
-  <h2>Add item</h2>
+  <h2>{t("catalog.addTitle")}</h2>
   <div class="grid-2">
     <div class="field">
-      <label for="itemName">Name *</label>
-      <input id="itemName" bind:value={name} placeholder="Design hour" />
+      <label for="itemName">{t("catalog.nameLabel")}</label>
+      <input id="itemName" bind:value={name} placeholder={t("catalog.namePlaceholder")} />
     </div>
     <div class="field">
-      <label for="itemPrice">Unit price ({currency || "—"})</label>
+      <label for="itemPrice">{t("catalog.unitPrice", { currency: currency || t("common.emDash") })}</label>
       <input id="itemPrice" bind:value={price} placeholder="0.00" inputmode="decimal" />
     </div>
     <div class="field">
-      <label for="itemUnit">Unit</label>
-      <input id="itemUnit" bind:value={unit} placeholder="hour / day / item" />
+      <label for="itemUnit">{t("common.unit")}</label>
+      <input id="itemUnit" bind:value={unit} placeholder={t("catalog.unitPlaceholder")} />
     </div>
     <div class="field">
-      <label for="itemDescription">Description</label>
+      <label for="itemDescription">{t("common.description")}</label>
       <input id="itemDescription" bind:value={description} />
     </div>
   </div>
-  <button class="btn" onclick={add} disabled={adding || !name.trim()}>Add item</button>
+  <button class="btn" onclick={add} disabled={adding || !name.trim()}>{t("action.addItem")}</button>
 </div>
 
 <div class="toolbar spaced">
   <SearchField
     bind:value={search}
-    label="Search catalog by name or SKU"
-    example="Name or SKU"
+    label={t("catalog.searchLabel")}
+    example={t("catalog.searchExample")}
     oninput={onSearch}
   />
   <label class="row muted archived">
@@ -175,25 +173,22 @@
       checked={includeArchived}
       onchange={(e) => setParam("archived", e.currentTarget.checked ? "1" : "")}
     />
-    Show archived
+    {t("common.showArchived")}
   </label>
 </div>
 
 <AsyncState {loading} {error} rows={5} columns={4}>
   <div class="card">
     {#if items.length === 0}
-      <EmptyState
-        title="Nothing in the catalog yet"
-        body="Add the things you bill for. Then an invoice line is a pick, not a typing job."
-      />
+      <EmptyState title={t("catalog.empty")} body={t("catalog.emptyBody")} />
     {:else}
       <table>
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Unit</th>
-            <th class="numeric">Price</th>
+            <th>{t("common.name")}</th>
+            <th>{t("common.description")}</th>
+            <th>{t("common.unit")}</th>
+            <th class="numeric">{t("common.price")}</th>
             <th></th>
           </tr>
         </thead>
@@ -201,22 +196,24 @@
           {#each visible.shown as item (item.id)}
             {#if editing?.id === item.id}
               <tr>
-                <td><input bind:value={draft.name} aria-label="Name" /></td>
-                <td><input bind:value={draft.description} aria-label="Description" /></td>
-                <td><input bind:value={draft.unit} aria-label="Unit" /></td>
+                <td><input bind:value={draft.name} aria-label={t("common.name")} /></td>
+                <td><input bind:value={draft.description} aria-label={t("common.description")} /></td>
+                <td><input bind:value={draft.unit} aria-label={t("common.unit")} /></td>
                 <td>
                   <input
                     bind:value={draft.price}
                     inputmode="decimal"
-                    aria-label="Unit price"
+                    aria-label={t("catalog.priceAria")}
                   />
                 </td>
                 <td>
                   <div class="row-actions">
                     <button class="btn" onclick={saveEdit} disabled={!draft.name.trim()}>
-                      Save
+                      {t("action.save")}
                     </button>
-                    <button class="btn secondary" onclick={() => (editing = null)}>Cancel</button>
+                    <button class="btn secondary" onclick={() => (editing = null)}>
+                      {t("action.cancel")}
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -224,16 +221,18 @@
               <tr>
                 <td>
                   {item.name}
-                  {#if item.archivedAt}<span class="muted"> (archived)</span>{/if}
+                  {#if item.archivedAt}<span class="muted"> {t("common.archived")}</span>{/if}
                 </td>
-                <td>{item.description ?? "—"}</td>
-                <td>{item.unit ?? "—"}</td>
+                <td>{item.description ?? t("common.emDash")}</td>
+                <td>{item.unit ?? t("common.emDash")}</td>
                 <td class="numeric">{fromMinor(item.unitPriceMinor, item.currency ?? currency)}</td>
                 <td>
                   <div class="row-actions">
-                    <button class="btn secondary" onclick={() => startEdit(item)}>Edit</button>
+                    <button class="btn secondary" onclick={() => startEdit(item)}>
+                      {t("action.edit")}
+                    </button>
                     <button class="btn secondary" onclick={() => toggleArchive(item)}>
-                      {item.archivedAt ? "Restore" : "Archive"}
+                      {item.archivedAt ? t("action.restore") : t("action.archive")}
                     </button>
                   </div>
                 </td>
@@ -244,7 +243,7 @@
       </table>
       {#if visible.hidden > 0}
         <p class="muted truncation">
-          Showing the first {RENDER_LIMIT} of {items.length}. Search to narrow it down.
+          {t("list.showingFirstSearch", { limit: RENDER_LIMIT, total: items.length })}
         </p>
       {/if}
     {/if}

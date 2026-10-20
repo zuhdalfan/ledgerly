@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "$lib/api";
+  import { t } from "$lib/i18n.svelte";
   import type { McpInfo } from "$lib/types";
   import AsyncState from "$lib/components/AsyncState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
@@ -46,7 +47,7 @@
     try {
       await api.settings.set(key, value ? "true" : "false");
       info = await api.mcp.info();
-      message = "Saved";
+      message = t("settings.ai.saved");
     } catch (e) {
       saveError = String(e);
     } finally {
@@ -61,25 +62,22 @@
       await navigator.clipboard.writeText(text);
       message = confirmation;
     } catch {
-      saveError = "Could not reach the clipboard. Select and copy by hand.";
+      saveError = t("settings.ai.clipboardError");
     }
   }
 </script>
 
-<PageHeader
-  title="AI access"
-  subtitle="Let a desktop AI assistant read and change your data. The connection is local and never touches the network."
-/>
+<PageHeader title={t("settings.ai.title")} subtitle={t("settings.ai.subtitle")} />
 
 <AsyncState {loading} {error} rows={4} columns={2}>
   {#if info}
     {@const serverPath = info.serverPath}
     <div class="card">
-      <h2>Access</h2>
+      <h2>{t("settings.ai.access")}</h2>
       <p class="muted">
-        Ledgerly ships a small companion program, <code>ledgerly-mcp</code>, that speaks the Model
-        Context Protocol over standard input and output. Your AI assistant launches it; nothing is
-        exposed on a port, and Ledgerly still makes no network requests.
+        {t("settings.ai.accessBodyStart")}
+        <code>ledgerly-mcp</code>
+        {t("settings.ai.accessBodyEnd")}
       </p>
 
       <label class="toggle">
@@ -90,8 +88,8 @@
           onchange={(e) => setSetting("mcp.enabled", e.currentTarget.checked)}
         />
         <span>
-          <strong>Enable AI access</strong>
-          <span class="muted">Allow an assistant to talk to Ledgerly at all.</span>
+          <strong>{t("settings.ai.enable")}</strong>
+          <span class="muted">{t("settings.ai.enableHint")}</span>
         </span>
       </label>
 
@@ -103,8 +101,8 @@
           onchange={(e) => setSetting("mcp.allowWrite", e.currentTarget.checked)}
         />
         <span>
-          <strong>Allow changes</strong>
-          <span class="muted">Let the assistant create and edit records. Off means read-only.</span>
+          <strong>{t("settings.ai.allowChanges")}</strong>
+          <span class="muted">{t("settings.ai.allowChangesHint")}</span>
         </span>
       </label>
 
@@ -113,50 +111,51 @@
     </div>
 
     <div class="card">
-      <h2>Connect an assistant</h2>
-      <p class="muted">Point your MCP client at this program:</p>
+      <h2>{t("settings.ai.connect")}</h2>
+      <p class="muted">{t("settings.ai.pointClient")}</p>
       <div class="copy">
         <code class="path">{serverPath}</code>
-        <button class="btn secondary" onclick={() => copy(serverPath, "Path copied")}>
-          Copy
+        <button class="btn secondary" onclick={() => copy(serverPath, t("settings.ai.pathCopied"))}>
+          {t("action.copy")}
         </button>
       </div>
 
-      <h3>Claude Desktop</h3>
+      <h3>{t("settings.ai.claudeDesktop")}</h3>
       <p class="muted">
-        Open <strong>Settings → Developer → Edit Config</strong>, add this under <code>mcpServers</code>,
-        then restart Claude Desktop.
+        {t("settings.ai.claudeOpen")}
+        <strong>{t("settings.ai.claudeSteps")}</strong>{t("settings.ai.claudeAdd")}
+        <code>mcpServers</code>{t("settings.ai.claudeRestart")}
       </p>
       <div class="copy">
         <pre>{snippet}</pre>
-        <button class="btn secondary" onclick={() => copy(snippet, "Config copied")}>Copy</button>
+        <button class="btn secondary" onclick={() => copy(snippet, t("settings.ai.configCopied"))}>
+          {t("action.copy")}
+        </button>
       </div>
 
-      <p class="muted">
-        Any other client that supports local (stdio) MCP servers works the same way: give it the path
-        above as the command.
-      </p>
+      <p class="muted">{t("settings.ai.otherClient")}</p>
     </div>
 
     <div class="card">
-      <h2>What the assistant can do</h2>
+      <h2>{t("settings.ai.canDo")}</h2>
       {#if info.lockEnabled}
         <p class="muted">
-          Your app lock is on, so the config above must include your passphrase as
-          <code>LEDGERLY_MCP_PASSPHRASE</code>. Without it, every request is refused.
+          {t("settings.ai.lockBodyStart")}
+          <code>LEDGERLY_MCP_PASSPHRASE</code>{t("settings.ai.lockBodyEnd")}
         </p>
       {/if}
       <p class="muted">
-        <strong>Read</strong> — clients, catalog, tax rates, invoices, estimates, payments, the
-        business profile, settings and all reports.
+        <strong>{t("settings.ai.read")}</strong>
+        — {t("settings.ai.readBody")}
       </p>
       <p class="muted">
-        <strong>Change</strong> — {info.allowWrite ? "enabled" : "disabled"}. Creating and editing
-        clients, catalog items, tax rates, invoices, estimates and payments, and taking a backup.
+        <strong>{t("settings.ai.change")}</strong>
+        — {info.allowWrite ? t("settings.ai.enabled") : t("settings.ai.disabled")}.
+        {t("settings.ai.changeBody")}
       </p>
       <p class="muted">
-        <strong>Never</strong> — restoring a backup, voiding an invoice, deleting a payment, changing
-        the app lock, or exporting the database. Destructive and identity actions stay manual.
+        <strong>{t("settings.ai.never")}</strong>
+        — {t("settings.ai.neverBody")}
       </p>
     </div>
   {/if}

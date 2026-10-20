@@ -18,6 +18,7 @@
   import Toast from "$lib/components/Toast.svelte";
   import Skeleton from "$lib/components/Skeleton.svelte";
   import { useDirtyGuard } from "$lib/guard";
+  import { t } from "$lib/i18n.svelte";
   import { reminder } from "$lib/chase";
   import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
   import type {
@@ -118,7 +119,7 @@
   // loaded or saved, so an untouched form never nags.
   let baseline = $state("");
   const dirty = $derived(baseline !== "" && JSON.stringify(toInput()) !== baseline);
-  useDirtyGuard(() => dirty, "This invoice has unsaved changes. Leave and lose them?");
+  useDirtyGuard(() => dirty, t("invoice.unsaved"));
 
   /// Status and balance are derived on the Rust side, so take them from the
   /// invoice the backend returns rather than recomputing them here.
@@ -188,7 +189,7 @@
 
       const invoice = await api.invoices.get(id);
       if (!invoice) {
-        loadError = "Invoice not found.";
+        loadError = t("invoice.notFound");
         return;
       }
 
@@ -333,10 +334,10 @@
     // Voiding a financial document gets a confirmation, unlike a reversible
     // toggle: it changes what the client was asked to pay.
     if (status !== "void") {
-      const confirmed = await ask(
-        "Void this invoice? It will be marked cancelled. You can restore it afterwards.",
-        { title: "Void invoice", kind: "warning" }
-      );
+      const confirmed = await ask(t("invoice.voidConfirm"), {
+        title: t("invoice.voidTitle"),
+        kind: "warning",
+      });
       if (!confirmed) return;
     }
 
@@ -359,7 +360,7 @@
   async function addPayment() {
     paymentError = "";
     if (payAmountMinor <= 0) {
-      paymentError = "Enter an amount like 250.00.";
+      paymentError = t("invoice.amountHint");
       return;
     }
 
@@ -400,7 +401,7 @@
 
       // A payment is real financial history, so the delete is recoverable.
       if (removed) {
-        offerUndo("Payment removed.", () => void restorePayment(removed));
+        offerUndo(t("invoice.paymentRemoved"), () => void restorePayment(removed));
       }
     } catch (e) {
       paymentError = String(e);
@@ -443,9 +444,9 @@
     reminderMessage = "";
     try {
       await navigator.clipboard.writeText(`${reminderText.subject}\n\n${reminderText.body}`);
-      reminderMessage = "Copied";
+      reminderMessage = t("invoice.copied");
     } catch {
-      reminderMessage = "Select the text above and copy it manually.";
+      reminderMessage = t("invoice.copyManually");
     }
   }
 
@@ -453,7 +454,7 @@
     reminderMessage = "";
     try {
       applyDerived(await api.invoices.setChased(id, chased));
-      reminderMessage = chased ? "Marked as chased" : "Chased mark cleared";
+      reminderMessage = chased ? t("invoice.markedChased") : t("invoice.chaseCleared");
     } catch (e) {
       saveError = String(e);
     }
@@ -503,7 +504,7 @@
 
       await api.invoices.exportPdf(id, path, template);
       await api.openInViewer(path);
-      exportMessage = `Saved to ${path}`;
+      exportMessage = t("editor.savedTo", { path });
     } catch (e) {
       exportMessage = String(e);
     } finally {
@@ -514,37 +515,37 @@
 
 <div class="page-head">
   <div class="row">
-    <h1>{isNew ? "New invoice" : number || "Invoice"}</h1>
+    <h1>{isNew ? t("action.newInvoice") : number || t("invoice.fallbackTitle")}</h1>
     {#if !isNew}
       <span class={`badge ${displayStatus}`}>{statusLabel(displayStatus)}</span>
     {/if}
   </div>
-  <a class="link" href="/invoices">Back to invoices</a>
+  <a class="link" href="/invoices">{t("action.backToInvoices")}</a>
 </div>
 
 {#if loadError}<p class="error" role="alert">{loadError}</p>{/if}
 
 {#if loading}
   <div class="card">
-    <h2>Details</h2>
+    <h2>{t("editor.details")}</h2>
     <Skeleton rows={6} columns={2} />
   </div>
 {:else}
 
 <div class="card">
-  <h2>Details</h2>
+  <h2>{t("editor.details")}</h2>
   <div class="grid-2">
     <div class="field">
-      <label for="client">Client</label>
+      <label for="client">{t("common.client")}</label>
       <div class="row">
         <select id="client" bind:value={clientId}>
-          <option value="">None</option>
+          <option value="">{t("common.none")}</option>
           {#each clients as client (client.id)}
             <option value={client.id}>{client.displayName}</option>
           {/each}
         </select>
         <button class="btn secondary" onclick={() => (newClientOpen = !newClientOpen)}>
-          New client
+          {t("action.newClient")}
         </button>
       </div>
     </div>
@@ -553,69 +554,68 @@
       <div class="inline-new">
         <div class="grid-2">
           <div class="field">
-            <label for="newClientName">Client name</label>
+            <label for="newClientName">{t("editor.clientName")}</label>
             <input id="newClientName" bind:value={newClientName} />
           </div>
           <div class="field">
-            <label for="newClientEmail">Email</label>
+            <label for="newClientEmail">{t("common.email")}</label>
             <input id="newClientEmail" type="email" bind:value={newClientEmail} />
           </div>
         </div>
         <div class="row wrap">
           <button class="btn" onclick={createClient} disabled={newClientBusy || !newClientName.trim()}>
-            Add client
+            {t("action.addClient")}
           </button>
-          <button class="btn secondary" onclick={() => (newClientOpen = false)}>Cancel</button>
+          <button class="btn secondary" onclick={() => (newClientOpen = false)}>
+            {t("action.cancel")}
+          </button>
           {#if newClientError}<span class="error">{newClientError}</span>{/if}
         </div>
       </div>
     {/if}
     <div class="field">
-      <label for="po">PO / reference</label>
+      <label for="po">{t("common.poReference")}</label>
       <input id="po" bind:value={poReference} />
     </div>
     <div class="field">
-      <label for="issue">Issue date</label>
+      <label for="issue">{t("editor.issueDate")}</label>
       <input id="issue" type="date" bind:value={issueDate} />
     </div>
     <div class="field">
-      <label for="due">Due date</label>
+      <label for="due">{t("invoice.dueDate")}</label>
       <input id="due" type="date" bind:value={dueDate} />
     </div>
     <div class="field">
-      <label for="currency">Currency</label>
+      <label for="currency">{t("common.currency")}</label>
       <input id="currency" bind:value={currency} />
     </div>
     <div class="field">
-      <label for="status">Status</label>
+      <label for="status">{t("common.status")}</label>
       <input id="status" value={statusLabel(displayStatus)} disabled />
     </div>
   </div>
 </div>
 
 <div class="card">
-  <h2>Line items</h2>
+  <h2>{t("editor.lineItems")}</h2>
 
   <LineItems bind:items {taxRates} {currency} lines={totals?.lines ?? []} />
 </div>
 
 <div class="card">
-  <h2>Totals</h2>
+  <h2>{t("editor.totals")}</h2>
   {#if previewError}
-    <p class="error" role="alert">
-      The live preview could not be calculated, so these figures may be out of date. Saving
-      recomputes them.
-    </p>
+    <p class="error" role="alert">{t("editor.previewStale")}</p>
   {/if}
   <div class="grid-2">
     <div>
       <div class="field">
-        <label for="discType">Invoice discount</label>
+        <label for="discType">{t("invoice.discount")}</label>
         <div class="row">
           <select id="discType" bind:value={discountType} style="width: auto;">
-            <option value="">None</option>
-            <option value="percent">Percent</option>
-            <option value="fixed">Fixed</option>
+            <option value="">{t("common.none")}</option>
+            <option value="percent">{t("common.percent")}</option>
+            <option value="fixed">{t("common.fixed")}</option>
           </select>
           {#if discountType}
             <input bind:value={discountValue} inputmode="decimal" placeholder="0" />
@@ -626,17 +626,23 @@
     <div>
       <table>
         <tbody>
-          <tr><td>Subtotal</td><td>{fromMinor(summary.subtotalMinor, currency)}</td></tr>
-          <tr><td>Discount</td><td>−{fromMinor(summary.discountMinor, currency)}</td></tr>
-          <tr><td>Tax</td><td>{fromMinor(summary.taxMinor, currency)}</td></tr>
           <tr>
-            <td><strong>Total</strong></td>
+            <td>{t("common.subtotal")}</td>
+            <td>{fromMinor(summary.subtotalMinor, currency)}</td>
+          </tr>
+          <tr>
+            <td>{t("common.discount")}</td>
+            <td>−{fromMinor(summary.discountMinor, currency)}</td>
+          </tr>
+          <tr><td>{t("common.tax")}</td><td>{fromMinor(summary.taxMinor, currency)}</td></tr>
+          <tr>
+            <td><strong>{t("common.total")}</strong></td>
             <td><strong>{fromMinor(summary.totalMinor, currency)}</strong></td>
           </tr>
           {#if !isNew}
-            <tr><td>Paid</td><td>{fromMinor(paidMinor, currency)}</td></tr>
+            <tr><td>{t("common.paid")}</td><td>{fromMinor(paidMinor, currency)}</td></tr>
             <tr>
-              <td><strong>Balance</strong></td>
+              <td><strong>{t("common.balance")}</strong></td>
               <td><strong>{fromMinor(balanceMinor, currency)}</strong></td>
             </tr>
           {/if}
@@ -648,18 +654,18 @@
 
 {#if !isNew}
   <div class="card">
-    <h2>Payments</h2>
+    <h2>{t("common.payments")}</h2>
 
     {#if payments.length === 0}
-      <p class="muted">No payments recorded yet.</p>
+      <p class="muted">{t("invoice.noPayments")}</p>
     {:else}
       <table>
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Method</th>
-            <th>Reference</th>
-            <th class="numeric">Amount</th>
+            <th>{t("common.date")}</th>
+            <th>{t("common.method")}</th>
+            <th>{t("common.reference")}</th>
+            <th class="numeric">{t("common.amount")}</th>
             <th></th>
           </tr>
         </thead>
@@ -672,7 +678,7 @@
               <td class="numeric">{fromMinor(payment.amountMinor, currency)}</td>
               <td>
                 <button class="btn danger" onclick={() => removePayment(payment.id)}>
-                  Delete
+                  {t("action.delete")}
                 </button>
               </td>
             </tr>
@@ -681,36 +687,36 @@
       </table>
     {/if}
 
-    <h2 class="spaced">Record a payment</h2>
+    <h2 class="spaced">{t("invoice.recordPayment")}</h2>
     <div class="grid-2">
       <div class="field">
-        <label for="payDate">Date</label>
+        <label for="payDate">{t("common.date")}</label>
         <input id="payDate" type="date" bind:value={payDate} />
       </div>
       <div class="field">
-        <label for="payAmount">Amount ({currency})</label>
+        <label for="payAmount">{t("common.amount")} ({currency})</label>
         <input id="payAmount" bind:value={payAmount} inputmode="decimal" placeholder="0.00" />
       </div>
       <div class="field">
-        <label for="payMethod">Method</label>
+        <label for="payMethod">{t("common.method")}</label>
         <input id="payMethod" bind:value={payMethod} placeholder="bank / cash / card" />
       </div>
       <div class="field">
-        <label for="payReference">Reference</label>
+        <label for="payReference">{t("common.reference")}</label>
         <input id="payReference" bind:value={payReference} />
       </div>
     </div>
     <div class="field">
-      <label for="payNote">Note</label>
+      <label for="payNote">{t("common.note")}</label>
       <input id="payNote" bind:value={payNote} />
     </div>
 
     <div class="row wrap">
       <button class="btn" onclick={addPayment} disabled={paymentBusy || !payAmount.trim()}>
-        {paymentBusy ? "Recording…" : "Record payment"}
+        {paymentBusy ? t("action.recording") : t("action.recordPayment")}
       </button>
       {#if payAmount.trim() && payAmountMinor <= 0}
-        <span class="error">Enter an amount like 250.00.</span>
+        <span class="error">{t("invoice.amountHint")}</span>
       {/if}
       {#if paymentError}<span class="error">{paymentError}</span>{/if}
     </div>
@@ -719,31 +725,34 @@
 
 {#if !isNew && balanceMinor > 0}
   <div class="card">
-    <h2>Chasing this one</h2>
+    <h2>{t("invoice.chasing")}</h2>
     <p class="muted">
       {#if lastChasedAt}
-        Last chased {formatDate(lastChasedAt.slice(0, 10))}{chaseCount > 1
-          ? ` (${chaseCount} times)`
-          : ""}.
+        {chaseCount > 1
+          ? t("invoice.lastChasedMany", {
+              date: formatDate(lastChasedAt.slice(0, 10)),
+              count: chaseCount,
+            })
+          : t("invoice.lastChasedOne", { date: formatDate(lastChasedAt.slice(0, 10)) })}
       {:else}
-        Not chased yet.
+        {t("invoice.notChased")}
       {/if}
-      Ledgerly sends nothing itself. Copy this into your own email.
+      {t("invoice.sendsNothing")}
     </p>
 
     <div class="field">
-      <label for="reminderSubject">Subject</label>
+      <label for="reminderSubject">{t("common.subject")}</label>
       <input id="reminderSubject" readonly value={reminderText.subject} />
     </div>
     <div class="field">
-      <label for="reminderBody">Message</label>
+      <label for="reminderBody">{t("common.message")}</label>
       <textarea id="reminderBody" rows="10" readonly value={reminderText.body}></textarea>
     </div>
 
     <div class="row wrap">
-      <button class="btn" onclick={copyReminder}>Copy reminder</button>
+      <button class="btn" onclick={copyReminder}>{t("action.copyReminder")}</button>
       <button class="btn secondary" onclick={() => setChased(!lastChasedAt)}>
-        {lastChasedAt ? "Clear the chased mark" : "Mark as chased"}
+        {lastChasedAt ? t("action.clearChased") : t("action.markChased")}
       </button>
       {#if reminderMessage}<span class="ok">{reminderMessage}</span>{/if}
     </div>
@@ -751,37 +760,37 @@
 {/if}
 
 <div class="card">
-  <h2>Notes &amp; terms</h2>
+  <h2>{t("editor.notesTerms")}</h2>
   <div class="field">
-    <label for="notes">Notes</label>
+    <label for="notes">{t("common.notes")}</label>
     <textarea id="notes" bind:value={notes}></textarea>
   </div>
   <div class="field">
-    <label for="terms">Terms</label>
+    <label for="terms">{t("common.terms")}</label>
     <textarea id="terms" bind:value={terms}></textarea>
   </div>
   <div class="field">
-    <label for="payments">Payment instructions</label>
+    <label for="payments">{t("settings.business.paymentInstructions")}</label>
     <textarea id="payments" bind:value={paymentInstructions}></textarea>
   </div>
 </div>
 
 <div class="row wrap actions">
   <button class="btn" onclick={save} disabled={saving}>
-    {saving ? "Saving…" : "Save"}
+    {saving ? t("action.saving") : t("action.save")}
   </button>
   {#if !isNew}
-    <button class="btn secondary" onclick={duplicate}>Duplicate</button>
+    <button class="btn secondary" onclick={duplicate}>{t("action.duplicate")}</button>
     {#if status !== "void"}
       <button class="btn secondary" onclick={toggleSent}>
-        {status === "sent" ? "Move to draft" : "Mark as sent"}
+        {status === "sent" ? t("action.moveToDraft") : t("action.markAsSent")}
       </button>
     {/if}
     <button class="btn danger" onclick={toggleVoid}>
-      {status === "void" ? "Restore" : "Void"}
+      {status === "void" ? t("action.restoreInvoice") : t("action.void")}
     </button>
   {/if}
-  {#if saved}<span class="ok">Saved</span>{/if}
+  {#if saved}<span class="ok">{t("action.saved")}</span>{/if}
   {#if saveError}<span class="error">{saveError}</span>{/if}
 </div>
 
@@ -790,15 +799,15 @@
     <h2>PDF</h2>
     <div class="row wrap">
       <label class="template">
-        <span class="sr-only">PDF template</span>
+        <span class="sr-only">{t("editor.pdfTemplate")}</span>
         <select bind:value={template} onchange={saveTemplate}>
-          <option value="classic">Classic</option>
-          <option value="modern">Modern</option>
-          <option value="minimal">Minimal</option>
+          <option value="classic">{t("editor.templateClassic")}</option>
+          <option value="modern">{t("editor.templateModern")}</option>
+          <option value="minimal">{t("editor.templateMinimal")}</option>
         </select>
       </label>
       <button class="btn" onclick={exportPdf} disabled={exporting}>
-        {exporting ? "Exporting…" : "Export PDF"}
+        {exporting ? t("action.exporting") : t("action.exportPdf")}
       </button>
       {#if exportMessage}<span class="muted">{exportMessage}</span>{/if}
     </div>

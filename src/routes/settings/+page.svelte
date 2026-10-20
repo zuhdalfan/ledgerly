@@ -3,6 +3,7 @@
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
   import { emptyToNull, nullToEmpty } from "$lib/format";
+  import { t } from "$lib/i18n.svelte";
   import type { BusinessInput } from "$lib/types";
   import AsyncState from "$lib/components/AsyncState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
@@ -106,7 +107,7 @@
     const path = await openDialog({
       multiple: false,
       directory: false,
-      filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg"] }],
+      filters: [{ name: t("settings.business.imagesFilter"), extensions: ["png", "jpg", "jpeg"] }],
     });
     if (typeof path !== "string") return;
 
@@ -136,114 +137,122 @@
 </script>
 
 <PageHeader
-  title="Business"
-  subtitle="Your details, and the wording that fills into every new invoice."
+  title={t("settings.nav.business")}
+  subtitle={t("settings.business.subtitle")}
 />
 
 <AsyncState {loading} {error} rows={5} columns={2}>
   <div class="card">
-    <h2>Business profile</h2>
+    <h2>{t("settings.business.profileTitle")}</h2>
 
     <div class="field">
-      <label for="chooseLogo">Logo</label>
+      <label for="chooseLogo">{t("settings.business.logo")}</label>
       <div class="logo-row">
         {#if logoUrl}
-          <img class="logo-preview" src={logoUrl} alt="Your business logo" />
+          <img class="logo-preview" src={logoUrl} alt={t("settings.business.logoAlt")} />
         {:else}
           <div class="logo-preview logo-empty" aria-hidden="true">LOGO</div>
         {/if}
         <div class="row wrap">
           <button id="chooseLogo" class="btn secondary" onclick={chooseLogo} disabled={logoBusy}>
-            {logoUrl ? "Replace image…" : "Choose image…"}
+            {logoUrl ? t("settings.business.replaceImage") : t("settings.business.chooseImage")}
           </button>
           {#if logoUrl}
-            <button class="btn secondary" onclick={removeLogo} disabled={logoBusy}>Remove</button>
+            <button class="btn secondary" onclick={removeLogo} disabled={logoBusy}>
+              {t("action.remove")}
+            </button>
           {/if}
         </div>
       </div>
-      <p class="hint">PNG or JPEG, up to 2 MB. It prints at the top of every invoice, estimate and statement.</p>
+      <p class="hint">{t("settings.business.logoHint")}</p>
     </div>
 
     <div class="field">
-      <label for="displayName">Business name</label>
-      <input id="displayName" bind:value={form.displayName} placeholder="Your business" />
+      <label for="displayName">{t("settings.business.name")}</label>
+      <input
+        id="displayName"
+        bind:value={form.displayName}
+        placeholder={t("settings.business.namePlaceholder")}
+      />
     </div>
 
     <div class="grid-2">
       <div class="field">
-        <label for="legalName">Legal name</label>
+        <label for="legalName">{t("settings.business.legalName")}</label>
         <input id="legalName" bind:value={form.legalName} />
       </div>
       <div class="field">
-        <label for="taxId">Tax / VAT ID</label>
+        <label for="taxId">{t("common.taxId")}</label>
         <input id="taxId" bind:value={form.taxId} />
       </div>
       <div class="field">
-        <label for="email">Email</label>
+        <label for="email">{t("common.email")}</label>
         <input id="email" type="email" bind:value={form.email} />
       </div>
       <div class="field">
-        <label for="phone">Phone</label>
+        <label for="phone">{t("common.phone")}</label>
         <input id="phone" bind:value={form.phone} />
       </div>
       <div class="field">
-        <label for="website">Website</label>
+        <label for="website">{t("common.website")}</label>
         <input id="website" bind:value={form.website} />
       </div>
       <div class="field">
-        <label for="defaultCurrency">Default currency</label>
+        <label for="defaultCurrency">{t("settings.business.defaultCurrency")}</label>
         <input id="defaultCurrency" bind:value={form.defaultCurrency} />
       </div>
     </div>
 
-    <h2 class="spaced">Address</h2>
+    <h2 class="spaced">{t("settings.business.address")}</h2>
     <div class="grid-2">
       <div class="field">
-        <label for="addressLine1">Address line 1</label>
+        <label for="addressLine1">{t("common.addressLine1")}</label>
         <input id="addressLine1" bind:value={form.addressLine1} />
       </div>
       <div class="field">
-        <label for="addressLine2">Address line 2</label>
+        <label for="addressLine2">{t("common.addressLine2")}</label>
         <input id="addressLine2" bind:value={form.addressLine2} />
       </div>
       <div class="field">
-        <label for="city">City</label>
+        <label for="city">{t("common.city")}</label>
         <input id="city" bind:value={form.city} />
       </div>
       <div class="field">
-        <label for="region">Region / state</label>
+        <label for="region">{t("common.region")}</label>
         <input id="region" bind:value={form.region} />
       </div>
       <div class="field">
-        <label for="postalCode">Postal code</label>
+        <label for="postalCode">{t("common.postalCode")}</label>
         <input id="postalCode" bind:value={form.postalCode} />
       </div>
       <div class="field">
-        <label for="country">Country</label>
+        <label for="country">{t("common.country")}</label>
         <input id="country" bind:value={form.country} />
       </div>
     </div>
 
-    <h2 class="spaced">Invoice defaults</h2>
+    <h2 class="spaced">{t("settings.business.invoiceDefaults")}</h2>
     <div class="field">
-      <label for="defaultTerms">Default terms</label>
+      <label for="defaultTerms">{t("settings.business.defaultTerms")}</label>
       <input id="defaultTerms" bind:value={form.defaultTerms} placeholder="Net 30" />
     </div>
     <div class="field">
-      <label for="defaultNotes">Default notes</label>
+      <label for="defaultNotes">{t("settings.business.defaultNotes")}</label>
       <textarea id="defaultNotes" bind:value={form.defaultNotes}></textarea>
     </div>
     <div class="field">
-      <label for="defaultPaymentInstructions">Payment instructions</label>
+      <label for="defaultPaymentInstructions">
+        {t("settings.business.paymentInstructions")}
+      </label>
       <textarea id="defaultPaymentInstructions" bind:value={form.defaultPaymentInstructions}
       ></textarea>
     </div>
 
     <div class="row wrap">
       <button class="btn" onclick={save} disabled={saving}>
-        {saving ? "Saving…" : "Save business details"}
+        {saving ? t("action.saving") : t("action.saveBusiness")}
       </button>
-      {#if saved}<span class="ok">Saved</span>{/if}
+      {#if saved}<span class="ok">{t("action.saved")}</span>{/if}
       {#if error}<span class="error">{error}</span>{/if}
     </div>
   </div>

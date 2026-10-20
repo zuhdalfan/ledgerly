@@ -16,6 +16,7 @@
     toMinor,
   } from "$lib/format";
   import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
+  import { plural, t } from "$lib/i18n.svelte";
   import type { Client, Estimate, EstimateInput, InvoiceTotals, TaxRate } from "$lib/types";
 
   let clients = $state<Client[]>([]);
@@ -77,7 +78,7 @@
   // loaded or saved, so an untouched form never nags.
   let baseline = $state("");
   const dirty = $derived(baseline !== "" && JSON.stringify(toInput()) !== baseline);
-  useDirtyGuard(() => dirty, "This estimate has unsaved changes. Leave and lose them?");
+  useDirtyGuard(() => dirty, t("estimate.unsaved"));
 
   /// Status and expiry are derived on the Rust side.
   function applyEstimate(estimate: Estimate) {
@@ -135,7 +136,7 @@
 
       const estimate = await api.estimates.get(id);
       if (!estimate) {
-        loadError = "Estimate not found.";
+        loadError = t("estimate.notFound");
         return;
       }
 
@@ -336,7 +337,7 @@
 
       await api.estimates.exportPdf(id, path, template);
       await api.openInViewer(path);
-      exportMessage = `Saved to ${path}`;
+      exportMessage = t("editor.savedTo", { path });
     } catch (e) {
       exportMessage = String(e);
     } finally {
@@ -347,19 +348,19 @@
 
 <div class="page-head">
   <div class="row">
-    <h1>{isNew ? "New estimate" : number || "Estimate"}</h1>
+    <h1>{isNew ? t("action.newEstimate") : number || t("estimate.fallbackTitle")}</h1>
     {#if !isNew}
       <span class={`badge ${displayStatus}`}>{statusLabel(displayStatus)}</span>
     {/if}
   </div>
-  <a class="link" href="/estimates">Back to estimates</a>
+  <a class="link" href="/estimates">{t("action.backToEstimates")}</a>
 </div>
 
 {#if loadError}<p class="error" role="alert">{loadError}</p>{/if}
 
 {#if loading}
   <div class="card">
-    <h2>Details</h2>
+    <h2>{t("editor.details")}</h2>
     <Skeleton rows={6} columns={2} />
   </div>
 {:else}
@@ -367,34 +368,38 @@
 {#if converted && convertedInvoiceId}
   <div class="card">
     <p>
-      This estimate was converted to an invoice.
-      <a class="link" href={`/invoices/${convertedInvoiceId}`}>Open the invoice</a>
+      {t("estimate.converted")}
+      <a class="link" href={`/invoices/${convertedInvoiceId}`}>{t("action.openInvoice")}</a>
     </p>
   </div>
 {:else if daysUntilExpiry !== null && daysUntilExpiry < 0}
   <div class="card">
-    <p class="error">This estimate expired on {validUntil}.</p>
+    <p class="error">{t("estimate.expired", { date: validUntil })}</p>
   </div>
 {:else if daysUntilExpiry !== null && daysUntilExpiry <= 7}
   <div class="card">
-    <p class="muted">Expires in {daysUntilExpiry} day(s), on {validUntil}.</p>
+    <p class="muted">
+      {plural(daysUntilExpiry, "estimate.expiresInOne", "estimate.expiresInOther", {
+        date: validUntil,
+      })}
+    </p>
   </div>
 {/if}
 
 <div class="card">
-  <h2>Details</h2>
+  <h2>{t("editor.details")}</h2>
   <div class="grid-2">
     <div class="field">
-      <label for="client">Client</label>
+      <label for="client">{t("common.client")}</label>
       <div class="row">
         <select id="client" bind:value={clientId}>
-          <option value="">None</option>
+          <option value="">{t("common.none")}</option>
           {#each clients as client (client.id)}
             <option value={client.id}>{client.displayName}</option>
           {/each}
         </select>
         <button class="btn secondary" onclick={() => (newClientOpen = !newClientOpen)}>
-          New client
+          {t("action.newClient")}
         </button>
       </div>
     </div>
@@ -403,49 +408,51 @@
       <div class="inline-new">
         <div class="grid-2">
           <div class="field">
-            <label for="newClientName">Client name</label>
+            <label for="newClientName">{t("editor.clientName")}</label>
             <input id="newClientName" bind:value={newClientName} />
           </div>
           <div class="field">
-            <label for="newClientEmail">Email</label>
+            <label for="newClientEmail">{t("common.email")}</label>
             <input id="newClientEmail" type="email" bind:value={newClientEmail} />
           </div>
         </div>
         <div class="row wrap">
           <button class="btn" onclick={createClient} disabled={newClientBusy || !newClientName.trim()}>
-            Add client
+            {t("action.addClient")}
           </button>
-          <button class="btn secondary" onclick={() => (newClientOpen = false)}>Cancel</button>
+          <button class="btn secondary" onclick={() => (newClientOpen = false)}>
+            {t("action.cancel")}
+          </button>
           {#if newClientError}<span class="error">{newClientError}</span>{/if}
         </div>
       </div>
     {/if}
     <div class="field">
-      <label for="po">PO / reference</label>
+      <label for="po">{t("common.poReference")}</label>
       <input id="po" bind:value={poReference} />
     </div>
     <div class="field">
-      <label for="issue">Issue date</label>
+      <label for="issue">{t("editor.issueDate")}</label>
       <input id="issue" type="date" bind:value={issueDate} />
     </div>
     <div class="field">
-      <label for="valid">Valid until</label>
+      <label for="valid">{t("common.validUntil")}</label>
       <input id="valid" type="date" bind:value={validUntil} />
     </div>
     <div class="field">
-      <label for="currency">Currency</label>
+      <label for="currency">{t("common.currency")}</label>
       <input id="currency" bind:value={currency} />
     </div>
     <div class="field">
-      <label for="status">Status</label>
+      <label for="status">{t("common.status")}</label>
       {#if isNew || converted}
         <input id="status" value={statusLabel(displayStatus)} disabled />
       {:else}
         <select id="status" value={status} onchange={(e) => changeStatus(e.currentTarget.value)}>
-          <option value="draft">Draft</option>
-          <option value="sent">Sent</option>
-          <option value="accepted">Accepted</option>
-          <option value="declined">Declined</option>
+          <option value="draft">{t("status.draft")}</option>
+          <option value="sent">{t("status.sent")}</option>
+          <option value="accepted">{t("status.accepted")}</option>
+          <option value="declined">{t("status.declined")}</option>
         </select>
       {/if}
     </div>
@@ -453,27 +460,24 @@
 </div>
 
 <div class="card">
-  <h2>Line items</h2>
+  <h2>{t("editor.lineItems")}</h2>
   <LineItems bind:items {taxRates} {currency} lines={totals?.lines ?? []} />
 </div>
 
 <div class="card">
-  <h2>Totals</h2>
+  <h2>{t("editor.totals")}</h2>
   {#if previewError}
-    <p class="error" role="alert">
-      The live preview could not be calculated, so these figures may be out of date. Saving
-      recomputes them.
-    </p>
+    <p class="error" role="alert">{t("editor.previewStale")}</p>
   {/if}
   <div class="grid-2">
     <div>
       <div class="field">
-        <label for="discType">Estimate discount</label>
+        <label for="discType">{t("estimate.discount")}</label>
         <div class="row">
           <select id="discType" bind:value={discountType} style="width: auto;">
-            <option value="">None</option>
-            <option value="percent">Percent</option>
-            <option value="fixed">Fixed</option>
+            <option value="">{t("common.none")}</option>
+            <option value="percent">{t("common.percent")}</option>
+            <option value="fixed">{t("common.fixed")}</option>
           </select>
           {#if discountType}
             <input bind:value={discountValue} inputmode="decimal" placeholder="0" />
@@ -484,11 +488,17 @@
     <div>
       <table>
         <tbody>
-          <tr><td>Subtotal</td><td>{fromMinor(summary.subtotalMinor, currency)}</td></tr>
-          <tr><td>Discount</td><td>−{fromMinor(summary.discountMinor, currency)}</td></tr>
-          <tr><td>Tax</td><td>{fromMinor(summary.taxMinor, currency)}</td></tr>
           <tr>
-            <td><strong>Total</strong></td>
+            <td>{t("common.subtotal")}</td>
+            <td>{fromMinor(summary.subtotalMinor, currency)}</td>
+          </tr>
+          <tr>
+            <td>{t("common.discount")}</td>
+            <td>−{fromMinor(summary.discountMinor, currency)}</td>
+          </tr>
+          <tr><td>{t("common.tax")}</td><td>{fromMinor(summary.taxMinor, currency)}</td></tr>
+          <tr>
+            <td><strong>{t("common.total")}</strong></td>
             <td><strong>{fromMinor(summary.totalMinor, currency)}</strong></td>
           </tr>
         </tbody>
@@ -498,34 +508,34 @@
 </div>
 
 <div class="card">
-  <h2>Notes &amp; terms</h2>
+  <h2>{t("editor.notesTerms")}</h2>
   <div class="field">
-    <label for="notes">Notes</label>
+    <label for="notes">{t("common.notes")}</label>
     <textarea id="notes" bind:value={notes}></textarea>
   </div>
   <div class="field">
-    <label for="terms">Terms</label>
+    <label for="terms">{t("common.terms")}</label>
     <textarea id="terms" bind:value={terms}></textarea>
   </div>
   <div class="field">
-    <label for="payments">Payment instructions</label>
+    <label for="payments">{t("settings.business.paymentInstructions")}</label>
     <textarea id="payments" bind:value={paymentInstructions}></textarea>
   </div>
 </div>
 
 <div class="row wrap actions">
   <button class="btn" onclick={save} disabled={saving || converted}>
-    {saving ? "Saving…" : "Save"}
+    {saving ? t("action.saving") : t("action.save")}
   </button>
   {#if !isNew}
-    <button class="btn secondary" onclick={duplicate}>Duplicate</button>
+    <button class="btn secondary" onclick={duplicate}>{t("action.duplicate")}</button>
     {#if !converted}
       <button class="btn" onclick={convert} disabled={converting}>
-        {converting ? "Converting…" : "Convert to invoice"}
+        {converting ? t("action.converting") : t("action.convertToInvoice")}
       </button>
     {/if}
   {/if}
-  {#if saved}<span class="ok">Saved</span>{/if}
+  {#if saved}<span class="ok">{t("action.saved")}</span>{/if}
   {#if saveError}<span class="error">{saveError}</span>{/if}
 </div>
 
@@ -534,15 +544,15 @@
     <h2>PDF</h2>
     <div class="row wrap">
       <label class="template">
-        <span class="sr-only">PDF template</span>
+        <span class="sr-only">{t("editor.pdfTemplate")}</span>
         <select bind:value={template} onchange={saveTemplate}>
-          <option value="classic">Classic</option>
-          <option value="modern">Modern</option>
-          <option value="minimal">Minimal</option>
+          <option value="classic">{t("editor.templateClassic")}</option>
+          <option value="modern">{t("editor.templateModern")}</option>
+          <option value="minimal">{t("editor.templateMinimal")}</option>
         </select>
       </label>
       <button class="btn" onclick={exportPdf} disabled={exporting}>
-        {exporting ? "Exporting…" : "Export PDF"}
+        {exporting ? t("action.exporting") : t("action.exportPdf")}
       </button>
       {#if exportMessage}<span class="muted">{exportMessage}</span>{/if}
     </div>

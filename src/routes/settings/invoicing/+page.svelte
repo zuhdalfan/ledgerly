@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "$lib/api";
+  import { t } from "$lib/i18n.svelte";
   import type { TaxRate } from "$lib/types";
   import AsyncState from "$lib/components/AsyncState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
@@ -111,7 +112,7 @@
     error = "";
     try {
       await api.settings.set("pdf.locale", documentLocale);
-      localeMessage = "Document language saved";
+      localeMessage = t("settings.invoicing.languageSaved");
     } catch (e) {
       error = String(e);
     }
@@ -119,44 +120,50 @@
 </script>
 
 <PageHeader
-  title="Invoicing"
-  subtitle="Tax rates, how invoices are numbered, and the language your documents print in."
+  title={t("settings.nav.invoicing")}
+  subtitle={t("settings.invoicing.subtitle")}
 />
 
 <AsyncState {loading} {error} rows={5} columns={2}>
   <div class="card">
-    <h2>Tax rates</h2>
+    <h2>{t("settings.invoicing.taxRates")}</h2>
 
     <div class="add-row">
       <div class="field">
-        <label for="taxName">Name</label>
-        <input id="taxName" bind:value={taxName} placeholder="VAT" />
+        <label for="taxName">{t("common.name")}</label>
+        <input
+          id="taxName"
+          bind:value={taxName}
+          placeholder={t("settings.invoicing.taxNamePlaceholder")}
+        />
       </div>
       <div class="field rate">
-        <label for="taxPercent">Rate %</label>
+        <label for="taxPercent">{t("settings.invoicing.ratePercent")}</label>
         <input id="taxPercent" bind:value={taxPercent} inputmode="decimal" placeholder="20" />
       </div>
-      <button class="btn" onclick={addTaxRate} disabled={!taxName.trim()}>Add tax rate</button>
+      <button class="btn" onclick={addTaxRate} disabled={!taxName.trim()}>
+        {t("action.addTaxRate")}
+      </button>
     </div>
 
     {#if taxRates.length === 0}
-      <p class="muted">No tax rates yet.</p>
+      <p class="muted">{t("settings.invoicing.noTaxRates")}</p>
     {:else}
       <table>
         <thead>
-          <tr><th>Name</th><th>Rate</th><th></th></tr>
+          <tr><th>{t("common.name")}</th><th>{t("common.rate")}</th><th></th></tr>
         </thead>
         <tbody>
           {#each taxRates as rate (rate.id)}
             <tr>
               <td>
                 {rate.name}
-                {#if rate.archivedAt}<span class="muted"> (archived)</span>{/if}
+                {#if rate.archivedAt}<span class="muted"> {t("common.archived")}</span>{/if}
               </td>
               <td>{(rate.rateBp / 100).toFixed(2)}%</td>
               <td>
                 <button class="btn secondary" onclick={() => toggleTaxRate(rate)}>
-                  {rate.archivedAt ? "Restore" : "Archive"}
+                  {rate.archivedAt ? t("action.restore") : t("action.archive")}
                 </button>
               </td>
             </tr>
@@ -169,53 +176,55 @@
   </div>
 
   <div class="card">
-    <h2>Invoice numbering</h2>
+    <h2>{t("settings.invoicing.numbering")}</h2>
 
     <div class="grid-2">
       <div class="field">
-        <label for="prefix">Prefix</label>
+        <label for="prefix">{t("settings.invoicing.prefix")}</label>
         <input id="prefix" bind:value={prefix} placeholder="INV-" />
       </div>
       <div class="field">
-        <label for="nextValue">Next number</label>
+        <label for="nextValue">{t("settings.invoicing.nextNumber")}</label>
         <input id="nextValue" type="number" min="1" bind:value={nextValue} />
       </div>
       <div class="field">
-        <label for="padding">Zero padding</label>
+        <label for="padding">{t("settings.invoicing.padding")}</label>
         <input id="padding" type="number" min="1" max="12" bind:value={padding} />
       </div>
       <div class="field">
-        <span class="field-label">Year in the number</span>
+        <span class="field-label">{t("settings.invoicing.yearInNumber")}</span>
         <label class="row muted">
           <input id="reset" type="checkbox" bind:checked={resetYearly} />
-          Include the year, and restart at 1 each January
+          {t("settings.invoicing.yearToggle")}
         </label>
       </div>
     </div>
 
-    <p class="muted">Next invoice will be <code class="inline">{numberPreview}</code></p>
+    <p class="muted">
+      {t("settings.invoicing.nextPreview")} <code class="inline">{numberPreview}</code>
+    </p>
 
     <div class="row wrap">
-      <button class="btn" onclick={saveNumbering}>Save numbering</button>
-      {#if numberSaved}<span class="ok">Saved</span>{/if}
+      <button class="btn" onclick={saveNumbering}>{t("action.saveNumbering")}</button>
+      {#if numberSaved}<span class="ok">{t("action.saved")}</span>{/if}
       {#if numberError}<span class="error">{numberError}</span>{/if}
     </div>
   </div>
 
   <div class="card">
-    <h2>Document language</h2>
-    <p class="muted">
-      The language used for the labels printed on invoices and estimates. The app itself is in
-      English.
-    </p>
+    <h2>{t("settings.invoicing.documentLanguage")}</h2>
+    <p class="muted">{t("settings.invoicing.documentLanguageBody")}</p>
     <div class="row wrap">
       <label class="locale">
-        <span class="sr-only">Document language</span>
+        <span class="sr-only">{t("settings.invoicing.documentLanguage")}</span>
         <select bind:value={documentLocale}>
           <option value="en">English</option>
+          <option value="id">Bahasa Indonesia</option>
         </select>
       </label>
-      <button class="btn secondary" onclick={saveDocumentLocale}>Save language</button>
+      <button class="btn secondary" onclick={saveDocumentLocale}>
+        {t("action.saveLanguage")}
+      </button>
       {#if localeMessage}<span class="ok">{localeMessage}</span>{/if}
     </div>
   </div>

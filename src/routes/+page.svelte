@@ -7,7 +7,7 @@
   import ColumnChart from "$lib/components/ColumnChart.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import { reminder } from "$lib/chase";
-  import { t, plural } from "$lib/i18n.svelte";
+  import { t, plural, getLocale } from "$lib/i18n.svelte";
 
   let info = $state<AppInfo | null>(null);
   let business = $state<Business | null>(null);
@@ -136,7 +136,7 @@
 
   function monthLabel(period: string): string {
     const [year, month] = period.split("-");
-    return new Date(Number(year), Number(month) - 1, 1).toLocaleString(undefined, {
+    return new Date(Number(year), Number(month) - 1, 1).toLocaleString(getLocale(), {
       month: "short",
     });
   }

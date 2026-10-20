@@ -9,6 +9,7 @@
   import EmptyState from "$lib/components/EmptyState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import { useDirtyGuard } from "$lib/guard";
+  import { plural, t } from "$lib/i18n.svelte";
 
   type Form = Record<keyof ClientInput, string>;
 
@@ -47,7 +48,7 @@
   // so an untouched form never nags.
   let baseline = $state("");
   const dirty = $derived(baseline !== "" && JSON.stringify(toInput()) !== baseline);
-  useDirtyGuard(() => dirty, "This client has unsaved changes. Leave and lose them?");
+  useDirtyGuard(() => dirty, t("client.unsaved"));
 
   // Invoices can be in different currencies, so a single total would be a lie.
   const outstanding = $derived.by(() => {
@@ -71,7 +72,7 @@
     try {
       const client = await api.clients.get(id);
       if (!client) {
-        loadError = "Client not found.";
+        loadError = t("client.notFound");
         return;
       }
       form = {
@@ -134,7 +135,7 @@
 
       await api.clients.exportStatement(id, path);
       await api.openInViewer(path);
-      statementMessage = `Statement saved to ${path}`;
+      statementMessage = t("client.statementSaved", { path });
     } catch (e) {
       statementMessage = String(e);
     } finally {
@@ -165,7 +166,7 @@
     saveError = "";
     saved = false;
     if (!form.displayName.trim()) {
-      saveError = "Name is required.";
+      saveError = t("client.nameRequired");
       return;
     }
 
@@ -204,16 +205,18 @@
   }
 </script>
 
-<PageHeader title={isNew ? "New client" : form.displayName || "Client"}>
+<PageHeader
+  title={isNew ? t("action.newClient") : form.displayName || t("client.fallbackTitle")}
+>
   {#if !isNew}
-    <a class="btn" href={`/invoices/new?client=${id}`}>New invoice</a>
-    <a class="btn secondary" href={`/estimates/new?client=${id}`}>New estimate</a>
+    <a class="btn" href={`/invoices/new?client=${id}`}>{t("action.newInvoice")}</a>
+    <a class="btn secondary" href={`/estimates/new?client=${id}`}>{t("action.newEstimate")}</a>
     <button
       class="btn secondary"
       onclick={exportStatement}
       disabled={statementBusy || outstanding.length === 0}
     >
-      {statementBusy ? "Building…" : "Statement"}
+      {statementBusy ? t("action.building") : t("action.statement")}
     </button>
   {/if}
 </PageHeader>
@@ -226,11 +229,11 @@
 
 {#if !isNew}
   <div class="card rise" style="--i: 0">
-    <h2>Balance</h2>
+    <h2>{t("common.balance")}</h2>
     {#if documentsLoading}
-      <p class="muted">Adding up their invoices…</p>
+      <p class="muted">{t("client.addingUp")}</p>
     {:else if outstanding.length === 0}
-      <p class="muted">Nothing outstanding. Every invoice is settled.</p>
+      <p class="muted">{t("client.nothingOutstanding")}</p>
     {:else}
       <div class="figures">
         {#each outstanding as total (total.code)}
@@ -242,34 +245,35 @@
       </div>
       {#if overdueCount > 0}
         <p class="error">
-          {overdueCount}
-          {overdueCount === 1 ? "invoice is" : "invoices are"} overdue.
-          <a class="link" href={`/invoices?status=overdue`}>See them all</a>
+          {plural(overdueCount, "client.overdueOne", "client.overdueOther")}
+          <a class="link" href={`/invoices?status=overdue`}>{t("action.seeThemAll")}</a>
         </p>
       {/if}
     {/if}
   </div>
 
   <div class="card rise" style="--i: 1">
-    <h2>Invoices</h2>
+    <h2>{t("common.invoices")}</h2>
     {#if documentsLoading}
-      <p class="muted">Reading their invoices…</p>
+      <p class="muted">{t("client.readingInvoices")}</p>
     {:else if invoices.length === 0}
       <EmptyState
-        title="No invoices for {form.displayName || "this client"} yet"
-        body="When you bill them, it will show up here with what is still owed."
+        title={t("client.noInvoicesTitle", {
+          client: form.displayName || t("client.fallbackTitle"),
+        })}
+        body={t("client.noInvoicesBody")}
       >
-        <a class="btn" href={`/invoices/new?client=${id}`}>Create an invoice</a>
+        <a class="btn" href={`/invoices/new?client=${id}`}>{t("action.createInvoice")}</a>
       </EmptyState>
     {:else}
       <table>
         <thead>
           <tr>
-            <th>Number</th>
-            <th>Issued</th>
-            <th>Due</th>
-            <th class="numeric">Balance</th>
-            <th>Status</th>
+            <th>{t("common.number")}</th>
+            <th>{t("common.issued")}</th>
+            <th>{t("common.due")}</th>
+            <th class="numeric">{t("common.balance")}</th>
+            <th>{t("common.status")}</th>
           </tr>
         </thead>
         <tbody>
@@ -292,25 +296,24 @@
   </div>
 
   <div class="card rise" style="--i: 2">
-    <h2>Estimates</h2>
+    <h2>{t("nav.estimates")}</h2>
     {#if documentsLoading}
-      <p class="muted">Reading their estimates…</p>
+      <p class="muted">{t("client.readingEstimates")}</p>
     {:else if estimates.length === 0}
-      <EmptyState
-        title="No estimates yet"
-        body="A quote for this client, ready to convert into an invoice once the work is agreed."
-      >
-        <a class="btn secondary" href={`/estimates/new?client=${id}`}>Create an estimate</a>
+      <EmptyState title={t("estimates.none")} body={t("client.noEstimatesBody")}>
+        <a class="btn secondary" href={`/estimates/new?client=${id}`}>
+          {t("action.createEstimate")}
+        </a>
       </EmptyState>
     {:else}
       <table>
         <thead>
           <tr>
-            <th>Number</th>
-            <th>Issued</th>
-            <th>Valid until</th>
-            <th class="numeric">Total</th>
-            <th>Status</th>
+            <th>{t("common.number")}</th>
+            <th>{t("common.issued")}</th>
+            <th>{t("common.validUntil")}</th>
+            <th class="numeric">{t("common.total")}</th>
+            <th>{t("common.status")}</th>
           </tr>
         </thead>
         <tbody>
@@ -334,88 +337,92 @@
 {/if}
 
 <div class="card">
-  <h2>{isNew ? "Details" : "Their details"}</h2>
+  <h2>{isNew ? t("editor.details") : t("client.theirDetails")}</h2>
 
   <div class="field">
-    <label for="displayName">Name *</label>
-    <input id="displayName" bind:value={form.displayName} placeholder="Client or company name" />
+    <label for="displayName">{t("catalog.nameLabel")}</label>
+    <input
+      id="displayName"
+      bind:value={form.displayName}
+      placeholder={t("client.namePlaceholder")}
+    />
   </div>
 
   <div class="grid-2">
     <div class="field">
-      <label for="company">Company</label>
+      <label for="company">{t("common.company")}</label>
       <input id="company" bind:value={form.company} />
     </div>
     <div class="field">
-      <label for="contactPerson">Contact person</label>
+      <label for="contactPerson">{t("common.contactPerson")}</label>
       <input id="contactPerson" bind:value={form.contactPerson} />
     </div>
     <div class="field">
-      <label for="email">Email</label>
+      <label for="email">{t("common.email")}</label>
       <input id="email" type="email" bind:value={form.email} />
     </div>
     <div class="field">
-      <label for="phone">Phone</label>
+      <label for="phone">{t("common.phone")}</label>
       <input id="phone" bind:value={form.phone} />
     </div>
   </div>
 
-  <h2 class="spaced">Address</h2>
+  <h2 class="spaced">{t("settings.business.address")}</h2>
   <div class="grid-2">
     <div class="field">
-      <label for="addressLine1">Address line 1</label>
+      <label for="addressLine1">{t("common.addressLine1")}</label>
       <input id="addressLine1" bind:value={form.addressLine1} />
     </div>
     <div class="field">
-      <label for="addressLine2">Address line 2</label>
+      <label for="addressLine2">{t("common.addressLine2")}</label>
       <input id="addressLine2" bind:value={form.addressLine2} />
     </div>
     <div class="field">
-      <label for="city">City</label>
+      <label for="city">{t("common.city")}</label>
       <input id="city" bind:value={form.city} />
     </div>
     <div class="field">
-      <label for="region">Region / state</label>
+      <label for="region">{t("common.region")}</label>
       <input id="region" bind:value={form.region} />
     </div>
     <div class="field">
-      <label for="postalCode">Postal code</label>
+      <label for="postalCode">{t("common.postalCode")}</label>
       <input id="postalCode" bind:value={form.postalCode} />
     </div>
     <div class="field">
-      <label for="country">Country</label>
+      <label for="country">{t("common.country")}</label>
       <input id="country" bind:value={form.country} />
     </div>
   </div>
 
-  <h2 class="spaced">Billing</h2>
+  <h2 class="spaced">{t("client.billing")}</h2>
   <div class="grid-2">
     <div class="field">
-      <label for="taxId">Tax / VAT ID</label>
+      <label for="taxId">{t("common.taxId")}</label>
       <input id="taxId" bind:value={form.taxId} />
     </div>
     <div class="field">
-      <label for="currency">Currency</label>
+      <label for="currency">{t("common.currency")}</label>
       <input id="currency" bind:value={form.currency} placeholder="USD" />
     </div>
   </div>
 
   <div class="field">
-    <label for="notes">Notes</label>
+    <label for="notes">{t("common.notes")}</label>
     <textarea id="notes" bind:value={form.notes}></textarea>
   </div>
 
   <div class="row wrap">
     <button class="btn" onclick={save} disabled={saving}>
-      {saving ? "Saving…" : "Save client"}
+      {saving ? t("action.saving") : t("action.saveClient")}
     </button>
     {#if !isNew}
       <button class="btn secondary" onclick={toggleArchive}>
-        {archived ? "Restore" : "Archive"}
+        {archived ? t("action.restore") : t("action.archive")}
       </button>
-      <a class="link" href="/clients">Back to clients</a>
+      <a class="link" href="/clients">{t("action.backToClients")}</a>
     {/if}
-    {#if saved}<span class="ok">Saved</span>{/if}
+    {#if saved}<span class="ok">{t("action.saved")}</span>{/if}
     {#if saveError}<span class="error">{saveError}</span>{/if}
   </div>
 </div>

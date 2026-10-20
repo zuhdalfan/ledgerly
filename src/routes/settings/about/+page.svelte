@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "$lib/api";
+  import { t } from "$lib/i18n.svelte";
   import type { AppInfo } from "$lib/types";
   import AsyncState from "$lib/components/AsyncState.svelte";
   import Logo from "$lib/components/Logo.svelte";
@@ -21,7 +22,7 @@
   });
 </script>
 
-<PageHeader title="About" />
+<PageHeader title={t("settings.nav.about")} />
 
 <AsyncState {loading} {error} rows={3} columns={1}>
   <div class="card">
@@ -29,15 +30,12 @@
       <Logo size={44} />
       <div>
         <h2>{info?.name ?? "Ledgerly"} {info?.version ? `v${info.version}` : ""}</h2>
-        <p class="muted">Offline invoicing for freelancers and small businesses.</p>
+        <p class="muted">{t("settings.about.tagline")}</p>
       </div>
     </div>
-    <p class="muted">
-      Fully local and fully offline. No account, no cloud, no telemetry, and no network code at
-      all: the build fails if an HTTP client ever appears in the dependency graph.
-    </p>
+    <p class="muted">{t("settings.about.body")}</p>
     <p class="muted spaced">
-      Source code:
+      {t("settings.about.source")}
       <a class="link" href="https://github.com/zuhdalfan/ledgerly" target="_blank" rel="noreferrer">
         github.com/zuhdalfan/ledgerly
       </a>
@@ -45,10 +43,10 @@
   </div>
 
   <div class="card">
-    <h2>Where things are</h2>
-    <p class="muted">Data directory</p>
+    <h2>{t("settings.about.where")}</h2>
+    <p class="muted">{t("settings.about.dataDir")}</p>
     <code>{info?.dataDir ?? "—"}</code>
-    <p class="muted spaced">Database file</p>
+    <p class="muted spaced">{t("settings.about.databaseFile")}</p>
     <code>{info?.databasePath ?? "—"}</code>
   </div>
 </AsyncState>

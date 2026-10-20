@@ -2,6 +2,7 @@
   import { api } from "$lib/api";
   import { fromMinor, minorToInput } from "$lib/format";
   import { emptyItem, type ItemForm } from "$lib/lineItems";
+  import { t } from "$lib/i18n.svelte";
   import type { CatalogItem, LineTotals, TaxRate } from "$lib/types";
 
   let {
@@ -18,7 +19,8 @@
 
   // Row inputs sit under column headers, which does not name them for a screen
   // reader, so every control carries the column and its row.
-  const name = (column: string, index: number) => `${column}, line ${index + 1}`;
+  const name = (column: string, index: number) =>
+    t("lineItems.aria", { column, line: index + 1 });
 
   function addItem() {
     items = [...items, emptyItem()];
@@ -81,15 +83,15 @@
   <table>
     <thead>
       <tr>
-        <th class="wide">Description</th>
-        <th class="qty">Qty</th>
-        <th class="unit">Unit</th>
-        <th class="money">Price</th>
-        <th class="money">Disc.</th>
-        <th class="value">Value</th>
-        <th class="tax">Tax</th>
-        <th class="incl">Incl.</th>
-        <th class="total">Total</th>
+        <th class="wide">{t("common.description")}</th>
+        <th class="qty">{t("lineItems.qty")}</th>
+        <th class="unit">{t("common.unit")}</th>
+        <th class="money">{t("common.price")}</th>
+        <th class="money">{t("lineItems.discount")}</th>
+        <th class="value">{t("lineItems.value")}</th>
+        <th class="tax">{t("common.tax")}</th>
+        <th class="incl">{t("lineItems.incl")}</th>
+        <th class="total">{t("common.total")}</th>
         <th></th>
       </tr>
     </thead>
@@ -99,33 +101,40 @@
           <td>
             <input
               bind:value={item.description}
-              placeholder="Description"
-              aria-label={name("Description", index)}
+              placeholder={t("common.description")}
+              aria-label={name(t("common.description"), index)}
             />
           </td>
           <td>
             <input
               bind:value={item.quantity}
               inputmode="decimal"
-              aria-label={name("Quantity", index)}
+              aria-label={name(t("common.quantity"), index)}
             />
           </td>
           <td>
-            <input bind:value={item.unit} placeholder="hour" aria-label={name("Unit", index)} />
+            <input
+              bind:value={item.unit}
+              placeholder={t("lineItems.unitPlaceholder")}
+              aria-label={name(t("common.unit"), index)}
+            />
           </td>
           <td>
             <input
               bind:value={item.price}
               inputmode="decimal"
               placeholder="0.00"
-              aria-label={name("Unit price", index)}
+              aria-label={name(t("lineItems.unitPrice"), index)}
             />
           </td>
           <td>
-            <select bind:value={item.discountType} aria-label={name("Discount type", index)}>
-              <option value="">None</option>
+            <select
+              bind:value={item.discountType}
+              aria-label={name(t("lineItems.discountType"), index)}
+            >
+              <option value="">{t("lineItems.none")}</option>
               <option value="percent">%</option>
-              <option value="fixed">Fixed</option>
+              <option value="fixed">{t("lineItems.fixed")}</option>
             </select>
           </td>
           <td>
@@ -134,13 +143,13 @@
                 bind:value={item.discountValue}
                 inputmode="decimal"
                 placeholder="0"
-                aria-label={name("Discount amount", index)}
+                aria-label={name(t("lineItems.discountAmount"), index)}
               />
             {/if}
           </td>
           <td>
-            <select bind:value={item.taxRateId} aria-label={name("Tax rate", index)}>
-              <option value="">None</option>
+            <select bind:value={item.taxRateId} aria-label={name(t("lineItems.taxRate"), index)}>
+              <option value="">{t("lineItems.none")}</option>
               {#each taxRates as rate (rate.id)}
                 <option value={rate.id}>{rate.name}</option>
               {/each}
@@ -150,12 +159,16 @@
             <input
               type="checkbox"
               bind:checked={item.taxInclusive}
-              aria-label={name("Price includes tax", index)}
+              aria-label={name(t("lineItems.includesTax"), index)}
             />
           </td>
           <td class="numeric">{fromMinor(lines[index]?.totalMinor ?? 0, currency)}</td>
           <td>
-            <button class="btn secondary" onclick={() => removeItem(index)} aria-label={name("Remove", index)}>
+            <button
+              class="btn secondary"
+              onclick={() => removeItem(index)}
+              aria-label={name(t("action.remove"), index)}
+            >
               ×
             </button>
           </td>
@@ -166,9 +179,9 @@
 </div>
 
 <div class="row actions">
-  <button class="btn secondary" onclick={addItem}>Add line</button>
+  <button class="btn secondary" onclick={addItem}>{t("action.addLine")}</button>
   <button class="btn secondary" onclick={togglePicker} aria-expanded={pickerOpen}>
-    Add from catalog
+    {t("action.addFromCatalog")}
   </button>
 
   {#if pickerOpen}
@@ -180,21 +193,23 @@
       }}
     >
       <label class="search">
-        <span class="sr-only">Search the catalog</span>
+        <span class="sr-only">{t("lineItems.searchCatalog")}</span>
         <!-- svelte-ignore a11y_autofocus -->
         <input
           bind:value={catalogQuery}
-          placeholder="Search the catalog"
+          placeholder={t("lineItems.searchCatalog")}
           autofocus
           spellcheck="false"
         />
       </label>
 
       {#if catalogLoading}
-        <p class="muted note">Reading the catalog…</p>
+        <p class="muted note">{t("lineItems.reading")}</p>
       {:else if matches.length === 0}
         <p class="muted note">
-          Nothing matches. Add items on the <a class="link" href="/catalog">Catalog</a> page.
+          {t("lineItems.noMatchesStart")}
+          <a class="link" href="/catalog">{t("lineItems.catalogPage")}</a>
+          {t("lineItems.noMatchesEnd")}
         </p>
       {:else}
         <ul>

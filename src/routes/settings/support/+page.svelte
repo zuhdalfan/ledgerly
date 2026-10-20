@@ -2,57 +2,45 @@
   import { SUPPORT_URL } from "$lib/support";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import Mascot from "$lib/components/Mascot.svelte";
+  import { t } from "$lib/i18n.svelte";
 
   const year = new Date().getFullYear();
 </script>
 
-<PageHeader
-  title="Support"
-  subtitle="Ledgerly has no paid tier, no account and no upsell. Every feature is yours."
-/>
+<PageHeader title={t("settings.nav.support")} subtitle={t("settings.support.subtitle")} />
 
 <div class="card">
-  <h2>This app is free</h2>
-  <p class="muted">
-    Every feature is unlocked: reports, all PDF templates, scheduled backups, batch
-    export, multi-currency. There is no Pro, no trial, no licence key, and nothing to
-    activate. Nothing about the app phones home.
-  </p>
-  <p class="muted">
-    It is open source under the MIT licence, so you can read it, change it and share it.
-  </p>
+  <h2>{t("settings.support.freeTitle")}</h2>
+  <p class="muted">{t("settings.support.freeBody")}</p>
+  <p class="muted">{t("settings.support.freeBody2")}</p>
 </div>
 
 <div class="card support">
   <Mascot expression="waving" size={72} />
   <div>
-    <h2>Keep it going</h2>
-    <p class="muted">
-      If Ledgerly saves you time, you can support us. It is entirely optional and
-      it changes nothing inside the app.
-    </p>
+    <h2>{t("settings.support.keepGoing")}</h2>
+    <p class="muted">{t("settings.support.keepGoingBody")}</p>
     {#if SUPPORT_URL}
-      <a class="btn" href={SUPPORT_URL} target="_blank" rel="noreferrer">Support us</a>
+      <a class="btn" href={SUPPORT_URL} target="_blank" rel="noreferrer">
+        {t("action.supportUs")}
+      </a>
     {:else}
-      <button class="btn" disabled>Support us</button>
+      <button class="btn" disabled>{t("action.supportUs")}</button>
       <p class="muted note">
-        Not wired up yet: no donation page has been chosen, so this button is switched
-        off rather than pointing somewhere wrong. See <code>src/lib/support.ts</code>.
+        {t("settings.support.notWiredStart")}
+        <code>src/lib/support.ts</code>{t("settings.support.notWiredEnd")}
       </p>
     {/if}
   </div>
 </div>
 
 <div class="card">
-  <h2>Licence</h2>
+  <h2>{t("settings.support.licence")}</h2>
+  <p class="muted">{t("settings.support.licenceBody", { year })}</p>
   <p class="muted">
-    MIT Licence. Copyright (c) {year} Muhammad Zuhdi. You may use, copy, modify, merge,
-    publish, distribute, sublicense and sell copies of this software, provided the
-    copyright notice and permission notice are included. It comes with no warranty.
-  </p>
-  <p class="muted">
-    That permits commercial use, including selling the software. The full text is in the
-    <code>LICENSE</code> file at the root of the repository.
+    {t("settings.support.licenceBody2Start")}
+    <code>LICENSE</code>
+    {t("settings.support.licenceBody2End")}
   </p>
 </div>
 

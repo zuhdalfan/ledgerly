@@ -3,6 +3,7 @@
   import { ask, message, open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
   import { localDate } from "$lib/format";
+  import { getLocale, t } from "$lib/i18n.svelte";
   import type { AppInfo, BackupInfo, BackupSettings } from "$lib/types";
   import AsyncState from "$lib/components/AsyncState.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
@@ -28,7 +29,7 @@
   }
 
   function formatWhen(epoch: number | null): string {
-    return epoch ? new Date(epoch * 1000).toLocaleString() : "—";
+    return epoch ? new Date(epoch * 1000).toLocaleString(getLocale()) : "—";
   }
 
   async function load() {
@@ -60,12 +61,12 @@
     try {
       const path = await saveDialog({
         defaultPath: `ledgerly-${localDate()}.ledgerly`,
-        filters: [{ name: "Ledgerly backup", extensions: ["ledgerly"] }],
+        filters: [{ name: t("settings.data.backupFilter"), extensions: ["ledgerly"] }],
       });
       if (!path) return;
 
       busy = true;
-      notice = `Backup saved to ${await api.backup.now(path)}`;
+      notice = t("settings.data.noticeSaved", { path: await api.backup.now(path) });
       await load();
     } catch (e) {
       error = String(e);
@@ -78,17 +79,17 @@
     notice = "";
     error = "";
 
-    const confirmed = await ask(
-      "Replace all current data with this backup?\n\nA safety copy of your current data is saved first.",
-      { title: "Restore backup", kind: "warning" }
-    );
+    const confirmed = await ask(t("settings.data.confirmRestore"), {
+      title: t("settings.data.confirmRestoreTitle"),
+      kind: "warning",
+    });
     if (!confirmed) return;
 
     busy = true;
     try {
       const safety = await api.backup.restore(path);
-      await message(`Backup restored.\n\nYour previous data was saved to:\n${safety}`, {
-        title: "Restore complete",
+      await message(t("settings.data.restored", { path: safety }), {
+        title: t("settings.data.restoredTitle"),
       });
       window.location.reload();
     } catch (e) {
@@ -100,7 +101,7 @@
   async function chooseBackupFile() {
     const selected = await openDialog({
       multiple: false,
-      filters: [{ name: "Ledgerly backup", extensions: ["ledgerly"] }],
+      filters: [{ name: t("settings.data.backupFilter"), extensions: ["ledgerly"] }],
     });
     if (typeof selected === "string") await restore(selected);
   }
@@ -114,7 +115,7 @@
         folder: backupSettings.folder,
         keep: backupSettings.keep,
       });
-      notice = "Backup settings saved";
+      notice = t("settings.data.noticeSettingsSaved");
       await load();
     } catch (e) {
       error = String(e);
@@ -123,73 +124,73 @@
 </script>
 
 <PageHeader
-  title="Data"
-  subtitle="One folder, on this machine. Back it up somewhere else and you can never lose it."
+  title={t("settings.nav.data")}
+  subtitle={t("settings.data.subtitle")}
 />
 
 <AsyncState {loading} {error} rows={5} columns={1}>
   <div class="card">
-    <h2>Where your data lives</h2>
+    <h2>{t("settings.data.whereTitle")}</h2>
     <code>{info?.dataDir ?? "—"}</code>
     <div class="row wrap spaced">
       <button class="btn secondary" onclick={() => info && api.openInViewer(info.dataDir)}>
-        Open folder
+        {t("action.openFolder")}
       </button>
-      <button class="btn" onclick={backupNow} disabled={busy}>Back up now</button>
+      <button class="btn" onclick={backupNow} disabled={busy}>{t("action.backUpNow")}</button>
       <button class="btn secondary" onclick={chooseBackupFile} disabled={busy}>
-        Restore from file
+        {t("action.restoreFromFile")}
       </button>
     </div>
   </div>
 
   <div class="card">
-    <h2>Automatic backups</h2>
-    <p class="muted">
-      When enabled, a backup is written at most once a day, and older ones are rotated away.
-    </p>
+    <h2>{t("settings.data.automatic")}</h2>
+    <p class="muted">{t("settings.data.automaticBody")}</p>
     <div class="grid-2">
       <div class="field">
-        <span class="field-label">Schedule</span>
+        <span class="field-label">{t("settings.data.schedule")}</span>
         <label class="row muted">
           <input id="autoBackup" type="checkbox" bind:checked={backupSettings.enabled} />
-          Back up once a day on start
+          {t("settings.data.scheduleToggle")}
         </label>
       </div>
       <div class="field">
-        <label for="keep">Keep the newest</label>
+        <label for="keep">{t("settings.data.keepNewest")}</label>
         <input id="keep" type="number" min="1" max="365" bind:value={backupSettings.keep} />
       </div>
     </div>
     <div class="field">
-      <label for="backupFolder">Backup folder</label>
+      <label for="backupFolder">{t("settings.data.folder")}</label>
       <input id="backupFolder" bind:value={backupSettings.folder} />
     </div>
 
     <div class="row wrap">
-      <button class="btn" onclick={saveBackupSettings}>Save backup settings</button>
+      <button class="btn" onclick={saveBackupSettings}>{t("action.saveBackupSettings")}</button>
       {#if backupSettings.lastRun}
-        <span class="muted">Last automatic run {backupSettings.lastRun}</span>
+        <span class="muted">{t("settings.data.lastRun", { when: backupSettings.lastRun })}</span>
       {/if}
       {#if notice}<span class="ok">{notice}</span>{/if}
     </div>
   </div>
 
   <div class="card">
-    <h2>Recent backups</h2>
+    <h2>{t("settings.data.recent")}</h2>
     {#if backups.length === 0}
       <EmptyState
-        title="No backups yet"
-        body={`Nothing found in ${backupSettings.folder || "the backup folder"}.`}
+        title={t("settings.data.empty")}
+        body={t("settings.data.emptyBody", {
+          folder: backupSettings.folder || t("settings.data.theBackupFolder"),
+        })}
       >
-        <button class="btn" onclick={backupNow} disabled={busy}>Back up now</button>
+        <button class="btn" onclick={backupNow} disabled={busy}>{t("action.backUpNow")}</button>
       </EmptyState>
     {:else}
       <table>
         <thead>
           <tr>
-            <th>File</th>
-            <th class="numeric">Size</th>
-            <th>Created</th>
+            <th>{t("settings.data.file")}</th>
+            <th class="numeric">{t("settings.data.size")}</th>
+            <th>{t("settings.data.created")}</th>
             <th></th>
           </tr>
         </thead>
@@ -201,7 +202,7 @@
               <td>{formatWhen(backup.modifiedAt)}</td>
               <td>
                 <button class="btn secondary" onclick={() => restore(backup.path)} disabled={busy}>
-                  Restore
+                  {t("action.restore")}
                 </button>
               </td>
             </tr>

@@ -350,6 +350,296 @@ export const en = {
   "clients.empty": "No clients yet",
   "clients.emptyBody":
     "A client is who you bill. Add one, and their details fill themselves into every invoice.",
+
+  // --- catalog -----------------------------------------------------------
+  "catalog.title": "Catalog",
+  "catalog.subtitle":
+    "What you sell, priced once, so a line item is a pick rather than a typing job.",
+  "catalog.addTitle": "Add item",
+  "catalog.nameLabel": "Name *",
+  "catalog.namePlaceholder": "Design hour",
+  "catalog.unitPrice": "Unit price ({currency})",
+  "catalog.unitPlaceholder": "hour / day / item",
+  "catalog.searchLabel": "Search catalog by name or SKU",
+  "catalog.searchExample": "Name or SKU",
+  "catalog.empty": "Nothing in the catalog yet",
+  "catalog.emptyBody":
+    "Add the things you bill for. Then an invoice line is a pick, not a typing job.",
+  "catalog.priceAria": "Unit price",
+
+  // --- reports -----------------------------------------------------------
+  "reports.title": "Reports",
+  "reports.granularityDay": "Daily",
+  "reports.granularityWeek": "Weekly",
+  "reports.granularityMonth": "Monthly",
+  "reports.granularityYear": "Yearly",
+  "reports.revenue": "Revenue",
+  "reports.revenueByClient": "Revenue by client",
+  "reports.agedReceivables": "Aged receivables",
+  "reports.taxCollected": "Tax collected",
+  "reports.paymentsByMethod": "Payments received by method",
+  "reports.dataExport": "Data export",
+  "reports.dataExportBody":
+    "A single JSON file containing every table: clients, invoices, payments, estimates and settings. Yours to keep, readable without this app.",
+  "reports.noInvoices": "No invoices in this range.",
+  "reports.noTax": "No tax recorded in this range.",
+  "reports.noPayments": "No payments in this range.",
+  "reports.totalOutstanding": "Total outstanding",
+  "reports.saved": "Saved {name} to {path}",
+  "reports.savedAll": "Saved all data to {path}",
+  "reports.age.notYetDue": "Not yet due",
+  "reports.age.days1to30": "1–30 days",
+  "reports.age.days31to60": "31–60 days",
+  "reports.age.days61to90": "61–90 days",
+  "reports.age.days90plus": "90+ days",
+
+  // --- settings · business ----------------------------------------------
+  "settings.business.subtitle":
+    "Your details, and the wording that fills into every new invoice.",
+  "settings.business.profileTitle": "Business profile",
+  "settings.business.logo": "Logo",
+  "settings.business.logoAlt": "Your business logo",
+  "settings.business.chooseImage": "Choose image…",
+  "settings.business.replaceImage": "Replace image…",
+  "settings.business.imagesFilter": "Images",
+  "settings.business.logoHint":
+    "PNG or JPEG, up to 2 MB. It prints at the top of every invoice, estimate and statement.",
+  "settings.business.name": "Business name",
+  "settings.business.namePlaceholder": "Your business",
+  "settings.business.legalName": "Legal name",
+  "settings.business.defaultCurrency": "Default currency",
+  "settings.business.address": "Address",
+  "settings.business.invoiceDefaults": "Invoice defaults",
+  "settings.business.defaultTerms": "Default terms",
+  "settings.business.defaultNotes": "Default notes",
+  "settings.business.paymentInstructions": "Payment instructions",
+
+  // --- settings · security ------------------------------------------------
+  "settings.security.subtitle": "The app lock is always free, never a Pro feature.",
+  "settings.security.lockOn": "App lock is on",
+  "settings.security.lockOnBody":
+    "Ledgerly asks for your passphrase at start, and again after {minutes} minutes of inactivity.",
+  "settings.security.lockAfter": "Lock after (minutes of inactivity)",
+  "settings.security.turnOffTitle": "Turn the lock off",
+  "settings.security.currentPassphrase": "Current passphrase",
+  "settings.security.enableTitle": "App lock",
+  "settings.security.enableBody":
+    "Optional: require a passphrase to open Ledgerly, and re-lock automatically when you step away. The passphrase is never stored, only a slow Argon2id verifier, so it cannot be read back.",
+  "settings.security.passphrase": "Passphrase",
+  "settings.security.confirmPassphrase": "Confirm passphrase",
+  "settings.security.minLength":
+    "At least {count} characters. There is no recovery, so keep a backup if you might forget it.",
+  "settings.security.mismatch": "The two passphrases do not match.",
+  "settings.security.enabledMessage": "App lock enabled. It will be asked for on next start.",
+  "settings.security.disabledMessage": "App lock turned off.",
+
+  // --- settings · about ---------------------------------------------------
+  "settings.about.tagline": "Offline invoicing for freelancers and small businesses.",
+  "settings.about.body":
+    "Fully local and fully offline. No account, no cloud, no telemetry, and no network code at all: the build fails if an HTTP client ever appears in the dependency graph.",
+  "settings.about.source": "Source code:",
+  "settings.about.where": "Where things are",
+  "settings.about.dataDir": "Data directory",
+  "settings.about.databaseFile": "Database file",
+
+  // --- settings · support -------------------------------------------------
+  "settings.support.subtitle":
+    "Ledgerly has no paid tier, no account and no upsell. Every feature is yours.",
+  "settings.support.freeTitle": "This app is free",
+  "settings.support.freeBody":
+    "Every feature is unlocked: reports, all PDF templates, scheduled backups, batch export, multi-currency. There is no Pro, no trial, no licence key, and nothing to activate. Nothing about the app phones home.",
+  "settings.support.freeBody2":
+    "It is open source under the MIT licence, so you can read it, change it and share it.",
+  "settings.support.keepGoing": "Keep it going",
+  "settings.support.keepGoingBody":
+    "If Ledgerly saves you time, you can support us. It is entirely optional and it changes nothing inside the app.",
+  "settings.support.notWiredStart":
+    "Not wired up yet: no donation page has been chosen, so this button is switched off rather than pointing somewhere wrong. See",
+  "settings.support.notWiredEnd": ".",
+  "settings.support.licence": "Licence",
+  "settings.support.licenceBody":
+    "MIT Licence. Copyright (c) {year} Muhammad Zuhdi. You may use, copy, modify, merge, publish, distribute, sublicense and sell copies of this software, provided the copyright notice and permission notice are included. It comes with no warranty.",
+  "settings.support.licenceBody2Start":
+    "That permits commercial use, including selling the software. The full text is in the",
+  "settings.support.licenceBody2End": "file at the root of the repository.",
+
+  // --- settings · invoicing -----------------------------------------------
+  "settings.invoicing.subtitle":
+    "Tax rates, how invoices are numbered, and the language your documents print in.",
+  "settings.invoicing.taxRates": "Tax rates",
+  "settings.invoicing.taxNamePlaceholder": "VAT",
+  "settings.invoicing.ratePercent": "Rate %",
+  "settings.invoicing.noTaxRates": "No tax rates yet.",
+  "settings.invoicing.numbering": "Invoice numbering",
+  "settings.invoicing.prefix": "Prefix",
+  "settings.invoicing.nextNumber": "Next number",
+  "settings.invoicing.padding": "Zero padding",
+  "settings.invoicing.yearInNumber": "Year in the number",
+  "settings.invoicing.yearToggle": "Include the year, and restart at 1 each January",
+  "settings.invoicing.nextPreview": "Next invoice will be",
+  "settings.invoicing.documentLanguage": "Document language",
+  "settings.invoicing.documentLanguageBody":
+    "The language used for the labels printed on invoices and estimates. It is separate from the app language.",
+  "settings.invoicing.languageSaved": "Document language saved",
+
+  // --- settings · data ----------------------------------------------------
+  "settings.data.subtitle":
+    "One folder, on this machine. Back it up somewhere else and you can never lose it.",
+  "settings.data.whereTitle": "Where your data lives",
+  "settings.data.automatic": "Automatic backups",
+  "settings.data.automaticBody":
+    "When enabled, a backup is written at most once a day, and older ones are rotated away.",
+  "settings.data.schedule": "Schedule",
+  "settings.data.scheduleToggle": "Back up once a day on start",
+  "settings.data.keepNewest": "Keep the newest",
+  "settings.data.folder": "Backup folder",
+  "settings.data.lastRun": "Last automatic run {when}",
+  "settings.data.recent": "Recent backups",
+  "settings.data.empty": "No backups yet",
+  "settings.data.emptyBody": "Nothing found in {folder}.",
+  "settings.data.theBackupFolder": "the backup folder",
+  "settings.data.file": "File",
+  "settings.data.size": "Size",
+  "settings.data.created": "Created",
+  "settings.data.noticeSaved": "Backup saved to {path}",
+  "settings.data.noticeSettingsSaved": "Backup settings saved",
+  "settings.data.confirmRestore":
+    "Replace all current data with this backup?\n\nA safety copy of your current data is saved first.",
+  "settings.data.confirmRestoreTitle": "Restore backup",
+  "settings.data.restored": "Backup restored.\n\nYour previous data was saved to:\n{path}",
+  "settings.data.restoredTitle": "Restore complete",
+  "settings.data.backupFilter": "Ledgerly backup",
+
+  // --- settings · ai ------------------------------------------------------
+  "settings.ai.title": "AI access",
+  "settings.ai.subtitle":
+    "Let a desktop AI assistant read and change your data. The connection is local and never touches the network.",
+  "settings.ai.access": "Access",
+  "settings.ai.accessBodyStart": "Ledgerly ships a small companion program,",
+  "settings.ai.accessBodyEnd":
+    "that speaks the Model Context Protocol over standard input and output. Your AI assistant launches it; nothing is exposed on a port, and Ledgerly still makes no network requests.",
+  "settings.ai.enable": "Enable AI access",
+  "settings.ai.enableHint": "Allow an assistant to talk to Ledgerly at all.",
+  "settings.ai.allowChanges": "Allow changes",
+  "settings.ai.allowChangesHint":
+    "Let the assistant create and edit records. Off means read-only.",
+  "settings.ai.saved": "Saved",
+  "settings.ai.clipboardError": "Could not reach the clipboard. Select and copy by hand.",
+  "settings.ai.connect": "Connect an assistant",
+  "settings.ai.pointClient": "Point your MCP client at this program:",
+  "settings.ai.pathCopied": "Path copied",
+  "settings.ai.claudeDesktop": "Claude Desktop",
+  "settings.ai.claudeOpen": "Open",
+  "settings.ai.claudeSteps": "Settings → Developer → Edit Config",
+  "settings.ai.claudeAdd": ", add this under",
+  "settings.ai.claudeRestart": ", then restart Claude Desktop.",
+  "settings.ai.configCopied": "Config copied",
+  "settings.ai.otherClient":
+    "Any other client that supports local (stdio) MCP servers works the same way: give it the path above as the command.",
+  "settings.ai.canDo": "What the assistant can do",
+  "settings.ai.lockBodyStart":
+    "Your app lock is on, so the config above must include your passphrase as",
+  "settings.ai.lockBodyEnd": ". Without it, every request is refused.",
+  "settings.ai.read": "Read",
+  "settings.ai.readBody":
+    "clients, catalog, tax rates, invoices, estimates, payments, the business profile, settings and all reports.",
+  "settings.ai.change": "Change",
+  "settings.ai.enabled": "enabled",
+  "settings.ai.disabled": "disabled",
+  "settings.ai.changeBody":
+    "Creating and editing clients, catalog items, tax rates, invoices, estimates and payments, and taking a backup.",
+  "settings.ai.never": "Never",
+  "settings.ai.neverBody":
+    "restoring a backup, voiding an invoice, deleting a payment, changing the app lock, or exporting the database. Destructive and identity actions stay manual.",
+
+  // --- line items ---------------------------------------------------------
+  "lineItems.aria": "{column}, line {line}",
+  "lineItems.unitPrice": "Unit price",
+  "lineItems.discountType": "Discount type",
+  "lineItems.discountAmount": "Discount amount",
+  "lineItems.taxRate": "Tax rate",
+  "lineItems.includesTax": "Price includes tax",
+  "lineItems.qty": "Qty",
+  "lineItems.discount": "Disc.",
+  "lineItems.value": "Value",
+  "lineItems.incl": "Incl.",
+  "lineItems.unitPlaceholder": "hour",
+  "lineItems.none": "None",
+  "lineItems.fixed": "Fixed",
+  "lineItems.searchCatalog": "Search the catalog",
+  "lineItems.reading": "Reading the catalog…",
+  "lineItems.noMatchesStart": "Nothing matches. Add items on the",
+  "lineItems.catalogPage": "Catalog",
+  "lineItems.noMatchesEnd": "page.",
+
+  // --- document editors (shared) ------------------------------------------
+  "editor.details": "Details",
+  "editor.clientName": "Client name",
+  "editor.issueDate": "Issue date",
+  "editor.lineItems": "Line items",
+  "editor.totals": "Totals",
+  "editor.previewStale":
+    "The live preview could not be calculated, so these figures may be out of date. Saving recomputes them.",
+  "editor.notesTerms": "Notes & terms",
+  "editor.pdfTemplate": "PDF template",
+  "editor.templateClassic": "Classic",
+  "editor.templateModern": "Modern",
+  "editor.templateMinimal": "Minimal",
+  "editor.savedTo": "Saved to {path}",
+
+  // --- invoice editor -----------------------------------------------------
+  "invoice.fallbackTitle": "Invoice",
+  "invoice.notFound": "Invoice not found.",
+  "invoice.unsaved": "This invoice has unsaved changes. Leave and lose them?",
+  "invoice.voidConfirm":
+    "Void this invoice? It will be marked cancelled. You can restore it afterwards.",
+  "invoice.voidTitle": "Void invoice",
+  "invoice.dueDate": "Due date",
+  "invoice.discount": "Invoice discount",
+  "invoice.amountHint": "Enter an amount like 250.00.",
+  "invoice.paymentRemoved": "Payment removed.",
+  "invoice.copied": "Copied",
+  "invoice.copyManually": "Select the text above and copy it manually.",
+  "invoice.markedChased": "Marked as chased",
+  "invoice.chaseCleared": "Chased mark cleared",
+  "invoice.noPayments": "No payments recorded yet.",
+  "invoice.recordPayment": "Record a payment",
+  "invoice.chasing": "Chasing this one",
+  "invoice.lastChasedOne": "Last chased {date}.",
+  "invoice.lastChasedMany": "Last chased {date} ({count} times).",
+  "invoice.notChased": "Not chased yet.",
+  "invoice.sendsNothing": "Ledgerly sends nothing itself. Copy this into your own email.",
+
+  // --- estimate editor ----------------------------------------------------
+  "estimate.fallbackTitle": "Estimate",
+  "estimate.notFound": "Estimate not found.",
+  "estimate.unsaved": "This estimate has unsaved changes. Leave and lose them?",
+  "estimate.discount": "Estimate discount",
+  "estimate.converted": "This estimate was converted to an invoice.",
+  "estimate.expired": "This estimate expired on {date}.",
+  "estimate.expiresInOne": "Expires in {count} day, on {date}.",
+  "estimate.expiresInOther": "Expires in {count} days, on {date}.",
+
+  // --- client detail ------------------------------------------------------
+  "client.fallbackTitle": "Client",
+  "client.notFound": "Client not found.",
+  "client.unsaved": "This client has unsaved changes. Leave and lose them?",
+  "client.nameRequired": "Name is required.",
+  "client.statementSaved": "Statement saved to {path}",
+  "client.addingUp": "Adding up their invoices…",
+  "client.nothingOutstanding": "Nothing outstanding. Every invoice is settled.",
+  "client.overdueOne": "{count} invoice is overdue.",
+  "client.overdueOther": "{count} invoices are overdue.",
+  "client.readingInvoices": "Reading their invoices…",
+  "client.readingEstimates": "Reading their estimates…",
+  "client.noInvoicesTitle": "No invoices for {client} yet",
+  "client.noInvoicesBody":
+    "When you bill them, it will show up here with what is still owed.",
+  "client.noEstimatesBody":
+    "A quote for this client, ready to convert into an invoice once the work is agreed.",
+  "client.theirDetails": "Their details",
+  "client.namePlaceholder": "Client or company name",
+  "client.billing": "Billing",
 };
 
 export type MessageKey = keyof typeof en;
