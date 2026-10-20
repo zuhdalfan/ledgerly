@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { api } from "$lib/api";
   import { emptyToNull, nullToEmpty } from "$lib/format";
   import type { BusinessInput } from "$lib/types";
@@ -28,6 +29,8 @@
   });
 
   let form = $state<Form>(emptyForm());
+  let logoUrl = $state<string | null>(null);
+  let logoBusy = $state(false);
   let loading = $state(true);
   let error = $state("");
   let saved = $state(false);
@@ -55,6 +58,7 @@
         defaultNotes: nullToEmpty(business.defaultNotes),
         defaultPaymentInstructions: nullToEmpty(business.defaultPaymentInstructions),
       };
+      logoUrl = await api.business.logoDataUrl();
       error = "";
     } catch (e) {
       error = String(e);
@@ -97,6 +101,38 @@
       saving = false;
     }
   }
+
+  async function chooseLogo() {
+    const path = await openDialog({
+      multiple: false,
+      directory: false,
+      filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg"] }],
+    });
+    if (typeof path !== "string") return;
+
+    logoBusy = true;
+    error = "";
+    try {
+      logoUrl = await api.business.setLogo(path);
+    } catch (e) {
+      error = String(e);
+    } finally {
+      logoBusy = false;
+    }
+  }
+
+  async function removeLogo() {
+    logoBusy = true;
+    error = "";
+    try {
+      await api.business.clearLogo();
+      logoUrl = null;
+    } catch (e) {
+      error = String(e);
+    } finally {
+      logoBusy = false;
+    }
+  }
 </script>
 
 <PageHeader
@@ -107,6 +143,26 @@
 <AsyncState {loading} {error} rows={5} columns={2}>
   <div class="card">
     <h2>Business profile</h2>
+
+    <div class="field">
+      <label for="chooseLogo">Logo</label>
+      <div class="logo-row">
+        {#if logoUrl}
+          <img class="logo-preview" src={logoUrl} alt="Your business logo" />
+        {:else}
+          <div class="logo-preview logo-empty" aria-hidden="true">LOGO</div>
+        {/if}
+        <div class="row wrap">
+          <button id="chooseLogo" class="btn secondary" onclick={chooseLogo} disabled={logoBusy}>
+            {logoUrl ? "Replace image…" : "Choose image…"}
+          </button>
+          {#if logoUrl}
+            <button class="btn secondary" onclick={removeLogo} disabled={logoBusy}>Remove</button>
+          {/if}
+        </div>
+      </div>
+      <p class="hint">PNG or JPEG, up to 2 MB. It prints at the top of every invoice, estimate and statement.</p>
+    </div>
 
     <div class="field">
       <label for="displayName">Business name</label>
@@ -196,5 +252,39 @@
 <style>
   .spaced {
     margin-top: var(--space-5);
+  }
+
+  .logo-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .logo-preview {
+    max-width: 180px;
+    max-height: 72px;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+  }
+
+  .logo-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 140px;
+    height: 56px;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+    background: var(--paper-2);
+    border: 1px dashed var(--line-control);
+  }
+
+  .hint {
+    margin: 0;
+    color: var(--ink-3);
+    font-size: var(--text-sm);
   }
 </style>

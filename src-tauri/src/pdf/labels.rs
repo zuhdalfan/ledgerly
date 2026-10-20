@@ -50,6 +50,8 @@ pub struct Labels {
     pub page: &'static str,
     pub of: &'static str,
     pub void: &'static str,
+    /// Shown in the letterhead's logo slot until a logo is uploaded.
+    pub logo_placeholder: &'static str,
 }
 
 static EN: Labels = Labels {
@@ -80,6 +82,7 @@ static EN: Labels = Labels {
     page: "Page",
     of: "of",
     void: "VOID",
+    logo_placeholder: "LOGO",
 };
 
 #[cfg(test)]
@@ -126,6 +129,7 @@ mod tests {
             labels.page,
             labels.of,
             labels.void,
+            labels.logo_placeholder,
         ] {
             assert!(!value.trim().is_empty(), "a label is missing");
         }

@@ -1,4 +1,5 @@
 pub mod business;
+pub mod business_logo;
 pub mod catalog;
 pub mod clients;
 pub mod estimates;

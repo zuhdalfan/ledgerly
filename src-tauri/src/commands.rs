@@ -1,5 +1,6 @@
 use crate::backup::{self, BackupInfo, BackupSettings, BackupSettingsInput};
 use crate::db::business::{self, Business, BusinessInput};
+use crate::db::business_logo;
 use crate::db::catalog::{self, CatalogItem, CatalogItemInput};
 use crate::db::clients::{self, Client, ClientInput};
 use crate::db::estimates::{self, Estimate, EstimateInput};
@@ -153,6 +154,60 @@ pub fn business_update(state: State<'_, AppState>, input: BusinessInput) -> AppR
     let conn = state.db.lock().unwrap();
     require_unlocked(&state)?;
     Ok(business::update(&conn, &input)?)
+}
+
+/// The largest logo we will read, and the largest we will decode.
+const LOGO_MAX_BYTES: u64 = 2 * 1024 * 1024;
+const LOGO_MAX_PIXELS: u32 = 4096;
+
+/// The logo as a `data:` URL for the settings preview, or `None` when unset.
+/// The image never rides along with the business record, so saving the profile
+/// does not re-send it.
+#[tauri::command]
+pub fn business_logo_data_url(state: State<'_, AppState>) -> AppResult<Option<String>> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+    Ok(business_logo::get(&conn)?.map(|logo| business_logo::data_url(&logo)))
+}
+
+/// Store the logo the user picked in the file dialog, returning it as a data
+/// URL. The file is checked here so whatever ends up in the database is
+/// something the PDF renderer can actually draw.
+#[tauri::command]
+pub fn business_logo_set(state: State<'_, AppState>, path: String) -> AppResult<String> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+
+    if std::fs::metadata(&path)?.len() > LOGO_MAX_BYTES {
+        return Err(AppError::Validation(
+            "That image is larger than 2 MB. Please choose a smaller file.".to_string(),
+        ));
+    }
+
+    let bytes = std::fs::read(&path)?;
+    let Some(info) = pdf::inspect_logo(&bytes) else {
+        return Err(AppError::Validation(
+            "That file is not a PNG or JPEG image.".to_string(),
+        ));
+    };
+    if info.width > LOGO_MAX_PIXELS || info.height > LOGO_MAX_PIXELS {
+        return Err(AppError::Validation(format!(
+            "That image is {}×{} pixels; the limit is {LOGO_MAX_PIXELS} on a side.",
+            info.width, info.height
+        )));
+    }
+
+    Ok(business_logo::data_url(&business_logo::set(
+        &conn, &bytes, info.mime,
+    )?))
+}
+
+#[tauri::command]
+pub fn business_logo_clear(state: State<'_, AppState>) -> AppResult<()> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+    business_logo::clear(&conn)?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -404,7 +459,7 @@ pub fn pdf_export_invoice(
 ) -> AppResult<String> {
     let template_name = template.as_deref().unwrap_or("classic").to_string();
 
-    let (invoice, business, client, locale) = {
+    let (invoice, business, client, locale, logo) = {
         let conn = state.db.lock().unwrap();
         require_unlocked(&state)?;
         // Document language is independent of the app's UI language.
@@ -417,7 +472,8 @@ pub fn pdf_export_invoice(
             Some(client_id) => clients::get(&conn, client_id)?,
             None => None,
         };
-        (invoice, business, client, locale)
+        let logo = business_logo::get(&conn)?;
+        (invoice, business, client, locale, logo)
     };
 
     let bytes = pdf::render_invoice(
@@ -428,6 +484,7 @@ pub fn pdf_export_invoice(
             template: pdf::Template::parse(&template_name),
             locale: pdf::DocumentLocale::parse(&locale),
         },
+        logo.as_ref().map(|logo| logo.bytes.as_slice()),
     )
     .map_err(AppError::Pdf)?;
 
@@ -446,7 +503,7 @@ pub fn pdf_export_estimate(
 ) -> AppResult<String> {
     let template_name = template.as_deref().unwrap_or("classic").to_string();
 
-    let (estimate, business, client, locale) = {
+    let (estimate, business, client, locale, logo) = {
         let conn = state.db.lock().unwrap();
         require_unlocked(&state)?;
         // Document language is independent of the app's UI language.
@@ -459,7 +516,8 @@ pub fn pdf_export_estimate(
             Some(client_id) => clients::get(&conn, client_id)?,
             None => None,
         };
-        (estimate, business, client, locale)
+        let logo = business_logo::get(&conn)?;
+        (estimate, business, client, locale, logo)
     };
 
     let bytes = pdf::render_estimate(
@@ -470,6 +528,7 @@ pub fn pdf_export_estimate(
             template: pdf::Template::parse(&template_name),
             locale: pdf::DocumentLocale::parse(&locale),
         },
+        logo.as_ref().map(|logo| logo.bytes.as_slice()),
     )
     .map_err(AppError::Pdf)?;
 
@@ -490,7 +549,7 @@ pub fn pdf_export_statement(
 ) -> AppResult<String> {
     let template_name = template.as_deref().unwrap_or("classic").to_string();
 
-    let (client, open, business, locale, issued) = {
+    let (client, open, business, locale, issued, logo) = {
         let conn = state.db.lock().unwrap();
         require_unlocked(&state)?;
         let locale = settings::get(&conn, "pdf.locale")?.unwrap_or_else(|| "en".to_string());
@@ -514,7 +573,8 @@ pub fn pdf_export_statement(
         .collect();
         open.sort_by(|a, b| a.issue_date.cmp(&b.issue_date));
 
-        (client, open, business, locale, issued)
+        let logo = business_logo::get(&conn)?;
+        (client, open, business, locale, issued, logo)
     };
 
     let bytes = pdf::render_statement(
@@ -526,6 +586,7 @@ pub fn pdf_export_statement(
             locale: pdf::DocumentLocale::parse(&locale),
         },
         &issued,
+        logo.as_ref().map(|logo| logo.bytes.as_slice()),
     )
     .map_err(AppError::Pdf)?;
 

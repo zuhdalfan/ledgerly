@@ -171,7 +171,7 @@ Requirements are prioritized **P0 (must-have for v1)**, **P1 (should-have)**, **
 | FR-SET-2 | Set default currency, currency symbol placement, decimal separator, thousands separator, and date format. |
 | FR-SET-3 | Set default payment terms (e.g. Net 30 → auto due date), default tax rate, default notes/terms, and default payment instructions. |
 | FR-SET-4 | Configure invoice numbering scheme: prefix, suffix, zero-padding, next number, reset annually (e.g. `INV-2026-0042`). |
-| FR-SET-5 | Choose default PDF template and accent color; upload logo (PNG/SVG/JPG). |
+| FR-SET-5 | Choose default PDF template and accent color; upload a logo (PNG or JPEG, up to 2 MB, kept in the database next to the business profile). |
 | FR-SET-6 | Set app language (UI + PDF labels) and per-document language for PDF labels. |
 | FR-SET-7 | Configure data directory location and backups. |
 
@@ -478,7 +478,8 @@ Indicative tables (abridged):
 
 | Table | Key columns |
 |---|---|
-| `business` | id, legal_name, display_name, email, phone, website, logo_path, address_json, tax_id, reg_no, default_currency, default_tax_rate_id, default_template_id, accent_color, default_terms, default_notes, default_payment_instructions, numbering_json, pdf_locale, created_at, updated_at |
+| `business` | id, legal_name, display_name, email, phone, website, address_json, tax_id, reg_no, default_currency, default_tax_rate_id, default_template_id, accent_color, default_terms, default_notes, default_payment_instructions, numbering_json, pdf_locale, created_at, updated_at |
+| `business_logo` | id ('default'), bytes (BLOB), mime — the image is kept in the database, not on disk, so a backup carries it and no filesystem scope is needed |
 | `client` | id, display_name, company, contact_person, email, phone, address_json, shipping_address_json, tax_id, currency, locale, tags_json, notes, archived_at, created_at, updated_at |
 | `catalog_item` | id, name, description, unit, unit_price_minor, currency, tax_rate_id, sku, archived_at |
 | `invoice` | id, number, client_id, status, issue_date, due_date, sent_at, currency, exchange_rate, po_reference, template_id, discount_type, discount_value, subtotal_minor, discount_minor, tax_minor, total_minor, paid_minor, balance_minor, notes, terms, payment_instructions, locale, estimate_id, recurring_id, voided_at, created_at, updated_at |

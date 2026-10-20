@@ -1,6 +1,6 @@
 {
   "project": "Ledgerly",
-  "updated": "2026-10-14",
+  "updated": "2026-10-17",
   "current": "I18N",
   "nextUp": ["RELEASE-SIGN", "RELEASE-MANUAL"],
   "usage": "Single source of truth for cross-session progress. Set `current` to the id being worked on (null when idle), keep `updated` in YYYY-MM-DD, and move finished items to status `done` instead of deleting them. Milestone ids track docs/PRD.md section 14.",
@@ -32,7 +32,15 @@
       "status": "done",
       "priority": "P0",
       "area": "clients",
-      "notes": "Business profile, logo upload, client CRUD + search, catalog CRUD."
+      "notes": "Business profile, client CRUD + search, catalog CRUD. The 'logo upload' named here was aspirational until 2026-10-17, when it actually landed as the LOGO task."
+    },
+    {
+      "id": "LOGO",
+      "title": "Business logo on the PDF",
+      "status": "done",
+      "priority": "P1",
+      "area": "pdf",
+      "notes": "Delivers PRD FR-SET-1, FR-SET-5 and FR-PDF-2, which had been specified but never built. The image is a BLOB in the new business_logo table (id, bytes, mime) rather than a file on disk, so the existing VACUUM INTO backups already carry it and no asset-protocol filesystem scope is needed; the PRD's logo_path column was dropped for that reason. Uploaded from Settings > Business through the dialog plugin, PNG or JPEG only, at most 2 MB and 4096px a side, checked on upload with printpdf's embedded_images decoder. The letterhead draws it above the business name in all three templates, with a placeholder until one is set and a fall back to the placeholder if a stored image will not decode. The MCP server is untouched: the bytes never enter the Business record."
     },
     {
       "id": "M2",

@@ -431,6 +431,10 @@
     app_info: () => APP_INFO,
     business_get: () => BUSINESS,
     business_update: (a) => ({ ...BUSINESS, ...(a.input || {}) }),
+    // No logo in the captures, so the settings page shows its placeholder.
+    business_logo_data_url: () => null,
+    business_logo_set: () => null,
+    business_logo_clear: () => null,
 
     clients_list: (a) => {
       const q = (a.query || "").toLowerCase();

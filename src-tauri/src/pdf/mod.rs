@@ -7,6 +7,7 @@ mod format;
 mod labels;
 mod text;
 
+use printpdf::image_crate::DynamicImage;
 use printpdf::*;
 
 use crate::db::business::Business;
@@ -93,16 +94,55 @@ const CONTENT_RIGHT: f32 = PAGE_W - MARGIN;
 const CONTENT_BOTTOM: f32 = 24.0;
 const FOOTER_Y: f32 = 12.0;
 
-// Table column right edges.
-const COL_QTY: f32 = 118.0;
-const COL_PRICE: f32 = 142.0;
-const COL_DISC: f32 = 162.0;
-const COL_TAX: f32 = 178.0;
-const COL_TOTAL: f32 = CONTENT_RIGHT;
+// The minimum clear space between two right-aligned columns.
+const COL_GUTTER: f32 = 4.0;
+/// Breathing room around the Modern template's totals panel.
+const PANEL_PAD: f32 = 4.0;
+/// A description column narrower than this is unreadable, so the money columns
+/// give way rather than squeeze it further.
+const DESC_MIN: f32 = 45.0;
 /// Statement columns: documents rather than line items.
 const COL_ISSUED: f32 = 78.0;
 const COL_DUE: f32 = 118.0;
-const DESC_WIDTH: f32 = COL_QTY - 24.0 - MARGIN;
+
+/// The letterhead's logo slot. A logo is scaled to fit inside it, and the
+/// placeholder is drawn at its full size so the space is reserved either way.
+const LOGO_MAX_W: f32 = 40.0;
+const LOGO_MAX_H: f32 = 16.0;
+/// Clear space between the logo and the business name beneath it. The gap is
+/// measured to the name's baseline, so it has to clear the ascender too.
+const LOGO_GAP: f32 = 6.0;
+
+/// Right edges of the line-item columns.
+///
+/// These are derived from the widest figure the document actually contains
+/// rather than fixed, because money strings grow as the amounts do: a column
+/// wide enough for `$9.00` will overlap its neighbour once it has to hold
+/// `S$2,795.85`.
+#[derive(Clone, Copy)]
+struct Columns {
+    qty: f32,
+    price: f32,
+    disc: f32,
+    tax: f32,
+    total: f32,
+    desc_width: f32,
+}
+
+impl Default for Columns {
+    fn default() -> Self {
+        // Only a fallback; a rendered invoice/estimate always lays columns out
+        // from its own figures.
+        Self {
+            qty: 118.0,
+            price: 142.0,
+            disc: 162.0,
+            tax: 178.0,
+            total: CONTENT_RIGHT,
+            desc_width: 76.0,
+        }
+    }
+}
 
 /// An RGB colour as plain floats, so themes stay cheap to copy.
 type Color3 = [f32; 3];
@@ -196,6 +236,13 @@ struct Painter {
     theme: Theme,
     labels: &'static Labels,
     kind: DocumentKind,
+    cols: Columns,
+    /// The decoded logo, if one is set. `Image::add_to_layer` consumes its
+    /// image, so the decoded form is kept and re-wrapped per document.
+    logo: Option<DynamicImage>,
+    /// Whether to stamp VOID across the page. The mark goes down before the
+    /// content so the figures always read on top of it.
+    watermark: bool,
     page: PdfPageIndex,
     layer: PdfLayerIndex,
     pages: Vec<(PdfPageIndex, PdfLayerIndex)>,
@@ -255,6 +302,77 @@ impl Painter {
         self.page = page;
         self.layer = layer;
         self.pages.push((page, layer));
+        self.stamp_watermark();
+    }
+
+    /// Lay a VOID mark across the current page. Called the moment a page is
+    /// created, before anything is drawn on it, so the watermark always sits
+    /// behind the invoice and never blots out a figure.
+    fn stamp_watermark(&self) {
+        if !self.watermark {
+            return;
+        }
+
+        let size = 64.0;
+        let width = self.width_mm(self.labels.void, size, true);
+        self.text(
+            self.labels.void,
+            size,
+            (PAGE_W - width) / 2.0,
+            PAGE_H / 2.0 - 10.0,
+            true,
+            WATERMARK,
+        );
+    }
+
+    /// Draw the logo — or the placeholder that reserves its space — at the
+    /// top-left, and report how much vertical room it took, gap included.
+    fn logo_block(&self, top: f32) -> f32 {
+        let theme = self.theme;
+        let bottom = top - LOGO_MAX_H;
+
+        let Some(logo) = self.logo.as_ref() else {
+            self.rect(MARGIN, bottom, LOGO_MAX_W, LOGO_MAX_H, theme.shade);
+            let label = self.labels.logo_placeholder;
+            let width = self.width_mm(label, 8.0, true);
+            self.text(
+                label,
+                8.0,
+                MARGIN + (LOGO_MAX_W - width) / 2.0,
+                bottom + LOGO_MAX_H / 2.0 - 1.2,
+                true,
+                theme.muted,
+            );
+            return LOGO_MAX_H + LOGO_GAP;
+        };
+
+        // Scale to fit the slot, never up: 300 dpi keeps a raster logo crisp on
+        // paper, and a small file simply prints smaller rather than blurred.
+        let dpi = 300.0;
+        let natural_w = logo.width() as f32 * 25.4 / dpi;
+        let natural_h = logo.height() as f32 * 25.4 / dpi;
+        if natural_w <= 0.0 || natural_h <= 0.0 {
+            return LOGO_MAX_H + LOGO_GAP;
+        }
+
+        let scale = (LOGO_MAX_W / natural_w)
+            .min(LOGO_MAX_H / natural_h)
+            .min(1.0);
+        let height = natural_h * scale;
+
+        Image::from_dynamic_image(logo).add_to_layer(
+            self.layer(),
+            ImageTransform {
+                translate_x: Some(Mm(MARGIN)),
+                translate_y: Some(Mm(top - height)),
+                dpi: Some(dpi),
+                scale_x: Some(scale),
+                scale_y: Some(scale),
+                ..Default::default()
+            },
+        );
+
+        height + LOGO_GAP
     }
 
     fn letterhead(&self, business: &Business, head: &DocumentHead) -> f32 {
@@ -264,7 +382,8 @@ impl Painter {
             self.rect(0.0, PAGE_H - 8.0, PAGE_W, 8.0, band);
         }
 
-        let mut y = PAGE_H - MARGIN - 2.0;
+        let top = PAGE_H - MARGIN - 2.0;
+        let mut y = top - self.logo_block(top);
         self.text(
             display_name_or(&business.display_name, "Your business"),
             15.0,
@@ -357,11 +476,12 @@ impl Painter {
 
         let size = 7.5;
         self.text(self.labels.description, size, MARGIN, y, true, theme.muted);
-        self.text_right(self.labels.quantity, size, COL_QTY, y, true, theme.muted);
-        self.text_right(self.labels.price, size, COL_PRICE, y, true, theme.muted);
-        self.text_right(self.labels.discount, size, COL_DISC, y, true, theme.muted);
-        self.text_right(self.labels.tax, size, COL_TAX, y, true, theme.muted);
-        self.text_right(self.labels.total, size, COL_TOTAL, y, true, theme.muted);
+        let cols = self.cols;
+        self.text_right(self.labels.quantity, size, cols.qty, y, true, theme.muted);
+        self.text_right(self.labels.price, size, cols.price, y, true, theme.muted);
+        self.text_right(self.labels.discount, size, cols.disc, y, true, theme.muted);
+        self.text_right(self.labels.tax, size, cols.tax, y, true, theme.muted);
+        self.text_right(self.labels.total, size, cols.total, y, true, theme.muted);
 
         y - 6.0
     }
@@ -443,7 +563,7 @@ impl Painter {
         } else {
             item.description.trim().to_string()
         };
-        let lines = self.measure.wrap(&description, 9.0, DESC_WIDTH);
+        let lines = self.measure.wrap(&description, 9.0, self.cols.desc_width);
         let row_height = lines.len() as f32 * 4.4 + 2.6;
 
         if y - row_height < CONTENT_BOTTOM {
@@ -455,10 +575,12 @@ impl Painter {
         let theme = self.theme;
 
         if theme.shade_rows && index % 2 == 1 {
+            // Exactly the table's own width, so the band lines up with the
+            // header rule instead of overhanging the description and the totals.
             self.rect(
-                MARGIN - 1.5,
+                MARGIN,
                 y - row_height + 3.4,
-                CONTENT_RIGHT - MARGIN + 3.0,
+                CONTENT_RIGHT - MARGIN,
                 row_height - 1.0,
                 theme.shade,
             );
@@ -469,11 +591,12 @@ impl Painter {
             self.text(text, 9.0, MARGIN, dy, false, theme.ink);
 
             if line_index == 0 {
-                self.text_right(&item.quantity, 9.0, COL_QTY, dy, false, theme.ink);
+                let cols = self.cols;
+                self.text_right(&item.quantity, 9.0, cols.qty, dy, false, theme.ink);
                 self.text_right(
                     &format_money(item.unit_price_minor, currency),
                     9.0,
-                    COL_PRICE,
+                    cols.price,
                     dy,
                     false,
                     theme.ink,
@@ -481,16 +604,16 @@ impl Painter {
                 self.text_right(
                     &discount_label(item, currency),
                     9.0,
-                    COL_DISC,
+                    cols.disc,
                     dy,
                     false,
                     theme.muted,
                 );
-                self.text_right(&tax_label(item), 9.0, COL_TAX, dy, false, theme.muted);
+                self.text_right(&tax_label(item), 9.0, cols.tax, dy, false, theme.muted);
                 self.text_right(
                     &format_money(line.map(|l| l.total_minor).unwrap_or(0), currency),
                     9.0,
-                    COL_TOTAL,
+                    cols.total,
                     dy,
                     false,
                     theme.ink,
@@ -512,72 +635,115 @@ impl Painter {
             y = PAGE_H - MARGIN - 10.0;
         }
 
-        let label_x = COL_TOTAL - 34.0;
+        let cols = self.cols;
+
+        // Fix the rows up front so the panel can be measured against the ones
+        // that will actually be drawn: there is no discount row when there is
+        // no discount, which is what used to leave shade trailing under the
+        // total.
+        let has_discount = totals.discount_minor != 0;
+        let subtotal_y = y;
+        let discount_y = subtotal_y - 5.0;
+        let tax_y = if has_discount {
+            discount_y - 5.0
+        } else {
+            subtotal_y - 5.0
+        };
+        let rule_y = tax_y - 2.6;
+        let total_y = tax_y - 8.4;
+
+        let subtotal_value = format_money(totals.subtotal_minor, currency);
+        let discount_value = format!("-{}", format_money(totals.discount_minor, currency));
+        let tax_value = format_money(totals.tax_minor, currency);
+        let total_value = format_money(totals.total_minor, currency);
+
+        // Both the label column and the panel are sized to the widest string on
+        // each side, so a long figure — a large amount, or a currency written
+        // like `Rp` — pushes the labels aside instead of running into them.
+        let mut widest_value = self
+            .width_mm(&subtotal_value, 9.0, false)
+            .max(self.width_mm(&tax_value, 9.0, false))
+            .max(self.width_mm(&total_value, 11.0, true));
+        if has_discount {
+            widest_value = widest_value.max(self.width_mm(&discount_value, 9.0, false));
+        }
+
+        let widest_label = [
+            (self.labels.subtotal, 9.0, false),
+            (self.labels.discount, 9.0, false),
+            (self.labels.tax, 9.0, false),
+            (self.kind.total_label(self.labels), 11.0, true),
+        ]
+        .iter()
+        .map(|(label, size, bold)| self.width_mm(label, *size, *bold))
+        .fold(0.0, f32::max);
+
+        let label_x = (cols.total - 34.0).min(cols.total - widest_value - COL_GUTTER);
 
         if theme.panel {
+            let left = label_x - widest_label - PANEL_PAD;
+            let top = subtotal_y + PANEL_PAD;
+            let bottom = total_y - PANEL_PAD;
             self.rect(
-                label_x - 6.0,
-                y - 22.0,
-                CONTENT_RIGHT - label_x + 6.0,
-                26.0,
+                left,
+                bottom,
+                CONTENT_RIGHT + PANEL_PAD - left,
+                top - bottom,
                 theme.shade,
             );
         }
 
-        self.text_right(self.labels.subtotal, 9.0, label_x, y, false, theme.muted);
         self.text_right(
-            &format_money(totals.subtotal_minor, currency),
+            self.labels.subtotal,
             9.0,
-            COL_TOTAL,
-            y,
+            label_x,
+            subtotal_y,
+            false,
+            theme.muted,
+        );
+        self.text_right(
+            &subtotal_value,
+            9.0,
+            cols.total,
+            subtotal_y,
             false,
             theme.ink,
         );
-        y -= 5.0;
 
-        if totals.discount_minor != 0 {
-            self.text_right(self.labels.discount, 9.0, label_x, y, false, theme.muted);
+        if has_discount {
             self.text_right(
-                &format!("-{}", format_money(totals.discount_minor, currency)),
+                self.labels.discount,
                 9.0,
-                COL_TOTAL,
-                y,
+                label_x,
+                discount_y,
+                false,
+                theme.muted,
+            );
+            self.text_right(
+                &discount_value,
+                9.0,
+                cols.total,
+                discount_y,
                 false,
                 theme.ink,
             );
-            y -= 5.0;
         }
 
-        self.text_right(self.labels.tax, 9.0, label_x, y, false, theme.muted);
-        self.text_right(
-            &format_money(totals.tax_minor, currency),
-            9.0,
-            COL_TOTAL,
-            y,
-            false,
-            theme.ink,
-        );
-        y -= 6.0;
+        self.text_right(self.labels.tax, 9.0, label_x, tax_y, false, theme.muted);
+        self.text_right(&tax_value, 9.0, cols.total, tax_y, false, theme.ink);
 
-        self.rect(label_x, y + 3.4, COL_TOTAL - label_x, 0.4, theme.rule);
+        self.rect(label_x, rule_y, cols.total - label_x, 0.4, theme.rule);
         self.text_right(
             self.kind.total_label(self.labels),
             11.0,
             label_x,
-            y - 2.4,
+            total_y,
             true,
             theme.ink,
         );
-        self.text_right(
-            &format_money(totals.total_minor, currency),
-            11.0,
-            COL_TOTAL,
-            y - 2.4,
-            true,
-            theme.accent,
-        );
+        self.text_right(&total_value, 11.0, cols.total, total_y, true, theme.accent);
 
-        y - 14.0
+        tax_y - 20.0
     }
 
     fn notes_block(&mut self, invoice: &Invoice, mut y: f32) -> f32 {
@@ -614,30 +780,6 @@ impl Painter {
         }
 
         y
-    }
-
-    fn watermark(&self, invoice: &Invoice) {
-        if invoice.status != "void" {
-            return;
-        }
-
-        let (page, layer_index) = match self.pages.first() {
-            Some(first) => *first,
-            None => return,
-        };
-        let layer = self.doc.get_page(page).get_layer(layer_index);
-
-        let size = 64.0;
-        let width = self.width_mm(self.labels.void, size, true);
-        self.text_on(
-            &layer,
-            self.labels.void,
-            size,
-            (PAGE_W - width) / 2.0,
-            PAGE_H / 2.0 - 10.0,
-            true,
-            WATERMARK,
-        );
     }
 
     fn footers(&self, business: &Business) {
@@ -789,8 +931,16 @@ pub fn render_invoice(
     business: &Business,
     client: Option<&Client>,
     options: PdfOptions,
+    logo: Option<&[u8]>,
 ) -> Result<Vec<u8>, String> {
-    render_document(invoice, business, client, options, DocumentKind::Invoice)
+    render_document(
+        invoice,
+        business,
+        client,
+        options,
+        DocumentKind::Invoice,
+        logo,
+    )
 }
 
 /// Render an estimate to PDF bytes. An estimate is a quote: same layout, but it
@@ -801,6 +951,7 @@ pub fn render_estimate(
     business: &Business,
     client: Option<&Client>,
     options: PdfOptions,
+    logo: Option<&[u8]>,
 ) -> Result<Vec<u8>, String> {
     render_document(
         &estimate_as_invoice(estimate),
@@ -808,6 +959,7 @@ pub fn render_estimate(
         client,
         options,
         DocumentKind::Estimate,
+        logo,
     )
 }
 
@@ -870,7 +1022,94 @@ fn estimate_item_as_invoice_item(item: &EstimateItem) -> InvoiceItem {
     }
 }
 
-fn build_painter(options: PdfOptions, kind: DocumentKind) -> Result<Painter, String> {
+/// Work out where each column ends from the widest value it actually has to
+/// hold, and place the money columns from the right edge leftward. A fixed
+/// layout cannot survive a figure that grows, which is exactly what happens as
+/// amounts gain digits.
+fn layout_columns(painter: &Painter, invoice: &Invoice, totals: &InvoiceTotals) -> Columns {
+    let header = |label: &str| painter.width_mm(label, 7.5, true);
+    let figure = |value: &str| painter.width_mm(value, 9.0, false);
+
+    let mut qty = header(painter.labels.quantity);
+    let mut price = header(painter.labels.price);
+    let mut disc = header(painter.labels.discount);
+    let mut tax = header(painter.labels.tax);
+    let mut total = header(painter.labels.total);
+
+    for (index, item) in invoice.items.iter().enumerate() {
+        qty = qty.max(figure(&item.quantity));
+        price = price.max(figure(&format_money(
+            item.unit_price_minor,
+            &invoice.currency,
+        )));
+        disc = disc.max(figure(&discount_label(item, &invoice.currency)));
+        tax = tax.max(figure(&tax_label(item)));
+        let line_total = totals.lines.get(index).map_or(0, |line| line.total_minor);
+        total = total.max(figure(&format_money(line_total, &invoice.currency)));
+    }
+
+    let total_right = CONTENT_RIGHT;
+    let tax_right = total_right - total - COL_GUTTER;
+    let disc_right = tax_right - tax - COL_GUTTER;
+    let price_right = disc_right - disc - COL_GUTTER;
+    let qty_right = price_right - price - COL_GUTTER;
+    let desc_width = (qty_right - qty - COL_GUTTER - MARGIN).max(DESC_MIN);
+
+    Columns {
+        qty: qty_right,
+        price: price_right,
+        disc: disc_right,
+        tax: tax_right,
+        total: total_right,
+        desc_width,
+    }
+}
+
+/// Decode a stored logo. Anything unreadable yields `None` so an export falls
+/// back to the placeholder instead of failing outright.
+fn decode_logo(bytes: &[u8]) -> Option<DynamicImage> {
+    printpdf::image_crate::load_from_memory(bytes).ok()
+}
+
+/// A logo the renderer can embed: its MIME type and pixel size.
+pub struct LogoInfo {
+    pub mime: &'static str,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// Check an uploaded logo. Only PNG and JPEG are accepted, which is what the
+/// renderer can draw — refusing anything else at upload keeps a stored logo
+/// always renderable.
+pub fn inspect_logo(bytes: &[u8]) -> Option<LogoInfo> {
+    use printpdf::image_crate::io::Reader;
+    use printpdf::image_crate::{guess_format, ImageFormat};
+
+    let mime = match guess_format(bytes).ok()? {
+        ImageFormat::Png => "image/png",
+        ImageFormat::Jpeg => "image/jpeg",
+        _ => return None,
+    };
+
+    let (width, height) = Reader::new(std::io::Cursor::new(bytes))
+        .with_guessed_format()
+        .ok()?
+        .into_dimensions()
+        .ok()?;
+
+    Some(LogoInfo {
+        mime,
+        width,
+        height,
+    })
+}
+
+fn build_painter(
+    options: PdfOptions,
+    kind: DocumentKind,
+    watermark: bool,
+    logo: Option<DynamicImage>,
+) -> Result<Painter, String> {
     let measure = TextMeasure::new(FONT_REGULAR)
         .ok_or_else(|| "could not read the regular font".to_string())?;
     let bold_measure =
@@ -887,7 +1126,7 @@ fn build_painter(options: PdfOptions, kind: DocumentKind) -> Result<Painter, Str
         .add_external_font(&mut bold_reader)
         .map_err(|error| error.to_string())?;
 
-    Ok(Painter {
+    let painter = Painter {
         doc,
         font_regular,
         font_bold,
@@ -896,10 +1135,16 @@ fn build_painter(options: PdfOptions, kind: DocumentKind) -> Result<Painter, Str
         theme: Theme::for_template(options.template),
         labels: options.locale.labels(),
         kind,
+        cols: Columns::default(),
+        logo,
+        watermark,
         page,
         layer,
         pages: vec![(page, layer)],
-    })
+    };
+    // The first page is created here, not through `new_page`, so stamp it too.
+    painter.stamp_watermark();
+    Ok(painter)
 }
 
 fn render_document(
@@ -908,13 +1153,20 @@ fn render_document(
     client: Option<&Client>,
     options: PdfOptions,
     kind: DocumentKind,
+    logo: Option<&[u8]>,
 ) -> Result<Vec<u8>, String> {
-    let mut painter = build_painter(options, kind)?;
+    let mut painter = build_painter(
+        options,
+        kind,
+        invoice.status == "void",
+        logo.and_then(decode_logo),
+    )?;
 
     let totals = totals::compute(
         &invoices::stored_line_inputs(&invoice.items),
         line_items::discount_from(&invoice.discount_type, &invoice.discount_value),
     );
+    painter.cols = layout_columns(&painter, invoice, &totals);
 
     let mut y = painter.letterhead(
         business,
@@ -947,7 +1199,6 @@ fn render_document(
 
     y = painter.totals_block(&totals, &invoice.currency, y);
     painter.notes_block(invoice, y);
-    painter.watermark(invoice);
     painter.footers(business);
 
     painter
@@ -967,8 +1218,14 @@ pub fn render_statement(
     business: &Business,
     options: PdfOptions,
     issued: &str,
+    logo: Option<&[u8]>,
 ) -> Result<Vec<u8>, String> {
-    let mut painter = build_painter(options, DocumentKind::Statement)?;
+    let mut painter = build_painter(
+        options,
+        DocumentKind::Statement,
+        false,
+        logo.and_then(decode_logo),
+    )?;
 
     // The client's name takes the slot an invoice uses for its number.
     let mut y = painter.letterhead(
@@ -1035,6 +1292,36 @@ pub fn render_statement(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // The layout tests are not about the logo, so they pin it to none and stay
+    // focused. The logo path has its own tests below.
+    fn render_invoice(
+        invoice: &Invoice,
+        business: &Business,
+        client: Option<&Client>,
+        options: PdfOptions,
+    ) -> Result<Vec<u8>, String> {
+        super::render_invoice(invoice, business, client, options, None)
+    }
+
+    fn render_estimate(
+        estimate: &Estimate,
+        business: &Business,
+        client: Option<&Client>,
+        options: PdfOptions,
+    ) -> Result<Vec<u8>, String> {
+        super::render_estimate(estimate, business, client, options, None)
+    }
+
+    fn render_statement(
+        client: &Client,
+        open: &[Invoice],
+        business: &Business,
+        options: PdfOptions,
+        issued: &str,
+    ) -> Result<Vec<u8>, String> {
+        super::render_statement(client, open, business, options, issued, None)
+    }
 
     fn business() -> Business {
         Business {
@@ -1481,5 +1768,86 @@ mod tests {
         let bytes =
             render_invoice(&invoice, &business(), None, options(Template::Minimal)).unwrap();
         assert_eq!(page_count(&bytes), 1);
+    }
+
+    /// A solid-colour PNG, encoded in memory.
+    fn png(width: u32, height: u32) -> Vec<u8> {
+        use printpdf::image_crate::{ImageBuffer, ImageFormat, Rgb};
+
+        let buffer = ImageBuffer::from_pixel(width, height, Rgb([200u8, 40, 40]));
+        let mut out = std::io::Cursor::new(Vec::new());
+        DynamicImage::ImageRgb8(buffer)
+            .write_to(&mut out, ImageFormat::Png)
+            .unwrap();
+        out.into_inner()
+    }
+
+    #[test]
+    fn a_logo_renders_in_every_template() {
+        let invoice = invoice(vec![item("Design work", "2", 10_000)], "draft");
+        let logo = png(320, 120);
+
+        for template in [Template::Classic, Template::Modern, Template::Minimal] {
+            let bytes =
+                super::render_invoice(&invoice, &business(), None, options(template), Some(&logo))
+                    .unwrap();
+
+            assert!(bytes.starts_with(b"%PDF-"), "{template:?} did not render");
+            assert_eq!(page_count(&bytes), 1, "{template:?} should stay one page");
+        }
+    }
+
+    #[test]
+    fn a_logo_that_cannot_be_decoded_falls_back_to_the_placeholder() {
+        let invoice = invoice(vec![item("Design work", "2", 10_000)], "draft");
+
+        let bytes = super::render_invoice(
+            &invoice,
+            &business(),
+            None,
+            options(Template::Classic),
+            Some(b"this is not an image"),
+        )
+        .expect("a bad logo must not fail the export");
+
+        assert_eq!(page_count(&bytes), 1);
+    }
+
+    #[test]
+    fn an_embedded_logo_weighs_more_than_the_plain_placeholder() {
+        let invoice = invoice(vec![item("Design work", "2", 10_000)], "draft");
+        let plain = super::render_invoice(
+            &invoice,
+            &business(),
+            None,
+            options(Template::Classic),
+            None,
+        )
+        .unwrap();
+        let with_logo = super::render_invoice(
+            &invoice,
+            &business(),
+            None,
+            options(Template::Classic),
+            Some(&png(400, 160)),
+        )
+        .unwrap();
+
+        assert!(
+            with_logo.len() > plain.len(),
+            "the image should add bytes to the file ({} vs {})",
+            with_logo.len(),
+            plain.len()
+        );
+    }
+
+    #[test]
+    fn inspect_logo_accepts_png_and_refuses_anything_else() {
+        let info = inspect_logo(&png(64, 32)).expect("a PNG should be accepted");
+        assert_eq!(info.mime, "image/png");
+        assert_eq!((info.width, info.height), (64, 32));
+
+        assert!(inspect_logo(b"this is not an image").is_none());
+        assert!(inspect_logo(b"").is_none());
     }
 }

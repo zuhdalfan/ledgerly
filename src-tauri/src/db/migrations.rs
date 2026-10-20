@@ -1,6 +1,10 @@
 use rusqlite::Connection;
 
 /// Ordered schema migrations. Index 0 is migration version 1.
+///
+/// **Append only.** An entry that has run on any database can never be edited:
+/// the schema version is already recorded, so the change would silently never
+/// apply there. Fix forward with a new migration instead.
 pub(crate) const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0001_init.sql"),
     include_str!("../../migrations/0002_identity.sql"),
@@ -11,6 +15,8 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0007_security.sql"),
     include_str!("../../migrations/0008_drop_licensing.sql"),
     include_str!("../../migrations/0009_chasing.sql"),
+    include_str!("../../migrations/0010_business_logo.sql"),
+    include_str!("../../migrations/0011_business_logo_drop_updated_at.sql"),
 ];
 
 /// Apply every migration newer than the database's current `user_version`.
@@ -43,6 +49,7 @@ mod tests {
         t.conn
             .execute_batch(
                 "DROP TABLE app_lock;
+                 DROP TABLE business_logo;
                  DROP TABLE estimate_item;
                  DROP TABLE estimate;
                  DROP TABLE payment;
@@ -118,13 +125,7 @@ mod tests {
 
         run(&t.conn).unwrap();
 
-        let mut stmt = t.conn.prepare("PRAGMA table_info(invoice)").unwrap();
-        let columns: Vec<String> = stmt
-            .query_map([], |row| row.get::<_, String>(1))
-            .unwrap()
-            .map(|name| name.unwrap())
-            .collect();
-
+        let columns = table_columns(&t.conn, "invoice");
         assert!(
             columns.iter().any(|name| name == "last_chased_at"),
             "chasing should have added last_chased_at, got {columns:?}"
@@ -134,6 +135,63 @@ mod tests {
             "chasing should have added chase_count, got {columns:?}"
         );
         assert_eq!(current_version(&t.conn), MIGRATIONS.len());
+    }
+
+    /// Migration 0010 first shipped an `updated_at` column that nothing reads and
+    /// no insert supplies. A database that ran that revision keeps the column, so
+    /// without 0011 every logo upload fails with NOT NULL. This reproduces the
+    /// shape and proves the repair keeps the stored logo.
+    #[test]
+    fn repairs_a_business_logo_table_left_with_the_old_updated_at_column() {
+        let t = temp_db();
+
+        t.conn
+            .execute_batch(
+                "DROP TABLE business_logo;
+                 CREATE TABLE business_logo (
+                     id         TEXT PRIMARY KEY CHECK (id = 'default'),
+                     bytes      BLOB NOT NULL,
+                     mime       TEXT NOT NULL,
+                     updated_at TEXT NOT NULL
+                 );
+                 INSERT INTO business_logo (id, bytes, mime, updated_at)
+                     VALUES ('default', x'89504E47', 'image/png', datetime('now'));
+                 PRAGMA user_version = 10;",
+            )
+            .unwrap();
+
+        run(&t.conn).unwrap();
+
+        let columns = table_columns(&t.conn, "business_logo");
+        assert!(
+            !columns.iter().any(|name| name == "updated_at"),
+            "the unused column should be gone, got {columns:?}"
+        );
+
+        // The stored logo survived the rebuild, and an insert that omits the
+        // column now succeeds.
+        let mime: String = t
+            .conn
+            .query_row(
+                "SELECT mime FROM business_logo WHERE id = 'default'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(mime, "image/png");
+
+        crate::db::business_logo::set(&t.conn, b"\x89PNG", "image/png").unwrap();
+        assert_eq!(current_version(&t.conn), MIGRATIONS.len());
+    }
+
+    fn table_columns(conn: &Connection, table: &str) -> Vec<String> {
+        let mut stmt = conn
+            .prepare(&format!("PRAGMA table_info({table})"))
+            .unwrap();
+        stmt.query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .map(|name| name.unwrap())
+            .collect()
     }
 
     fn current_version(conn: &Connection) -> usize {

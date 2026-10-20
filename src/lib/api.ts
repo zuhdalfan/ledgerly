@@ -36,6 +36,9 @@ export const api = {
   business: {
     get: () => invoke<Business>("business_get"),
     update: (input: BusinessInput) => invoke<Business>("business_update", { input }),
+    logoDataUrl: () => invoke<string | null>("business_logo_data_url"),
+    setLogo: (path: string) => invoke<string>("business_logo_set", { path }),
+    clearLogo: () => invoke<void>("business_logo_clear"),
   },
 
   clients: {
