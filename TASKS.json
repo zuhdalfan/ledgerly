@@ -233,6 +233,14 @@
       "priority": "P2",
       "area": "platform",
       "notes": "Opt-in and off by default (decided 2026-10-14): until the user asks to keep running in the tray, the app behaves exactly as today, closing quits, and there is no start-on-login by default. Coupled with NOTIFY -- a resident process is what lets a due-date reminder fire without a launch, and the routine stays on the same once-a-day hook (no polling, no network). Reconciles PRD FR-SEC-4, which already references minimize-to-tray, and needs Tauri's tray feature plus a tray icon."
+    },
+    {
+      "id": "EINVOICE",
+      "title": "European e-invoicing (EN 16931 / Peppol)",
+      "status": "deferred",
+      "priority": "P2",
+      "area": "compliance",
+      "notes": "Researched 2026-10-17; findings and sources in docs/EINVOICING.md. ViDA (adopted 2025-03-11) makes structured intra-EU B2B e-invoicing the default from 2030-07-01, and Germany, Belgium, Poland, France and Italy already mandate it domestically. The mandate is about *transmission* over Peppol access points or national platforms, which is network and would break the offline promise; what is compatible is generating and locally validating the file for the user to hand over. The prerequisites are data-model, not XML: a VAT category code on tax rates (BT-151), UN/ECE Rec 20 unit codes, country-prefixed VAT IDs, an EndpointID with an EAS scheme, a buyer or order reference (BT-10) and bank details (BT-84). Phase 1 would be Peppol BIS Billing 3.0 UBL export; Phase 2 Factur-X PDF/A-3. Revisit on a real need to send, not on a date."
     }
   ]
 }
