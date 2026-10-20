@@ -21,7 +21,22 @@ const CATALOGS: Record<Locale, Record<string, string>> = { en, id };
 
 export const DEFAULT_LOCALE: Locale = "en";
 
-let locale = $state<Locale>(DEFAULT_LOCALE);
+// Mirrors the last applied `ui.locale` so the first paint can be right. The
+// database stays authoritative: this is only a pre-paint cache, and it is what
+// lets the lock gate speak the chosen language, since settings are unreadable
+// until the app is unlocked.
+const STORAGE_KEY = "ledgerly.ui.locale";
+
+function storedLocale(): Locale {
+  try {
+    if (typeof localStorage === "undefined") return DEFAULT_LOCALE;
+    const value = localStorage.getItem(STORAGE_KEY);
+    return isLocale(value) ? value : DEFAULT_LOCALE;
+  } catch {
+    // Private mode or a disabled store: fall back to the default.
+    return DEFAULT_LOCALE;
+  }
+}
 
 type Params = Record<string, string | number>;
 
@@ -29,13 +44,29 @@ function isLocale(value: string | null | undefined): value is Locale {
   return value === "en" || value === "id";
 }
 
+const initial = storedLocale();
+let locale = $state<Locale>(initial);
+
+// `app.html` ships with lang="en"; correct it before the first paint. Reading
+// `initial` rather than the rune keeps this a one-time correction, which is
+// what we want — `setLocale` owns every later change.
+if (typeof document !== "undefined") {
+  document.documentElement.lang = initial;
+  document.documentElement.dataset.locale = initial;
+}
+
 export function getLocale(): Locale {
   return locale;
 }
 
-/** Apply a language: updates the rune and the document for assistive tech. */
+/** Apply a language: updates the rune, the cache and the document. */
 export function setLocale(next: Locale): void {
   locale = next;
+  try {
+    localStorage.setItem(STORAGE_KEY, next);
+  } catch {
+    // A failed cache write must never block the switch itself.
+  }
   if (typeof document !== "undefined") {
     document.documentElement.lang = next;
     document.documentElement.dataset.locale = next;
@@ -54,10 +85,30 @@ function fill(message: string, params?: Params): string {
   );
 }
 
-/** Translate a key. Falls back to English, then to the key itself — never throws. */
-export function t(key: MessageKey, params?: Params): string {
+/** Translate a key for an explicit locale, regardless of the UI language.
+ * Client-facing text (the reminder) uses the document language instead. */
+export function tFor(locale: Locale, key: MessageKey, params?: Params): string {
   const message = CATALOGS[locale][key] ?? en[key] ?? key;
   return fill(message, params);
+}
+
+/** Translate a key in the current UI language. */
+export function t(key: MessageKey, params?: Params): string {
+  return tFor(locale, key, params);
+}
+
+/**
+ * Pick a singular or plural message in an explicit locale. Indonesian has no
+ * plural inflection, so `id` holds the same text for both keys.
+ */
+export function pluralFor(
+  locale: Locale,
+  count: number,
+  oneKey: MessageKey,
+  otherKey: MessageKey,
+  params?: Params
+): string {
+  return tFor(locale, count === 1 ? oneKey : otherKey, { count, ...params });
 }
 
 /**
@@ -71,7 +122,7 @@ export function plural(
   otherKey: MessageKey,
   params?: Params
 ): string {
-  return t(count === 1 ? oneKey : otherKey, { count, ...params });
+  return pluralFor(locale, count, oneKey, otherKey, params);
 }
 
 /** Translate a derived invoice/estimate status. */

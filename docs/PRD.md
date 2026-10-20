@@ -754,7 +754,7 @@ verification problem the app **degrades to Free and never hides or deletes user 
 | **M6 — Reports & Export** | Revenue/aged/tax reports, CSV/JSON export, batch PDF. | Reports reconcile with raw data; exports open in Excel. |
 | **M7 — Data Safety** | Backup/restore, scheduled backups, data-location screen. | Restore on a clean machine reproduces all data. |
 | **M8 — Licensing & Freemium** | Installation serial + at-rest sealing, machine fingerprint, request code (text/file/QR), Ed25519 key verification, entitlements gating, Free/Pro split, optional trial, re-activation, and the vendor-side `ledgerly-licensectl`. *(Dropped — the app is free/MIT; see `TASKS.json` M8.)* | Free tier fully usable; a vendor-issued key unlocks Pro **with the network disabled**; forged/tampered/mismatched/expired keys are rejected (unit tests). |
-| **M9 — Security & i18n** | App lock, optional SQLCipher, notifications, UI/PDF localization. *(SQLCipher and notifications split out — `SEC-ENCRYPT` deferred, `NOTIFY` its own item.)* | Lock/unlock verified; EN complete. |
+| **M9 — Security & i18n** | App lock, optional SQLCipher, notifications, UI/PDF localization. *(SQLCipher and notifications split out — `SEC-ENCRYPT` deferred, `NOTIFY` its own item.)* | Lock/unlock verified; EN and ID complete; PDF and reminder language independent of the app language. |
 | **M10 — Polish & Release** | Recurring invoices, a11y pass, perf pass, packaging/signing/notarization, docs. *(Purchase/issuance runbook dropped with licensing.)* | Signed installers for Win/macOS/Linux; no-network CI check green. |
 
 *(Ordering is intentional: data safety and shipping a usable invoice→PDF path early; security and i18n after the core is stable.)*

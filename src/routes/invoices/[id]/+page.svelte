@@ -10,6 +10,7 @@
     fromMinor,
     localDate,
     minorToInput,
+    normalizeDecimal,
     statusLabel,
     toMinor,
   } from "$lib/format";
@@ -18,7 +19,7 @@
   import Toast from "$lib/components/Toast.svelte";
   import Skeleton from "$lib/components/Skeleton.svelte";
   import { useDirtyGuard } from "$lib/guard";
-  import { t } from "$lib/i18n.svelte";
+  import { t, localeFromSetting, type Locale } from "$lib/i18n.svelte";
   import { reminder } from "$lib/chase";
   import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
   import type {
@@ -78,6 +79,8 @@
   let balanceMinor = $state(0);
   let payments = $state<Payment[]>([]);
   let businessName = $state("");
+  // Client-facing text follows the document language, not the UI language.
+  let documentLocale = $state<Locale>("en");
   let lastChasedAt = $state<string | null>(null);
   let chaseCount = $state(0);
   let daysPastDue = $state<number | null>(null);
@@ -152,7 +155,7 @@
           ? null
           : discountType === "fixed"
             ? String(toMinor(discountValue))
-            : discountValue,
+            : normalizeDecimal(discountValue),
       notes: emptyToNull(notes),
       terms: emptyToNull(terms),
       paymentInstructions: emptyToNull(paymentInstructions),
@@ -162,17 +165,19 @@
 
   onMount(async () => {
     try {
-      const [clientList, rates, business, savedTemplate] = await Promise.all([
+      const [clientList, rates, business, savedTemplate, savedLocale] = await Promise.all([
         api.clients.list(),
         api.taxRates.list(),
         api.business.get(),
         api.settings.get("pdf.template").catch(() => null),
+        api.settings.get("pdf.locale").catch(() => null),
       ]);
       clients = clientList;
       taxRates = rates;
       currency = business.defaultCurrency;
       businessName = business.displayName;
       template = savedTemplate ?? "classic";
+      documentLocale = localeFromSetting(savedLocale);
 
       if (isNew) {
         issueDate = localDate();
@@ -436,7 +441,8 @@
         displayStatus,
         paymentInstructions,
       },
-      businessName
+      businessName,
+      documentLocale
     )
   );
 

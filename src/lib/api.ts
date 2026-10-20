@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { errorText } from "./errors";
 import type {
   AgedRow,
   AppInfo,
@@ -30,151 +31,165 @@ import type {
   TaxRateInput,
 } from "./types";
 
+/**
+ * The one place every command goes through, so a backend failure reaches the
+ * UI in the reader's language. `errorText` returns a plain string, which the
+ * existing `String(e)` handlers render as-is — rethrowing an `Error` would
+ * prefix every message with "Error:".
+ */
+async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+  try {
+    return await invoke<T>(command, args);
+  } catch (error) {
+    throw errorText(error);
+  }
+}
+
 export const api = {
-  appInfo: () => invoke<AppInfo>("app_info"),
+  appInfo: () => call<AppInfo>("app_info"),
 
   business: {
-    get: () => invoke<Business>("business_get"),
-    update: (input: BusinessInput) => invoke<Business>("business_update", { input }),
-    logoDataUrl: () => invoke<string | null>("business_logo_data_url"),
-    setLogo: (path: string) => invoke<string>("business_logo_set", { path }),
-    clearLogo: () => invoke<void>("business_logo_clear"),
+    get: () => call<Business>("business_get"),
+    update: (input: BusinessInput) => call<Business>("business_update", { input }),
+    logoDataUrl: () => call<string | null>("business_logo_data_url"),
+    setLogo: (path: string) => call<string>("business_logo_set", { path }),
+    clearLogo: () => call<void>("business_logo_clear"),
   },
 
   clients: {
     list: (query?: string, includeArchived = false) =>
-      invoke<Client[]>("clients_list", { query: query ?? null, includeArchived }),
-    get: (id: string) => invoke<Client | null>("clients_get", { id }),
-    create: (input: ClientInput) => invoke<Client>("clients_create", { input }),
-    update: (id: string, input: ClientInput) => invoke<Client>("clients_update", { id, input }),
+      call<Client[]>("clients_list", { query: query ?? null, includeArchived }),
+    get: (id: string) => call<Client | null>("clients_get", { id }),
+    create: (input: ClientInput) => call<Client>("clients_create", { input }),
+    update: (id: string, input: ClientInput) => call<Client>("clients_update", { id, input }),
     setArchived: (id: string, archived: boolean) =>
-      invoke<Client>("clients_set_archived", { id, archived }),
+      call<Client>("clients_set_archived", { id, archived }),
     exportStatement: (id: string, path: string, template?: string) =>
-      invoke<string>("pdf_export_statement", { clientId: id, path, template }),
+      call<string>("pdf_export_statement", { clientId: id, path, template }),
   },
 
   catalog: {
     list: (query?: string, includeArchived = false) =>
-      invoke<CatalogItem[]>("catalog_list", { query: query ?? null, includeArchived }),
-    create: (input: CatalogItemInput) => invoke<CatalogItem>("catalog_create", { input }),
+      call<CatalogItem[]>("catalog_list", { query: query ?? null, includeArchived }),
+    create: (input: CatalogItemInput) => call<CatalogItem>("catalog_create", { input }),
     update: (id: string, input: CatalogItemInput) =>
-      invoke<CatalogItem>("catalog_update", { id, input }),
+      call<CatalogItem>("catalog_update", { id, input }),
     setArchived: (id: string, archived: boolean) =>
-      invoke<CatalogItem>("catalog_set_archived", { id, archived }),
+      call<CatalogItem>("catalog_set_archived", { id, archived }),
   },
 
   taxRates: {
     list: (includeArchived = false) =>
-      invoke<TaxRate[]>("tax_rates_list", { includeArchived }),
-    create: (input: TaxRateInput) => invoke<TaxRate>("tax_rates_create", { input }),
+      call<TaxRate[]>("tax_rates_list", { includeArchived }),
+    create: (input: TaxRateInput) => call<TaxRate>("tax_rates_create", { input }),
     update: (id: string, input: TaxRateInput) =>
-      invoke<TaxRate>("tax_rates_update", { id, input }),
+      call<TaxRate>("tax_rates_update", { id, input }),
     setArchived: (id: string, archived: boolean) =>
-      invoke<TaxRate>("tax_rates_set_archived", { id, archived }),
+      call<TaxRate>("tax_rates_set_archived", { id, archived }),
   },
 
   numbering: {
-    get: (kind: string) => invoke<Numbering>("numbering_get", { kind }),
+    get: (kind: string) => call<Numbering>("numbering_get", { kind }),
     update: (kind: string, input: NumberingInput) =>
-      invoke<Numbering>("numbering_update", { kind, input }),
+      call<Numbering>("numbering_update", { kind, input }),
   },
 
   invoices: {
     list: (query?: string, status?: string, clientId?: string, age?: string, issuedMonth?: string) =>
-      invoke<Invoice[]>("invoices_list", {
+      call<Invoice[]>("invoices_list", {
         query: query ?? null,
         status: status ?? null,
         clientId: clientId ?? null,
         age: age ?? null,
         issuedMonth: issuedMonth ?? null,
       }),
-    get: (id: string) => invoke<Invoice | null>("invoices_get", { id }),
-    totals: (input: InvoiceInput) => invoke<InvoiceTotals>("invoices_totals", { input }),
-    create: (input: InvoiceInput) => invoke<Invoice>("invoices_create", { input }),
-    update: (id: string, input: InvoiceInput) => invoke<Invoice>("invoices_update", { id, input }),
-    duplicate: (id: string) => invoke<Invoice>("invoices_duplicate", { id }),
-    setVoid: (id: string, voided: boolean) => invoke<Invoice>("invoices_set_void", { id, voided }),
-    setSent: (id: string, sent: boolean) => invoke<Invoice>("invoices_set_sent", { id, sent }),
+    get: (id: string) => call<Invoice | null>("invoices_get", { id }),
+    totals: (input: InvoiceInput) => call<InvoiceTotals>("invoices_totals", { input }),
+    create: (input: InvoiceInput) => call<Invoice>("invoices_create", { input }),
+    update: (id: string, input: InvoiceInput) => call<Invoice>("invoices_update", { id, input }),
+    duplicate: (id: string) => call<Invoice>("invoices_duplicate", { id }),
+    setVoid: (id: string, voided: boolean) => call<Invoice>("invoices_set_void", { id, voided }),
+    setSent: (id: string, sent: boolean) => call<Invoice>("invoices_set_sent", { id, sent }),
     setChased: (id: string, chased: boolean) =>
-      invoke<Invoice>("invoices_set_chased", { id, chased }),
+      call<Invoice>("invoices_set_chased", { id, chased }),
     exportPdf: (id: string, path: string, template: string) =>
-      invoke<string>("pdf_export_invoice", { id, path, template }),
+      call<string>("pdf_export_invoice", { id, path, template }),
   },
 
   reports: {
     revenue: (from: string, to: string, granularity: string) =>
-      invoke<PeriodRow[]>("reports_revenue", { from, to, granularity }),
+      call<PeriodRow[]>("reports_revenue", { from, to, granularity }),
     revenueByClient: (from: string, to: string) =>
-      invoke<ClientRevenueRow[]>("reports_revenue_by_client", { from, to }),
-    agedReceivables: () => invoke<AgedRow[]>("reports_aged_receivables"),
-    tax: (from: string, to: string) => invoke<TaxRow[]>("reports_tax", { from, to }),
+      call<ClientRevenueRow[]>("reports_revenue_by_client", { from, to }),
+    agedReceivables: () => call<AgedRow[]>("reports_aged_receivables"),
+    tax: (from: string, to: string) => call<TaxRow[]>("reports_tax", { from, to }),
     paymentsByMethod: (from: string, to: string) =>
-      invoke<MethodRow[]>("reports_payments_by_method", { from, to }),
+      call<MethodRow[]>("reports_payments_by_method", { from, to }),
   },
 
   exportCsv: (path: string, headers: string[], rows: string[][]) =>
-    invoke<string>("export_csv", { path, headers, rows }),
-  exportJson: (path: string) => invoke<string>("export_json", { path }),
+    call<string>("export_csv", { path, headers, rows }),
+  exportJson: (path: string) => call<string>("export_json", { path }),
 
   settings: {
-    get: (key: string) => invoke<string | null>("settings_get", { key }),
-    set: (key: string, value: string) => invoke<void>("settings_set", { key, value }),
+    get: (key: string) => call<string | null>("settings_get", { key }),
+    set: (key: string, value: string) => call<void>("settings_set", { key, value }),
   },
 
   mcp: {
-    info: () => invoke<McpInfo>("mcp_info"),
+    info: () => call<McpInfo>("mcp_info"),
   },
 
   security: {
-    status: () => invoke<SecurityStatus>("security_status"),
-    unlock: (passphrase: string) => invoke<SecurityStatus>("security_unlock", { passphrase }),
-    lock: () => invoke<SecurityStatus>("security_lock"),
+    status: () => call<SecurityStatus>("security_status"),
+    unlock: (passphrase: string) => call<SecurityStatus>("security_unlock", { passphrase }),
+    lock: () => call<SecurityStatus>("security_lock"),
     enable: (passphrase: string, autoLockMinutes: number) =>
-      invoke<SecurityStatus>("security_enable", {
+      call<SecurityStatus>("security_enable", {
         input: { passphrase, autoLockMinutes },
       }),
-    disable: (passphrase: string) => invoke<SecurityStatus>("security_disable", { passphrase }),
+    disable: (passphrase: string) => call<SecurityStatus>("security_disable", { passphrase }),
     setAutoLock: (minutes: number) =>
-      invoke<SecurityStatus>("security_set_auto_lock", { minutes }),
+      call<SecurityStatus>("security_set_auto_lock", { minutes }),
   },
 
   backup: {
-    now: (path?: string) => invoke<string>("backup_now", { path: path ?? null }),
-    restore: (path: string) => invoke<string>("backup_restore", { path }),
-    list: () => invoke<BackupInfo[]>("backup_list"),
-    getSettings: () => invoke<BackupSettings>("backup_settings_get"),
+    now: (path?: string) => call<string>("backup_now", { path: path ?? null }),
+    restore: (path: string) => call<string>("backup_restore", { path }),
+    list: () => call<BackupInfo[]>("backup_list"),
+    getSettings: () => call<BackupSettings>("backup_settings_get"),
     saveSettings: (input: BackupSettingsInput) =>
-      invoke<BackupSettings>("backup_settings_set", { input }),
+      call<BackupSettings>("backup_settings_set", { input }),
   },
 
   estimates: {
     list: (query?: string, status?: string, clientId?: string) =>
-      invoke<Estimate[]>("estimates_list", {
+      call<Estimate[]>("estimates_list", {
         query: query ?? null,
         status: status ?? null,
         clientId: clientId ?? null,
       }),
-    get: (id: string) => invoke<Estimate | null>("estimates_get", { id }),
-    totals: (input: EstimateInput) => invoke<InvoiceTotals>("estimates_totals", { input }),
-    create: (input: EstimateInput) => invoke<Estimate>("estimates_create", { input }),
+    get: (id: string) => call<Estimate | null>("estimates_get", { id }),
+    totals: (input: EstimateInput) => call<InvoiceTotals>("estimates_totals", { input }),
+    create: (input: EstimateInput) => call<Estimate>("estimates_create", { input }),
     update: (id: string, input: EstimateInput) =>
-      invoke<Estimate>("estimates_update", { id, input }),
-    duplicate: (id: string) => invoke<Estimate>("estimates_duplicate", { id }),
+      call<Estimate>("estimates_update", { id, input }),
+    duplicate: (id: string) => call<Estimate>("estimates_duplicate", { id }),
     setStatus: (id: string, status: string) =>
-      invoke<Estimate>("estimates_set_status", { id, status }),
-    convert: (id: string) => invoke<Invoice>("estimates_convert", { id }),
+      call<Estimate>("estimates_set_status", { id, status }),
+    convert: (id: string) => call<Invoice>("estimates_convert", { id }),
     exportPdf: (id: string, path: string, template?: string) =>
-      invoke<string>("pdf_export_estimate", { id, path, template }),
+      call<string>("pdf_export_estimate", { id, path, template }),
   },
 
   payments: {
-    list: (invoiceId: string) => invoke<Payment[]>("payments_list", { invoiceId }),
+    list: (invoiceId: string) => call<Payment[]>("payments_list", { invoiceId }),
     create: (invoiceId: string, input: PaymentInput) =>
-      invoke<Payment>("payments_create", { invoiceId, input }),
+      call<Payment>("payments_create", { invoiceId, input }),
     update: (id: string, input: PaymentInput) =>
-      invoke<Payment>("payments_update", { id, input }),
-    remove: (id: string) => invoke<void>("payments_delete", { id }),
+      call<Payment>("payments_update", { id, input }),
+    remove: (id: string) => call<void>("payments_delete", { id }),
   },
 
-  openInViewer: (path: string) => invoke<void>("open_in_viewer", { path }),
+  openInViewer: (path: string) => call<void>("open_in_viewer", { path }),
 };

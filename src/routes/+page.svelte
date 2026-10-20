@@ -7,7 +7,7 @@
   import ColumnChart from "$lib/components/ColumnChart.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import { reminder } from "$lib/chase";
-  import { t, plural, getLocale } from "$lib/i18n.svelte";
+  import { t, plural, getLocale, localeFromSetting, type Locale } from "$lib/i18n.svelte";
 
   let info = $state<AppInfo | null>(null);
   let business = $state<Business | null>(null);
@@ -18,6 +18,8 @@
   >([]);
   let loading = $state(true);
   let error = $state("");
+  // Client-facing text follows the document language, not the UI language.
+  let documentLocale = $state<Locale>("en");
   let chaseMessage = $state("");
 
   const currency = $derived(business?.defaultCurrency ?? "");
@@ -109,7 +111,7 @@
 
   async function copyReminderFor(invoice: Invoice) {
     chaseMessage = "";
-    const { subject, body } = reminder(invoice, business?.displayName ?? "");
+    const { subject, body } = reminder(invoice, business?.displayName ?? "", documentLocale);
     try {
       await navigator.clipboard.writeText(`${subject}\n\n${body}`);
       chaseMessage = t("dash.reminderCopied", { number: invoice.number });
@@ -154,18 +156,21 @@
       const from = isoLocal(new Date(now.getFullYear(), now.getMonth() - 5, 1));
       const to = isoLocal(now);
 
-      const [appInfo, biz, clients, allInvoices, periods] = await Promise.all([
+      const [appInfo, biz, clients, allInvoices, periods, pdfLocale] = await Promise.all([
         api.appInfo(),
         api.business.get(),
         api.clients.list(),
         api.invoices.list(),
         // A failed chart must not blank the whole dashboard.
         api.reports.revenue(from, to, "month").catch(() => []),
+        // Same for the document language: fall back to English.
+        api.settings.get("pdf.locale").catch(() => null),
       ]);
       info = appInfo;
       business = biz;
       clientCount = clients.length;
       invoices = allInvoices;
+      documentLocale = localeFromSetting(pdfLocale);
       revenue = periods.map((row) => ({
         period: row.period,
         label: monthLabel(row.period),

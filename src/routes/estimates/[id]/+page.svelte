@@ -12,6 +12,7 @@
     fromMinor,
     localDate,
     minorToInput,
+    normalizeDecimal,
     statusLabel,
     toMinor,
   } from "$lib/format";
@@ -101,7 +102,7 @@
           ? null
           : discountType === "fixed"
             ? String(toMinor(discountValue))
-            : discountValue,
+            : normalizeDecimal(discountValue),
       notes: emptyToNull(notes),
       terms: emptyToNull(terms),
       paymentInstructions: emptyToNull(paymentInstructions),

@@ -37,6 +37,29 @@ export const id: Record<MessageKey, string> = {
   "error.backToDashboard": "Kembali ke dasbor",
   "error.status": "Galat {status}",
 
+  // --- backend errors ----------------------------------------------------
+  "errors.generic": "Terjadi kesalahan. Data Anda tidak diubah.",
+  "errors.database": "Basis data tidak dapat dibaca. Data Anda tidak diubah.",
+  "errors.notFound": "Data itu sudah tidak ada.",
+  "errors.duplicate": "Data itu sudah ada.",
+  "errors.inUse": "Data itu masih dipakai. Hapus dulu yang bergantung padanya.",
+  "errors.filesystem": "Berkas itu tidak dapat dibaca atau ditulis.",
+  "errors.pdf": "PDF tidak dapat dibuat.",
+  "errors.backup": "Cadangan itu tidak dapat diselesaikan.",
+  "errors.locked": "Ledgerly terkunci. Buka kunci untuk melanjutkan.",
+  "errors.passphrase": "Frasa sandi itu salah.",
+  "errors.passphraseLength": "Gunakan minimal {count} karakter untuk frasa sandi.",
+  "errors.logoSize": "Gambar itu lebih besar dari 2 MB. Pilih berkas yang lebih kecil.",
+  "errors.logoType": "Berkas itu bukan gambar PNG atau JPEG.",
+  "errors.logoPixels": "Gambar itu {width}×{height} piksel; batasnya {limit} per sisi.",
+  "errors.paymentPositive": "Jumlah pembayaran harus lebih dari nol.",
+  "errors.paymentTooLarge":
+    "Pembayaran melebihi sisa tagihan. Pecah menjadi pembayaran yang lebih kecil.",
+  "errors.estimateConverted": "Estimasi ini sudah diubah menjadi faktur.",
+  "errors.backupInvalid": "Berkas itu bukan cadangan Ledgerly.",
+  "errors.backupNewer":
+    "Cadangan itu dibuat oleh versi Ledgerly yang lebih baru. Perbarui Ledgerly, lalu pulihkan.",
+
   // --- command palette ---------------------------------------------------
   "palette.title": "Palet perintah",
   "palette.inputLabel": "Cari perintah, klien, dan faktur",

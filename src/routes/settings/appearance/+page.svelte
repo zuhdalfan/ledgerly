@@ -59,7 +59,8 @@
     setLocale(value);
     try {
       await api.settings.set("ui.locale", value);
-      languageNotice = t("appearance.languageSet", { language: value });
+      const endonym = LOCALES.find((option) => option.value === value)?.label ?? value;
+      languageNotice = t("appearance.languageSet", { language: endonym });
     } catch (e) {
       error = String(e);
     }

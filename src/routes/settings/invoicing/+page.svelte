@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { api } from "$lib/api";
   import { t } from "$lib/i18n.svelte";
+  import { toMinor } from "$lib/format";
   import type { TaxRate } from "$lib/types";
   import AsyncState from "$lib/components/AsyncState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
@@ -65,10 +66,11 @@
     if (!taxName.trim()) return;
     taxError = "";
     try {
-      const percent = Number.parseFloat(taxPercent);
+      // Percent to basis points is the same ×100 scaling as minor units.
+      const rateBp = toMinor(taxPercent);
       await api.taxRates.create({
         name: taxName.trim(),
-        rateBp: Number.isFinite(percent) ? Math.round(percent * 100) : 0,
+        rateBp,
       });
       taxName = "";
       taxPercent = "";

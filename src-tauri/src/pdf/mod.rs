@@ -235,6 +235,9 @@ struct Painter {
     bold_measure: TextMeasure,
     theme: Theme,
     labels: &'static Labels,
+    /// Document language, which decides number and date formatting as well as
+    /// the labels.
+    locale: Locale,
     kind: DocumentKind,
     cols: Columns,
     /// The decoded logo, if one is set. `Image::add_to_layer` consumes its
@@ -393,7 +396,7 @@ impl Painter {
             theme.ink,
         );
         y -= 5.5;
-        for line in business_lines(business) {
+        for line in business_lines(business, self.labels) {
             self.text(&line, 8.5, MARGIN, y, false, theme.muted);
             y -= 4.0;
         }
@@ -411,7 +414,11 @@ impl Painter {
         self.text_right(head.number, 10.5, CONTENT_RIGHT, ry, true, theme.ink);
         ry -= 5.0;
         self.text_right(
-            &format!("{} {}", self.labels.issued, format_date(head.issued)),
+            &format!(
+                "{} {}",
+                self.labels.issued,
+                format_date(head.issued, self.locale)
+            ),
             8.5,
             CONTENT_RIGHT,
             ry,
@@ -422,7 +429,11 @@ impl Painter {
 
         if let Some(due) = head.due.filter(|value| !value.trim().is_empty()) {
             self.text_right(
-                &format!("{} {}", self.kind.date_label(self.labels), format_date(due)),
+                &format!(
+                    "{} {}",
+                    self.kind.date_label(self.labels),
+                    format_date(due, self.locale)
+                ),
                 8.5,
                 CONTENT_RIGHT,
                 ry,
@@ -456,7 +467,7 @@ impl Painter {
             Some(client) => {
                 self.text(client.display_name.trim(), 11.0, MARGIN, y, true, theme.ink);
                 y -= 5.0;
-                for line in client_lines(client) {
+                for line in client_lines(client, self.labels) {
                     self.text(&line, 9.0, MARGIN, y, false, theme.ink);
                     y -= 4.2;
                 }
@@ -517,7 +528,7 @@ impl Painter {
 
         self.text(&invoice.number, size, MARGIN, y, false, theme.ink);
         self.text(
-            &format_date(&invoice.issue_date),
+            &format_date(&invoice.issue_date, self.locale),
             size,
             COL_ISSUED,
             y,
@@ -528,7 +539,7 @@ impl Painter {
             &invoice
                 .due_date
                 .as_deref()
-                .map(format_date)
+                .map(|date| format_date(date, self.locale))
                 .unwrap_or_else(|| "—".to_string()),
             size,
             COL_DUE,
@@ -537,7 +548,7 @@ impl Painter {
             theme.ink,
         );
         self.text_right(
-            &format_money(invoice.balance_minor, &invoice.currency),
+            &format_money(invoice.balance_minor, &invoice.currency, self.locale),
             size,
             CONTENT_RIGHT,
             y,
@@ -594,7 +605,7 @@ impl Painter {
                 let cols = self.cols;
                 self.text_right(&item.quantity, 9.0, cols.qty, dy, false, theme.ink);
                 self.text_right(
-                    &format_money(item.unit_price_minor, currency),
+                    &format_money(item.unit_price_minor, currency, self.locale),
                     9.0,
                     cols.price,
                     dy,
@@ -602,16 +613,27 @@ impl Painter {
                     theme.ink,
                 );
                 self.text_right(
-                    &discount_label(item, currency),
+                    &discount_label(item, currency, self.locale),
                     9.0,
                     cols.disc,
                     dy,
                     false,
                     theme.muted,
                 );
-                self.text_right(&tax_label(item), 9.0, cols.tax, dy, false, theme.muted);
                 self.text_right(
-                    &format_money(line.map(|l| l.total_minor).unwrap_or(0), currency),
+                    &tax_label(item, self.locale),
+                    9.0,
+                    cols.tax,
+                    dy,
+                    false,
+                    theme.muted,
+                );
+                self.text_right(
+                    &format_money(
+                        line.map(|l| l.total_minor).unwrap_or(0),
+                        currency,
+                        self.locale,
+                    ),
                     9.0,
                     cols.total,
                     dy,
@@ -652,10 +674,13 @@ impl Painter {
         let rule_y = tax_y - 2.6;
         let total_y = tax_y - 8.4;
 
-        let subtotal_value = format_money(totals.subtotal_minor, currency);
-        let discount_value = format!("-{}", format_money(totals.discount_minor, currency));
-        let tax_value = format_money(totals.tax_minor, currency);
-        let total_value = format_money(totals.total_minor, currency);
+        let subtotal_value = format_money(totals.subtotal_minor, currency, self.locale);
+        let discount_value = format!(
+            "-{}",
+            format_money(totals.discount_minor, currency, self.locale)
+        );
+        let tax_value = format_money(totals.tax_minor, currency, self.locale);
+        let total_value = format_money(totals.total_minor, currency, self.locale);
 
         // Both the label column and the panel are sized to the widest string on
         // each side, so a long figure — a large amount, or a currency written
@@ -857,7 +882,7 @@ fn locality(
     }
 }
 
-fn business_lines(business: &Business) -> Vec<String> {
+fn business_lines(business: &Business, labels: &Labels) -> Vec<String> {
     let mut lines = Vec::new();
     push_line(&mut lines, &business.address_line1);
     push_line(&mut lines, &business.address_line2);
@@ -872,12 +897,12 @@ fn business_lines(business: &Business) -> Vec<String> {
     push_line(&mut lines, &business.email);
     push_line(&mut lines, &business.phone);
     if let Some(tax_id) = non_empty(&business.tax_id) {
-        lines.push(format!("Tax ID: {tax_id}"));
+        lines.push(format!("{}: {tax_id}", labels.tax_id));
     }
     lines
 }
 
-fn client_lines(client: &Client) -> Vec<String> {
+fn client_lines(client: &Client, labels: &Labels) -> Vec<String> {
     let mut lines = Vec::new();
     push_line(&mut lines, &client.company);
     push_line(&mut lines, &client.address_line1);
@@ -893,12 +918,12 @@ fn client_lines(client: &Client) -> Vec<String> {
     push_line(&mut lines, &client.email);
     push_line(&mut lines, &client.phone);
     if let Some(tax_id) = non_empty(&client.tax_id) {
-        lines.push(format!("Tax ID: {tax_id}"));
+        lines.push(format!("{}: {tax_id}", labels.tax_id));
     }
     lines
 }
 
-fn discount_label(item: &InvoiceItem, currency: &str) -> String {
+fn discount_label(item: &InvoiceItem, currency: &str, locale: Locale) -> String {
     match (
         item.discount_type.as_deref(),
         item.discount_value.as_deref(),
@@ -911,16 +936,16 @@ fn discount_label(item: &InvoiceItem, currency: &str) -> String {
             }
         }
         (Some("fixed"), Some(value)) => match value.trim().parse::<i64>() {
-            Ok(minor) if minor != 0 => format_money(minor, currency),
+            Ok(minor) if minor != 0 => format_money(minor, currency, locale),
             _ => String::new(),
         },
         _ => String::new(),
     }
 }
 
-fn tax_label(item: &InvoiceItem) -> String {
+fn tax_label(item: &InvoiceItem, locale: Locale) -> String {
     match item.tax_rate_bp {
-        Some(bp) if bp != 0 => format_percent_bp(bp),
+        Some(bp) if bp != 0 => format_percent_bp(bp, locale),
         _ => String::new(),
     }
 }
@@ -1041,11 +1066,20 @@ fn layout_columns(painter: &Painter, invoice: &Invoice, totals: &InvoiceTotals) 
         price = price.max(figure(&format_money(
             item.unit_price_minor,
             &invoice.currency,
+            painter.locale,
         )));
-        disc = disc.max(figure(&discount_label(item, &invoice.currency)));
-        tax = tax.max(figure(&tax_label(item)));
+        disc = disc.max(figure(&discount_label(
+            item,
+            &invoice.currency,
+            painter.locale,
+        )));
+        tax = tax.max(figure(&tax_label(item, painter.locale)));
         let line_total = totals.lines.get(index).map_or(0, |line| line.total_minor);
-        total = total.max(figure(&format_money(line_total, &invoice.currency)));
+        total = total.max(figure(&format_money(
+            line_total,
+            &invoice.currency,
+            painter.locale,
+        )));
     }
 
     let total_right = CONTENT_RIGHT;
@@ -1134,6 +1168,7 @@ fn build_painter(
         bold_measure,
         theme: Theme::for_template(options.template),
         labels: options.locale.labels(),
+        locale: options.locale,
         kind,
         cols: Columns::default(),
         logo,
@@ -1238,7 +1273,7 @@ pub fn render_statement(
         },
     );
 
-    for line in client_lines(client) {
+    for line in client_lines(client, painter.labels) {
         painter.text(&line, 8.5, MARGIN, y, false, painter.theme.muted);
         y -= 4.0;
     }
@@ -1273,7 +1308,7 @@ pub fn render_statement(
         painter.theme.ink,
     );
     painter.text_right(
-        &format_money(total, currency),
+        &format_money(total, currency, painter.locale),
         11.0,
         CONTENT_RIGHT,
         label_y,

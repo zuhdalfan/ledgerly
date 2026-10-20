@@ -1,4 +1,4 @@
-import { emptyToNull, minorToInput, toMinor } from "./format";
+import { emptyToNull, minorToInput, normalizeDecimal, toMinor } from "./format";
 import type { LineItemInput } from "./types";
 
 /** The string-based shape the editor binds to. */
@@ -59,7 +59,7 @@ export function toItemForm(item: StoredItem): ItemForm {
 export function toItemInput(item: ItemForm): LineItemInput {
   return {
     description: item.description,
-    quantity: item.quantity.trim() || "1",
+    quantity: normalizeDecimal(item.quantity.trim() || "1"),
     unit: emptyToNull(item.unit),
     unitPriceMinor: toMinor(item.price),
     discountType: item.discountType || null,
@@ -68,7 +68,7 @@ export function toItemInput(item: ItemForm): LineItemInput {
         ? null
         : item.discountType === "fixed"
           ? String(toMinor(item.discountValue))
-          : item.discountValue,
+          : normalizeDecimal(item.discountValue),
     taxRateId: item.taxRateId || null,
     taxInclusive: item.taxInclusive,
   };

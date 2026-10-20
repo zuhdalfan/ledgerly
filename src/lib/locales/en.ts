@@ -38,6 +38,32 @@ export const en = {
   "error.backToDashboard": "Back to the dashboard",
   "error.status": "Error {status}",
 
+  // --- backend errors ----------------------------------------------------
+  // The Rust core reports in English; the UI maps those messages to these
+  // keys at the IPC boundary (src/lib/errors.ts). Unknown text falls through
+  // unchanged, so a new backend error is still visible before it is translated.
+  "errors.generic": "Something went wrong. Your data has not been changed.",
+  "errors.database": "The database could not be read. Your data has not been changed.",
+  "errors.notFound": "That record is no longer there.",
+  "errors.duplicate": "That record already exists.",
+  "errors.inUse": "That record is still in use. Remove what depends on it first.",
+  "errors.filesystem": "That file could not be read or written.",
+  "errors.pdf": "The PDF could not be created.",
+  "errors.backup": "That backup could not be completed.",
+  "errors.locked": "Ledgerly is locked. Unlock to continue.",
+  "errors.passphrase": "That passphrase is not correct.",
+  "errors.passphraseLength": "Use at least {count} characters for the passphrase.",
+  "errors.logoSize": "That image is larger than 2 MB. Please choose a smaller file.",
+  "errors.logoType": "That file is not a PNG or JPEG image.",
+  "errors.logoPixels": "That image is {width}×{height} pixels; the limit is {limit} on a side.",
+  "errors.paymentPositive": "Payment amount must be greater than zero.",
+  "errors.paymentTooLarge":
+    "Payment is more than the outstanding balance. Split it into smaller payments.",
+  "errors.estimateConverted": "This estimate has already been converted to an invoice.",
+  "errors.backupInvalid": "That file is not a Ledgerly backup.",
+  "errors.backupNewer":
+    "That backup was made by a newer version of Ledgerly. Update Ledgerly, then restore it.",
+
   // --- command palette ---------------------------------------------------
   "palette.title": "Command palette",
   "palette.inputLabel": "Search commands, clients and invoices",
