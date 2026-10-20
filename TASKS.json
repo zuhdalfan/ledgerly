@@ -240,7 +240,7 @@
       "status": "deferred",
       "priority": "P2",
       "area": "platform",
-      "notes": "Opt-in and off by default (decided 2026-10-14): until the user asks to keep running in the tray, the app behaves exactly as today, closing quits, and there is no start-on-login by default. Coupled with NOTIFY -- a resident process is what lets a due-date reminder fire without a launch, and the routine stays on the same once-a-day hook (no polling, no network). Reconciles PRD FR-SEC-4, which already references minimize-to-tray, and needs Tauri's tray feature plus a tray icon."
+      "notes": "Opt-in and off by default (decided 2026-10-14): until the user asks to keep running in the tray, the app behaves exactly as today, closing quits, and there is no start-on-login by default. Coupled with NOTIFY -- a resident process is what lets a due-date reminder fire without a launch, and the routine stays on the same once-a-day hook (no polling, no network). Reconciles PRD FR-SEC-4, which already references minimize-to-tray, and needs Tauri's tray feature plus a tray icon. Implementation plan written 2026-10-20: docs/TRAY.md."
     },
     {
       "id": "EINVOICE",
