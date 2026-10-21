@@ -20,7 +20,7 @@ fn columns() -> String {
          i.notes, i.terms, i.payment_instructions, i.voided_at, i.sent_at, \
          i.created_at, i.updated_at, c.display_name, \
          {PAID_EXPR} AS paid_minor, {DAYS_PAST_DUE_EXPR} AS days_past_due, \
-         i.last_chased_at, i.chase_count"
+         i.last_chased_at, i.chase_count, i.locale, c.locale"
     )
 }
 
@@ -99,6 +99,11 @@ pub struct Invoice {
     /// because "I emailed them on Tuesday" is the user's sense of it.
     pub last_chased_at: Option<String>,
     pub chase_count: i64,
+    /// Document language override; `None` inherits the client's language.
+    pub locale: Option<String>,
+    /// The client's own override, so a reader can resolve the fallback without
+    /// a second query. `None` inherits the global default.
+    pub client_locale: Option<String>,
     pub items: Vec<InvoiceItem>,
 }
 
@@ -127,6 +132,8 @@ pub struct InvoiceInput {
     /// Set when the invoice was created by converting an estimate.
     #[serde(default)]
     pub estimate_id: Option<String>,
+    #[serde(default)]
+    pub locale: Option<String>,
     #[serde(default)]
     pub items: Vec<LineItemInput>,
 }
@@ -167,6 +174,8 @@ fn map_invoice(row: &Row, items: Vec<InvoiceItem>) -> rusqlite::Result<Invoice> 
         display_status: display_status(&status, balance_minor, paid_minor, days_past_due),
         last_chased_at: row.get(24)?,
         chase_count: row.get(25)?,
+        locale: row.get(26)?,
+        client_locale: row.get(27)?,
         items,
     })
 }
@@ -363,8 +372,8 @@ pub(crate) fn insert_invoice(conn: &Connection, input: &InvoiceInput) -> rusqlit
         "INSERT INTO invoice (
             id, number, client_id, status, issue_date, due_date, currency, po_reference,
             discount_type, discount_value, subtotal_minor, discount_minor, tax_minor,
-            total_minor, notes, terms, payment_instructions, estimate_id
-         ) VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
+            total_minor, notes, terms, payment_instructions, estimate_id, locale
+         ) VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
         params![
             id,
             number,
@@ -383,6 +392,7 @@ pub(crate) fn insert_invoice(conn: &Connection, input: &InvoiceInput) -> rusqlit
             trim_opt(&input.terms),
             trim_opt(&input.payment_instructions),
             trim_opt(&input.estimate_id),
+            trim_opt(&input.locale),
         ],
     )?;
 
@@ -407,7 +417,7 @@ pub fn update(conn: &Connection, id: &str, input: &InvoiceInput) -> rusqlite::Re
             client_id = ?2, issue_date = ?3, due_date = ?4, currency = ?5, po_reference = ?6,
             discount_type = ?7, discount_value = ?8, subtotal_minor = ?9, discount_minor = ?10,
             tax_minor = ?11, total_minor = ?12, notes = ?13, terms = ?14,
-            payment_instructions = ?15, updated_at = datetime('now')
+            payment_instructions = ?15, locale = ?16, updated_at = datetime('now')
          WHERE id = ?1",
         params![
             id,
@@ -425,6 +435,7 @@ pub fn update(conn: &Connection, id: &str, input: &InvoiceInput) -> rusqlite::Re
             trim_opt(&input.notes),
             trim_opt(&input.terms),
             trim_opt(&input.payment_instructions),
+            trim_opt(&input.locale),
         ],
     )?;
     if changed == 0 {
@@ -454,6 +465,7 @@ pub fn duplicate(conn: &Connection, id: &str) -> rusqlite::Result<Invoice> {
         terms: original.terms,
         payment_instructions: original.payment_instructions,
         estimate_id: None,
+        locale: original.locale,
         items: original
             .items
             .iter()
@@ -536,6 +548,7 @@ mod tests {
             terms: None,
             payment_instructions: None,
             estimate_id: None,
+            locale: None,
             items,
         }
     }
@@ -591,6 +604,31 @@ mod tests {
     }
 
     #[test]
+    fn locale_round_trips_with_the_client_override() {
+        let t = temp_db();
+        let client_id = make_client(&t.conn, "Acme");
+        t.conn
+            .execute(
+                "UPDATE client SET locale = 'id' WHERE id = ?1",
+                [&client_id],
+            )
+            .unwrap();
+
+        let mut own = input(vec![item("One", 1_000, None)]);
+        own.client_id = Some(client_id);
+        let invoice = create(&t.conn, &own).unwrap();
+        // The document inherits, and the client's choice travels with it.
+        assert_eq!(invoice.locale, None);
+        assert_eq!(invoice.client_locale.as_deref(), Some("id"));
+
+        own.locale = Some("en".to_string());
+        update(&t.conn, &invoice.id, &own).unwrap();
+        let fetched = get(&t.conn, &invoice.id).unwrap().unwrap();
+        assert_eq!(fetched.locale.as_deref(), Some("en"));
+        assert_eq!(fetched.client_locale.as_deref(), Some("id"));
+    }
+
+    #[test]
     fn duplicate_gets_a_fresh_number_and_stays_draft() {
         let t = temp_db();
         let first = create(&t.conn, &input(vec![item("One", 10_000, None)])).unwrap();
@@ -624,6 +662,7 @@ mod tests {
                 tax_id: None,
                 currency: None,
                 notes: None,
+                locale: None,
             },
         )
         .unwrap();
@@ -833,6 +872,7 @@ mod tests {
                 tax_id: None,
                 currency: None,
                 notes: None,
+                locale: None,
             },
         )
         .unwrap()

@@ -35,6 +35,19 @@ fn require_unlocked(state: &AppState) -> AppResult<()> {
     }
 }
 
+/// The language a document is printed in: its own override first, then its
+/// client's, then the Settings > Invoicing default. Every level stores `None`
+/// to mean inherit, so the fallback is a chain rather than a resolved value
+/// written at save time — an old document keeps following its client until
+/// someone fixes a language on it.
+fn document_locale<'a>(
+    own: Option<&'a str>,
+    client: Option<&'a str>,
+    global: Option<&'a str>,
+) -> &'a str {
+    own.or(client).or(global).unwrap_or("en")
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppInfo {
@@ -71,6 +84,17 @@ mod tests {
     #[test]
     fn an_unlocked_app_allows_them() {
         assert!(require_unlocked(&state(false)).is_ok());
+    }
+
+    #[test]
+    fn a_document_language_falls_back_in_order() {
+        // Its own choice wins over everything.
+        assert_eq!(document_locale(Some("en"), Some("id"), Some("id")), "en");
+        // Otherwise it follows the client, then the global default.
+        assert_eq!(document_locale(None, Some("id"), Some("en")), "id");
+        assert_eq!(document_locale(None, None, Some("id")), "id");
+        // Nothing set anywhere still prints something.
+        assert_eq!(document_locale(None, None, None), "en");
     }
 }
 
@@ -463,10 +487,16 @@ pub fn pdf_export_invoice(
         let conn = state.db.lock().unwrap();
         require_unlocked(&state)?;
         // Document language is independent of the app's UI language.
-        let locale = settings::get(&conn, "pdf.locale")?.unwrap_or_else(|| "en".to_string());
+        let global_locale = settings::get(&conn, "pdf.locale")?;
 
         let invoice = invoices::get(&conn, &id)?
             .ok_or_else(|| AppError::Pdf("invoice not found".to_string()))?;
+        let locale = document_locale(
+            invoice.locale.as_deref(),
+            invoice.client_locale.as_deref(),
+            global_locale.as_deref(),
+        )
+        .to_string();
         let business = business::get(&conn)?;
         let client = match invoice.client_id.as_deref() {
             Some(client_id) => clients::get(&conn, client_id)?,
@@ -507,10 +537,16 @@ pub fn pdf_export_estimate(
         let conn = state.db.lock().unwrap();
         require_unlocked(&state)?;
         // Document language is independent of the app's UI language.
-        let locale = settings::get(&conn, "pdf.locale")?.unwrap_or_else(|| "en".to_string());
+        let global_locale = settings::get(&conn, "pdf.locale")?;
 
         let estimate = estimates::get(&conn, &id)?
             .ok_or_else(|| AppError::Pdf("estimate not found".to_string()))?;
+        let locale = document_locale(
+            estimate.locale.as_deref(),
+            estimate.client_locale.as_deref(),
+            global_locale.as_deref(),
+        )
+        .to_string();
         let business = business::get(&conn)?;
         let client = match estimate.client_id.as_deref() {
             Some(client_id) => clients::get(&conn, client_id)?,
@@ -552,12 +588,15 @@ pub fn pdf_export_statement(
     let (client, open, business, locale, issued, logo) = {
         let conn = state.db.lock().unwrap();
         require_unlocked(&state)?;
-        let locale = settings::get(&conn, "pdf.locale")?.unwrap_or_else(|| "en".to_string());
+        let global_locale = settings::get(&conn, "pdf.locale")?;
         let issued: String =
             conn.query_row("SELECT date('now', 'localtime')", [], |row| row.get(0))?;
 
         let client = clients::get(&conn, &client_id)?
             .ok_or_else(|| AppError::Pdf("client not found".to_string()))?;
+        // A statement has no language of its own; it follows its client.
+        let locale =
+            document_locale(None, client.locale.as_deref(), global_locale.as_deref()).to_string();
         let business = business::get(&conn)?;
 
         // Only what is still owed, oldest first: that is what a statement is for.

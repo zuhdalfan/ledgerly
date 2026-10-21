@@ -1022,6 +1022,10 @@ fn estimate_as_invoice(estimate: &Estimate) -> Invoice {
         // Chasing is an invoice concern; an estimate has no such record.
         last_chased_at: None,
         chase_count: 0,
+        // The renderer reads the locale from the options, but the converted
+        // document keeps the estimate's own values rather than inventing them.
+        locale: estimate.locale.clone(),
+        client_locale: estimate.client_locale.clone(),
         items: estimate
             .items
             .iter()
@@ -1432,6 +1436,8 @@ mod tests {
             display_status: status.to_string(),
             last_chased_at: None,
             chase_count: 0,
+            locale: None,
+            client_locale: None,
             items,
         }
     }
@@ -1453,6 +1459,7 @@ mod tests {
             tax_id: None,
             currency: None,
             notes: None,
+            locale: None,
             archived_at: None,
             created_at: "2026-01-01 00:00:00".to_string(),
             updated_at: "2026-01-01 00:00:00".to_string(),
@@ -1572,6 +1579,8 @@ mod tests {
             updated_at: "2026-01-15".to_string(),
             days_until_expiry: Some(31),
             display_status: "draft".to_string(),
+            locale: None,
+            client_locale: None,
             items,
         }
     }
@@ -1718,6 +1727,7 @@ mod tests {
                 tax_id: Some("GST-999".to_string()),
                 currency: None,
                 notes: None,
+                locale: None,
             },
         )
         .unwrap();
@@ -1758,6 +1768,7 @@ mod tests {
                 terms: None,
                 payment_instructions: None,
                 estimate_id: None,
+                locale: None,
                 items: vec![
                     item("Consulting", "3", 12_345, Some(gst.id)),
                     item("Hosting", "1", 4_000, None),

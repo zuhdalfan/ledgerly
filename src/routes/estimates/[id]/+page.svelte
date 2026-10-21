@@ -17,7 +17,7 @@
     toMinor,
   } from "$lib/format";
   import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
-  import { plural, t } from "$lib/i18n.svelte";
+  import { LOCALES, plural, t } from "$lib/i18n.svelte";
   import type { Client, Estimate, EstimateInput, InvoiceTotals, TaxRate } from "$lib/types";
 
   let clients = $state<Client[]>([]);
@@ -40,6 +40,7 @@
   let notes = $state("");
   let terms = $state("");
   let paymentInstructions = $state("");
+  let locale = $state("");
   let items = $state<ItemForm[]>([emptyItem()]);
 
   let number = $state("");
@@ -106,6 +107,7 @@
       notes: emptyToNull(notes),
       terms: emptyToNull(terms),
       paymentInstructions: emptyToNull(paymentInstructions),
+      locale: emptyToNull(locale),
       items: toItemInputs(items),
     };
   }
@@ -155,6 +157,7 @@
       notes = estimate.notes ?? "";
       terms = estimate.terms ?? "";
       paymentInstructions = estimate.paymentInstructions ?? "";
+      locale = estimate.locale ?? "";
       items = estimate.items.length ? estimate.items.map(toItemForm) : [emptyItem()];
       savedTotals = {
         subtotalMinor: estimate.subtotalMinor,
@@ -260,6 +263,7 @@
         taxId: null,
         currency: null,
         notes: null,
+        locale: null,
       });
       clients = [...clients, created];
       clientId = created.id;
@@ -443,6 +447,15 @@
     <div class="field">
       <label for="currency">{t("common.currency")}</label>
       <input id="currency" bind:value={currency} />
+    </div>
+    <div class="field">
+      <label for="docLocale">{t("common.documentLanguage")}</label>
+      <select id="docLocale" bind:value={locale}>
+        <option value="">{t("common.inheritClient")}</option>
+        {#each LOCALES as option (option.value)}
+          <option value={option.value}>{option.label}</option>
+        {/each}
+      </select>
     </div>
     <div class="field">
       <label for="status">{t("common.status")}</label>

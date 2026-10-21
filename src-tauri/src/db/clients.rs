@@ -5,7 +5,7 @@ use super::trim_opt;
 
 const COLUMNS: &str = "id, display_name, company, contact_person, email, phone, \
                        address_line1, address_line2, city, region, postal_code, country, \
-                       tax_id, currency, notes, archived_at, created_at, updated_at";
+                       tax_id, currency, notes, archived_at, created_at, updated_at, locale";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,6 +28,8 @@ pub struct Client {
     pub archived_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// Document language override. `None` inherits the global default.
+    pub locale: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -60,6 +62,8 @@ pub struct ClientInput {
     pub currency: Option<String>,
     #[serde(default)]
     pub notes: Option<String>,
+    #[serde(default)]
+    pub locale: Option<String>,
 }
 
 fn map_row(row: &Row) -> rusqlite::Result<Client> {
@@ -82,6 +86,7 @@ fn map_row(row: &Row) -> rusqlite::Result<Client> {
         archived_at: row.get(15)?,
         created_at: row.get(16)?,
         updated_at: row.get(17)?,
+        locale: row.get(18)?,
     })
 }
 
@@ -125,8 +130,8 @@ pub fn create(conn: &Connection, input: &ClientInput) -> rusqlite::Result<Client
         "INSERT INTO client (
             id, display_name, company, contact_person, email, phone,
             address_line1, address_line2, city, region, postal_code, country,
-            tax_id, currency, notes
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+            tax_id, currency, notes, locale
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
         params![
             id,
             input.display_name.trim(),
@@ -143,6 +148,7 @@ pub fn create(conn: &Connection, input: &ClientInput) -> rusqlite::Result<Client
             trim_opt(&input.tax_id),
             trim_opt(&input.currency),
             trim_opt(&input.notes),
+            trim_opt(&input.locale),
         ],
     )?;
     get(conn, &id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)
@@ -154,7 +160,7 @@ pub fn update(conn: &Connection, id: &str, input: &ClientInput) -> rusqlite::Res
             display_name = ?2, company = ?3, contact_person = ?4, email = ?5, phone = ?6,
             address_line1 = ?7, address_line2 = ?8, city = ?9, region = ?10,
             postal_code = ?11, country = ?12, tax_id = ?13, currency = ?14, notes = ?15,
-            updated_at = datetime('now')
+            locale = ?16, updated_at = datetime('now')
          WHERE id = ?1",
         params![
             id,
@@ -172,6 +178,7 @@ pub fn update(conn: &Connection, id: &str, input: &ClientInput) -> rusqlite::Res
             trim_opt(&input.tax_id),
             trim_opt(&input.currency),
             trim_opt(&input.notes),
+            trim_opt(&input.locale),
         ],
     )?;
     if changed == 0 {
@@ -215,6 +222,7 @@ mod tests {
             tax_id: None,
             currency: None,
             notes: None,
+            locale: None,
         }
     }
 
@@ -231,8 +239,10 @@ mod tests {
 
         let mut changed = input("Acme");
         changed.display_name = "Acme Ltd".to_string();
+        changed.locale = Some("id".to_string());
         let updated = update(&t.conn, &created.id, &changed).unwrap();
         assert_eq!(updated.display_name, "Acme Ltd");
+        assert_eq!(updated.locale.as_deref(), Some("id"));
         assert_eq!(updated.created_at, created.created_at);
     }
 

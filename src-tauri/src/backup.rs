@@ -397,6 +397,7 @@ mod tests {
                 tax_id: None,
                 currency: None,
                 notes: None,
+                locale: None,
             },
         )
         .unwrap();

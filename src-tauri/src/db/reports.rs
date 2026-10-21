@@ -350,6 +350,7 @@ mod tests {
                 terms: None,
                 payment_instructions: None,
                 estimate_id: None,
+                locale: None,
                 items,
             },
         )
@@ -496,6 +497,7 @@ mod tests {
                 terms: None,
                 payment_instructions: None,
                 estimate_id: None,
+                locale: None,
                 items: vec![line("A", price, None)],
             };
             input.due_date = Some(due.to_string());

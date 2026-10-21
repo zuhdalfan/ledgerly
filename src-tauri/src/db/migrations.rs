@@ -17,6 +17,7 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0009_chasing.sql"),
     include_str!("../../migrations/0010_business_logo.sql"),
     include_str!("../../migrations/0011_business_logo_drop_updated_at.sql"),
+    include_str!("../../migrations/0012_document_locale.sql"),
 ];
 
 /// Apply every migration newer than the database's current `user_version`.
@@ -57,6 +58,9 @@ mod tests {
                  DROP TABLE invoice;
                  DROP TABLE tax_rate;
                  DROP TABLE numbering;
+                 -- Version 2 predates document languages, and client survives
+                 -- the drops above, so take its column back off to match.
+                 ALTER TABLE client DROP COLUMN locale;
                  PRAGMA user_version = 2;",
             )
             .unwrap();
@@ -156,6 +160,11 @@ mod tests {
                  );
                  INSERT INTO business_logo (id, bytes, mime, updated_at)
                      VALUES ('default', x'89504E47', 'image/png', datetime('now'));
+                 -- Version 10 predates document languages; these tables are not
+                 -- rebuilt below, so take their columns off to match.
+                 ALTER TABLE client DROP COLUMN locale;
+                 ALTER TABLE invoice DROP COLUMN locale;
+                 ALTER TABLE estimate DROP COLUMN locale;
                  PRAGMA user_version = 10;",
             )
             .unwrap();

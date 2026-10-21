@@ -19,7 +19,7 @@
   import Toast from "$lib/components/Toast.svelte";
   import Skeleton from "$lib/components/Skeleton.svelte";
   import { useDirtyGuard } from "$lib/guard";
-  import { t, localeFromSetting, type Locale } from "$lib/i18n.svelte";
+  import { LOCALES, t, localeFromSetting, type Locale } from "$lib/i18n.svelte";
   import { reminder } from "$lib/chase";
   import { emptyItem, toItemForm, toItemInputs, type ItemForm } from "$lib/lineItems";
   import type {
@@ -51,6 +51,7 @@
   let notes = $state("");
   let terms = $state("");
   let paymentInstructions = $state("");
+  let locale = $state("");
   let items = $state<ItemForm[]>([emptyItem()]);
 
   let number = $state("");
@@ -79,8 +80,14 @@
   let balanceMinor = $state(0);
   let payments = $state<Payment[]>([]);
   let businessName = $state("");
-  // Client-facing text follows the document language, not the UI language.
-  let documentLocale = $state<Locale>("en");
+  let globalLocale = $state<Locale>("en");
+  // Client-facing text follows the document language, not the UI language. The
+  // chain is the same one the PDF renderer uses: this invoice, then its client,
+  // then Settings > Invoicing.
+  const clientLocale = $derived(
+    clients.find((client) => client.id === clientId)?.locale ?? ""
+  );
+  const documentLocale = $derived(localeFromSetting(locale || clientLocale || globalLocale));
   let lastChasedAt = $state<string | null>(null);
   let chaseCount = $state(0);
   let daysPastDue = $state<number | null>(null);
@@ -159,6 +166,7 @@
       notes: emptyToNull(notes),
       terms: emptyToNull(terms),
       paymentInstructions: emptyToNull(paymentInstructions),
+      locale: emptyToNull(locale),
       items: toItemInputs(items),
     };
   }
@@ -177,7 +185,7 @@
       currency = business.defaultCurrency;
       businessName = business.displayName;
       template = savedTemplate ?? "classic";
-      documentLocale = localeFromSetting(savedLocale);
+      globalLocale = localeFromSetting(savedLocale);
 
       if (isNew) {
         issueDate = localDate();
@@ -213,6 +221,7 @@
       notes = invoice.notes ?? "";
       terms = invoice.terms ?? "";
       paymentInstructions = invoice.paymentInstructions ?? "";
+      locale = invoice.locale ?? "";
       items = invoice.items.length ? invoice.items.map(toItemForm) : [emptyItem()];
       savedTotals = {
         subtotalMinor: invoice.subtotalMinor,
@@ -313,6 +322,7 @@
         taxId: null,
         currency: null,
         notes: null,
+        locale: null,
       });
       clients = [...clients, created];
       clientId = created.id;
@@ -594,6 +604,15 @@
     <div class="field">
       <label for="currency">{t("common.currency")}</label>
       <input id="currency" bind:value={currency} />
+    </div>
+    <div class="field">
+      <label for="docLocale">{t("common.documentLanguage")}</label>
+      <select id="docLocale" bind:value={locale}>
+        <option value="">{t("common.inheritClient")}</option>
+        {#each LOCALES as option (option.value)}
+          <option value={option.value}>{option.label}</option>
+        {/each}
+      </select>
     </div>
     <div class="field">
       <label for="status">{t("common.status")}</label>

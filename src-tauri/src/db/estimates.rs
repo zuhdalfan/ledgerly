@@ -22,7 +22,7 @@ fn columns() -> String {
          i.po_reference, i.discount_type, i.discount_value, i.subtotal_minor, i.discount_minor, \
          i.tax_minor, i.total_minor, i.notes, i.terms, i.payment_instructions, \
          i.converted_invoice_id, i.converted_at, i.created_at, i.updated_at, c.display_name, \
-         {DAYS_UNTIL_EXPIRY_EXPR} AS days_until_expiry"
+         {DAYS_UNTIL_EXPIRY_EXPR} AS days_until_expiry, i.locale, c.locale"
     )
 }
 
@@ -71,6 +71,11 @@ pub struct Estimate {
     pub days_until_expiry: Option<i64>,
     /// Derived: an unaccepted estimate past its validity date reads as expired.
     pub display_status: String,
+    /// Document language override; `None` inherits the client's language.
+    pub locale: Option<String>,
+    /// The client's own override, so a reader can resolve the fallback without
+    /// a second query. `None` inherits the global default.
+    pub client_locale: Option<String>,
     pub items: Vec<EstimateItem>,
 }
 
@@ -96,6 +101,8 @@ pub struct EstimateInput {
     pub terms: Option<String>,
     #[serde(default)]
     pub payment_instructions: Option<String>,
+    #[serde(default)]
+    pub locale: Option<String>,
     #[serde(default)]
     pub items: Vec<LineItemInput>,
 }
@@ -137,6 +144,8 @@ fn map_estimate(row: &Row, items: Vec<EstimateItem>) -> rusqlite::Result<Estimat
         client_name: row.get(21)?,
         days_until_expiry,
         display_status: display_status(&status, days_until_expiry),
+        locale: row.get(23)?,
+        client_locale: row.get(24)?,
         items,
     })
 }
@@ -250,8 +259,8 @@ fn insert_estimate(conn: &Connection, input: &EstimateInput) -> rusqlite::Result
         "INSERT INTO estimate (
             id, number, client_id, status, issue_date, valid_until, currency, po_reference,
             discount_type, discount_value, subtotal_minor, discount_minor, tax_minor,
-            total_minor, notes, terms, payment_instructions
-         ) VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            total_minor, notes, terms, payment_instructions, locale
+         ) VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
         params![
             id,
             number,
@@ -269,6 +278,7 @@ fn insert_estimate(conn: &Connection, input: &EstimateInput) -> rusqlite::Result
             trim_opt(&input.notes),
             trim_opt(&input.terms),
             trim_opt(&input.payment_instructions),
+            trim_opt(&input.locale),
         ],
     )?;
 
@@ -293,7 +303,7 @@ pub fn update(conn: &Connection, id: &str, input: &EstimateInput) -> rusqlite::R
             client_id = ?2, issue_date = ?3, valid_until = ?4, currency = ?5, po_reference = ?6,
             discount_type = ?7, discount_value = ?8, subtotal_minor = ?9, discount_minor = ?10,
             tax_minor = ?11, total_minor = ?12, notes = ?13, terms = ?14,
-            payment_instructions = ?15, updated_at = datetime('now')
+            payment_instructions = ?15, locale = ?16, updated_at = datetime('now')
          WHERE id = ?1",
         params![
             id,
@@ -311,6 +321,7 @@ pub fn update(conn: &Connection, id: &str, input: &EstimateInput) -> rusqlite::R
             trim_opt(&input.notes),
             trim_opt(&input.terms),
             trim_opt(&input.payment_instructions),
+            trim_opt(&input.locale),
         ],
     )?;
     if changed == 0 {
@@ -339,6 +350,7 @@ pub fn duplicate(conn: &Connection, id: &str) -> rusqlite::Result<Estimate> {
         notes: original.notes,
         terms: original.terms,
         payment_instructions: original.payment_instructions,
+        locale: original.locale,
         items: original
             .items
             .iter()
@@ -406,6 +418,7 @@ pub fn convert(conn: &Connection, id: &str) -> Result<Invoice, AppError> {
         terms: estimate.terms.clone(),
         payment_instructions: estimate.payment_instructions.clone(),
         estimate_id: Some(estimate.id.clone()),
+        locale: estimate.locale.clone(),
         items: estimate
             .items
             .iter()
@@ -469,6 +482,7 @@ mod tests {
             notes: None,
             terms: None,
             payment_instructions: None,
+            locale: None,
             items,
         }
     }
@@ -507,6 +521,7 @@ mod tests {
                 terms: None,
                 payment_instructions: None,
                 estimate_id: None,
+                locale: None,
                 items: vec![item("Work", 1_000)],
             },
         )
@@ -573,6 +588,7 @@ mod tests {
                 tax_id: None,
                 currency: None,
                 notes: None,
+                locale: None,
             },
         )
         .unwrap();

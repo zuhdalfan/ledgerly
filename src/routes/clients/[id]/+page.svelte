@@ -9,7 +9,7 @@
   import EmptyState from "$lib/components/EmptyState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import { useDirtyGuard } from "$lib/guard";
-  import { plural, t } from "$lib/i18n.svelte";
+  import { LOCALES, plural, t } from "$lib/i18n.svelte";
 
   type Form = Record<keyof ClientInput, string>;
 
@@ -28,6 +28,7 @@
     taxId: "",
     currency: "",
     notes: "",
+    locale: "",
   });
 
   let form = $state<Form>(emptyForm());
@@ -90,6 +91,7 @@
         taxId: nullToEmpty(client.taxId),
         currency: nullToEmpty(client.currency),
         notes: nullToEmpty(client.notes),
+        locale: nullToEmpty(client.locale),
       };
       archived = client.archivedAt !== null;
       await loadDocuments();
@@ -159,6 +161,7 @@
       taxId: emptyToNull(form.taxId),
       currency: emptyToNull(form.currency),
       notes: emptyToNull(form.notes),
+      locale: emptyToNull(form.locale),
     };
   }
 
@@ -404,6 +407,15 @@
     <div class="field">
       <label for="currency">{t("common.currency")}</label>
       <input id="currency" bind:value={form.currency} placeholder="USD" />
+    </div>
+    <div class="field">
+      <label for="locale">{t("common.documentLanguage")}</label>
+      <select id="locale" bind:value={form.locale}>
+        <option value="">{t("common.inheritSettings")}</option>
+        {#each LOCALES as option (option.value)}
+          <option value={option.value}>{option.label}</option>
+        {/each}
+      </select>
     </div>
   </div>
 

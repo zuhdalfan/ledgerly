@@ -1,6 +1,6 @@
 {
   "project": "Ledgerly",
-  "updated": "2026-10-20",
+  "updated": "2026-10-21",
   "current": null,
   "nextUp": ["RELEASE-SIGN", "RELEASE-MANUAL"],
   "usage": "Single source of truth for cross-session progress. Set `current` to the id being worked on (null when idle), keep `updated` in YYYY-MM-DD, and move finished items to status `done` instead of deleting them. Milestone ids track docs/PRD.md section 14.",
@@ -136,7 +136,15 @@
       "status": "done",
       "priority": "P2",
       "area": "i18n",
-      "notes": "Follow-up to I18N, closing the gaps a review found around the translation rather than in it. PDF money, dates and percentage labels now follow pdf.locale (Rp1.234,56, 7,50%, Indonesian month abbreviations, NPWP); the reminder email uses the document language too. The lock gate paints in the cached ui.locale before the database is readable, and Settings > Appearance names the selected language in its own words. Number inputs accept comma decimals under the Indonesian locale for quantities, discounts and tax rates. Backend errors are mapped to errors.* in src/lib/errors.ts at the IPC boundary, so every existing String(e) handler shows the app language while unknown messages still fall through in English. Deliberately unchanged: per-record document language, the UTC date shift, and placeholder-parity checks (see the review notes). Verified with npm run verify."
+      "notes": "Follow-up to I18N, closing the gaps a review found around the translation rather than in it. PDF money, dates and percentage labels now follow pdf.locale (Rp1.234,56, 7,50%, Indonesian month abbreviations, NPWP); the reminder email uses the document language too. The lock gate paints in the cached ui.locale before the database is readable, and Settings > Appearance names the selected language in its own words. Number inputs accept comma decimals under the Indonesian locale for quantities, discounts and tax rates. Backend errors are mapped to errors.* in src/lib/errors.ts at the IPC boundary, so every existing String(e) handler shows the app language while unknown messages still fall through in English. Deliberately unchanged at the time: per-record document language (done later, see DOC-LOCALE), the UTC date shift, and placeholder-parity checks (see the review notes). Verified with npm run verify."
+    },
+    {
+      "id": "DOC-LOCALE",
+      "title": "Per-document language",
+      "status": "done",
+      "priority": "P2",
+      "area": "i18n",
+      "notes": "Delivers PRD FR-SET-6. client, invoice and estimate each gain a nullable locale; NULL means inherit, so an old document keeps following its client until someone fixes a language on it rather than freezing a resolved value at save time. PDF export resolves invoice/estimate, then client, then Settings > Invoicing; a statement follows its client only; the invoice reminder email follows the same chain in the UI. Chosen in the document's Details card and in the client's Billing section, with the inherit option naming the fallback. Migration 0012_document_locale.sql; the MCP server needs no change because its input field defaults to inherit. Verified with npm run verify (122 Rust tests) and regenerated screenshots."
     },
     {
       "id": "RECURRING",

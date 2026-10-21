@@ -187,6 +187,7 @@ mod tests {
                 terms: None,
                 payment_instructions: None,
                 estimate_id: None,
+                locale: None,
                 items: vec![LineItemInput {
                     description: "Work".to_string(),
                     quantity: "1".to_string(),

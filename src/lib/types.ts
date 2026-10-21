@@ -47,6 +47,8 @@ export type Client = {
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Document language override; null inherits Settings > Invoicing. */
+  locale: string | null;
 };
 
 export type ClientInput = Omit<Client, "id" | "archivedAt" | "createdAt" | "updatedAt">;
@@ -143,6 +145,10 @@ export type Invoice = {
   /** When the user last chased this invoice, and how many times. */
   lastChasedAt: string | null;
   chaseCount: number;
+  /** Document language override; null inherits the client, then settings. */
+  locale: string | null;
+  /** The client's own override, so the fallback resolves in one round trip. */
+  clientLocale: string | null;
   items: InvoiceItem[];
 };
 
@@ -218,6 +224,10 @@ export type Estimate = {
   updatedAt: string;
   daysUntilExpiry: number | null;
   displayStatus: string;
+  /** Document language override; null inherits the client, then settings. */
+  locale: string | null;
+  /** The client's own override, so the fallback resolves in one round trip. */
+  clientLocale: string | null;
   items: EstimateItem[];
 };
 
@@ -232,6 +242,7 @@ export type EstimateInput = {
   notes: string | null;
   terms: string | null;
   paymentInstructions: string | null;
+  locale: string | null;
   items: LineItemInput[];
 };
 
@@ -246,6 +257,7 @@ export type InvoiceInput = {
   notes: string | null;
   terms: string | null;
   paymentInstructions: string | null;
+  locale: string | null;
   items: LineItemInput[];
 };
 
