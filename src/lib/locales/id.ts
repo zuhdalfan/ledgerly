@@ -237,7 +237,7 @@ export const id: Record<MessageKey, string> = {
   // --- settings · appearance --------------------------------------------
   "appearance.title": "Tampilan",
   "appearance.subtitle":
-    "Seberapa banyak antarmuka bergerak, dan bahasa yang dipakainya. Pengaturan sistem operasi Anda selalu menang jika meminta gerakan lebih sedikit.",
+    "Seberapa banyak antarmuka bergerak, bahasa yang dipakainya, dan apakah menutup jendela akan keluar. Pengaturan sistem operasi Anda selalu menang jika meminta gerakan lebih sedikit.",
   "appearance.motion": "Gerakan",
   "appearance.motionLevel": "Tingkat gerakan",
   "appearance.none": "Tanpa gerakan",
@@ -255,6 +255,25 @@ export const id: Record<MessageKey, string> = {
   "appearance.languageBody":
     "Bahasa antarmuka. Faktur dan estimasi punya bahasanya sendiri, di bagian Faktur.",
   "appearance.languageSet": "Bahasa diatur ke {language}.",
+  "appearance.window": "Jendela",
+  "appearance.tray": "Biarkan Ledgerly tetap berjalan di tray",
+  "appearance.trayHint":
+    "Menutup jendela akan menyembunyikannya, bukan keluar. Gunakan Keluar di menu tray untuk berhenti. Nonaktif secara bawaan.",
+  "appearance.trayUnsupported":
+    "Desktop ini tidak dapat menampilkan ikon tray, jadi menutup jendela tetap akan keluar.",
+  "appearance.trayOn": "Ledgerly akan tetap berjalan di tray.",
+  "appearance.trayOff": "Menutup Ledgerly akan menghentikannya.",
+  "appearance.lockOnHide": "Kunci saat disembunyikan ke tray",
+  "appearance.lockOnHideHint":
+    "Kunci aplikasi tetap berlaku selama Ledgerly disembunyikan, dan terbuka pada layar kunci.",
+  "appearance.reminders": "Ingatkan saya tentang faktur yang jatuh tempo",
+  "appearance.remindersHint":
+    "Paling banyak satu notifikasi sehari, tanpa nama klien atau jumlah uang.",
+  "appearance.remindersBlocked": "Sistem Anda memblokir notifikasi.",
+  "appearance.testNotification": "Kirim notifikasi uji",
+  "appearance.testNotificationHint":
+    "Memeriksa apakah sistem Anda menampilkan notifikasi Ledgerly. Tray tidak perlu aktif.",
+  "appearance.testSent": "Notifikasi uji terkirim.",
 
   // --- shared components -------------------------------------------------
   "barlist.share": "Porsi",

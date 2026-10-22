@@ -1,8 +1,8 @@
 # Tray & background running — implementation plan
 
-Status: **plan only, nothing built.** This document turns the `TRAY` and
-`NOTIFY` entries in `TASKS.json` (and `docs/ROADMAP.md`) into a build order. It
-does not change the roadmap's direction; it records how to deliver it.
+Status: **implemented.** Phases 1–3 are complete; `TASKS.json` holds the state
+for `TRAY` and `NOTIFY`. This document remains the record of how it was built
+and why.
 
 ## Why
 

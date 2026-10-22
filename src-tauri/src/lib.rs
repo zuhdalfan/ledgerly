@@ -6,9 +6,12 @@ mod error;
 mod export;
 pub mod mcp;
 mod pdf;
+mod reminders;
 mod security;
+mod tray;
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use rusqlite::Connection;
@@ -19,6 +22,14 @@ pub struct AppState {
     pub data_dir: PathBuf,
     /// False while the app lock is engaged; every data command checks this.
     unlocked: Mutex<bool>,
+    /// Mirrors the `ui.tray` setting so the close handler never waits on the
+    /// database while the window is being torn down.
+    tray_enabled: AtomicBool,
+    /// False once a tray host has refused to show an icon, so Settings can say
+    /// why instead of silently leaving a resident process with no way out.
+    tray_supported: AtomicBool,
+    /// Set by the tray's Quit so the close handler lets the process exit.
+    quitting: AtomicBool,
 }
 
 impl AppState {
@@ -27,7 +38,34 @@ impl AppState {
             db: Mutex::new(db),
             data_dir,
             unlocked: Mutex::new(!locked),
+            tray_enabled: AtomicBool::new(false),
+            tray_supported: AtomicBool::new(true),
+            quitting: AtomicBool::new(false),
         }
+    }
+
+    pub fn tray_enabled(&self) -> bool {
+        self.tray_enabled.load(Ordering::SeqCst)
+    }
+
+    pub fn set_tray_enabled(&self, value: bool) {
+        self.tray_enabled.store(value, Ordering::SeqCst);
+    }
+
+    pub fn tray_supported(&self) -> bool {
+        self.tray_supported.load(Ordering::SeqCst)
+    }
+
+    pub fn set_tray_supported(&self, value: bool) {
+        self.tray_supported.store(value, Ordering::SeqCst);
+    }
+
+    pub fn is_quitting(&self) -> bool {
+        self.quitting.load(Ordering::SeqCst)
+    }
+
+    pub fn set_quitting(&self, value: bool) {
+        self.quitting.store(value, Ordering::SeqCst);
     }
 
     pub fn is_unlocked(&self) -> bool {
@@ -102,6 +140,12 @@ fn home_dir() -> PathBuf {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Registered first: the second copy must hand off to the resident one
+        // before it opens the database or draws its own tray icon.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            tray::show_main_window(app);
+        }))
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
@@ -121,11 +165,54 @@ pub fn run() {
             // If a passphrase is set, start locked.
             let locked = security::is_enabled(&conn).unwrap_or(false);
             app.manage(AppState::new(conn, data_dir, locked));
+
+            let state = app.state::<AppState>();
+            let tray_on = {
+                let conn = state.db.lock().unwrap();
+                tray::tray_enabled(&conn).unwrap_or(false)
+            };
+
+            if tray_on {
+                match tray::build(app.handle()) {
+                    Ok(()) => state.set_tray_enabled(true),
+                    Err(error) => {
+                        // No tray host: fall back to closing = quitting rather
+                        // than leaving a process the user cannot reach.
+                        eprintln!("tray unavailable: {error}");
+                        state.set_tray_enabled(false);
+                        state.set_tray_supported(false);
+                        let conn = state.db.lock().unwrap();
+                        let _ = crate::db::settings::set(&conn, tray::KEY_TRAY, "0");
+                    }
+                }
+            }
+
+            reminders::spawn_midnight_timer(app.handle().clone());
+            reminders::check_due(app.handle());
+
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let app = window.app_handle();
+                let (enabled, quitting) = app
+                    .try_state::<AppState>()
+                    .map(|state| (state.tray_enabled(), state.is_quitting()))
+                    .unwrap_or((false, false));
+
+                if tray::hide_on_close(enabled, quitting) {
+                    api.prevent_close();
+                    tray::hide_for_close(app);
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
             commands::mcp_info,
+            commands::tray_status,
+            commands::tray_set_enabled,
+            commands::reminders_set_enabled,
+            commands::reminders_test,
             commands::settings_all,
             commands::settings_get,
             commands::settings_set,

@@ -272,6 +272,15 @@ export type SecurityStatus = {
   minPassphraseLength: number;
 };
 
+export type TrayStatus = {
+  enabled: boolean;
+  supported: boolean;
+  lockOnHide: boolean;
+  lockEnabled: boolean;
+  remindersEnabled: boolean;
+  notificationPermission: string | null;
+};
+
 export type BackupInfo = {
   path: string;
   name: string;

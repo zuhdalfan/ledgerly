@@ -1,6 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import { onMount } from "svelte";
+  import { listen } from "@tauri-apps/api/event";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { api } from "$lib/api";
@@ -35,6 +36,7 @@
   let paletteOpen = $state(false);
   let navOpen = $state(false);
   let narrow = $state(false);
+  let unlistenSecurity: (() => void) | undefined;
 
   async function loadSecurity() {
     checking = true;
@@ -49,6 +51,17 @@
       gateError = String(e);
     } finally {
       checking = false;
+    }
+  }
+
+  // Rust locks on hide-to-tray, so the shell has to be told. This refresh
+  // never shows the checking gate; it only swaps the state the gate reads.
+  async function refreshSecurity() {
+    try {
+      security = await api.security.status();
+      restartIdleTimer();
+    } catch {
+      // Keep the last known state; gated commands still refuse on their own.
     }
   }
 
@@ -162,6 +175,12 @@
   onMount(() => {
     void loadSecurity();
 
+    void listen("security:changed", () => {
+      void refreshSecurity();
+    }).then((unlisten) => {
+      unlistenSecurity = unlisten;
+    });
+
     for (const event of ["mousemove", "keydown", "click", "scroll"]) {
       window.addEventListener(event, onActivity);
     }
@@ -178,7 +197,10 @@
     syncNarrow();
     query.addEventListener("change", syncNarrow);
 
-    return () => query.removeEventListener("change", syncNarrow);
+    return () => {
+      query.removeEventListener("change", syncNarrow);
+      unlistenSecurity?.();
+    };
   });
 </script>
 

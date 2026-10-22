@@ -241,7 +241,7 @@ export const en = {
   // --- settings · appearance --------------------------------------------
   "appearance.title": "Appearance",
   "appearance.subtitle":
-    "How much the interface moves, and which language it speaks. Your operating system setting always wins if it asks for less motion.",
+    "How much the interface moves, which language it speaks, and whether closing the window quits. Your operating system setting always wins if it asks for less motion.",
   "appearance.motion": "Motion",
   "appearance.motionLevel": "Motion level",
   "appearance.none": "No motion",
@@ -259,6 +259,25 @@ export const en = {
   "appearance.languageBody":
     "The language of the interface. Invoices and estimates have their own language, under Invoicing.",
   "appearance.languageSet": "Language set to {language}.",
+  "appearance.window": "Window",
+  "appearance.tray": "Keep Ledgerly running in the tray",
+  "appearance.trayHint":
+    "Closing the window hides it instead of quitting. Use Quit in the tray menu to exit. Off by default.",
+  "appearance.trayUnsupported":
+    "This desktop cannot show a tray icon, so closing the window will keep quitting.",
+  "appearance.trayOn": "Ledgerly will keep running in the tray.",
+  "appearance.trayOff": "Closing Ledgerly will quit it.",
+  "appearance.lockOnHide": "Lock when hidden to the tray",
+  "appearance.lockOnHideHint":
+    "The app lock stays in force while Ledgerly is hidden, and opens on the lock screen.",
+  "appearance.reminders": "Remind me about overdue invoices",
+  "appearance.remindersHint":
+    "At most one notification a day, with no client names or amounts.",
+  "appearance.remindersBlocked": "Your system is blocking notifications.",
+  "appearance.testNotification": "Send a test notification",
+  "appearance.testNotificationHint":
+    "Checks that your system shows Ledgerly notifications. The tray does not need to be on.",
+  "appearance.testSent": "Test notification sent.",
 
   // --- shared components -------------------------------------------------
   "barlist.share": "Share",

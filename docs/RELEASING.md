@@ -49,6 +49,12 @@ AppImage and `.deb`, and optionally sign the checksums with GPG.
 Release builds must be produced on a machine or CI runner for each target OS;
 there is no cross-compilation story for Tauri bundles.
 
+**Tray (Linux).** The tray icon needs an AppIndicator host at runtime:
+`libayatana-appindicator3` alongside the `.deb`/AppImage. The build machine needs
+the `-dev` package. GNOME without the AppIndicator extension shows no icon; the
+app detects that and switches the tray setting off rather than leaving a resident
+process with no way to quit.
+
 ## Before announcing a release
 
 - **Audit the dependency licences.** Ledgerly is MIT, but a distributed binary
@@ -98,6 +104,20 @@ CI runs on all three platforms, but it does not drive the GUI. Before publishing
    and confirm a read ("list unpaid invoices") and a write ("create a client")
    both land in the app. Confirm writes are refused with **Allow changes** off,
    and that the app lock refuses everything without the passphrase.
+8. Turn on **Settings → Appearance → Keep Ledgerly running in the tray**, close
+   the window, and confirm the icon remains. Open restores the window; **Quit**
+   exits. With tray mode off, closing still quits.
+9. With the app lock on, hide to the tray and reopen: the lock gate must appear,
+   and the tray tooltip and menu must show no client, amount or count.
+10. Use **Settings → Appearance → Send a test notification** to confirm the OS
+    delivers Ledgerly notifications. Then, with tray mode on and an overdue
+    invoice, confirm one reminder arrives, that its text carries no client name
+    or amount, and that it does not repeat the same day. Deny notifications in
+    the OS and confirm Settings says so without prompting again.
+11. macOS: the dock icon stays, and Cmd+Q quits instead of hiding. Linux: the
+    AppImage shows a tray icon, or the toggle is disabled with its reason.
+12. Confirm the tray icon reads at both 1x and 2x; do not ship a scaled app icon
+    that turns to mush in the menu bar.
 
 ## Rollback
 

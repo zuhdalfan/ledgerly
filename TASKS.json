@@ -1,6 +1,6 @@
 {
   "project": "Ledgerly",
-  "updated": "2026-10-21",
+  "updated": "2026-10-22",
   "current": null,
   "nextUp": ["RELEASE-SIGN", "RELEASE-MANUAL"],
   "usage": "Single source of truth for cross-session progress. Set `current` to the id being worked on (null when idle), keep `updated` in YYYY-MM-DD, and move finished items to status `done` instead of deleting them. Milestone ids track docs/PRD.md section 14.",
@@ -237,18 +237,18 @@
     {
       "id": "NOTIFY",
       "title": "Due-date notifications",
-      "status": "deferred",
+      "status": "done",
       "priority": "P2",
       "area": "invoices",
-      "notes": "PRD FR-REC-3. A local OS notification for overdue invoices, at most once a day on launch -- ride the existing backup::auto_backup hook rather than adding a daemon. Decided 2026-10-14: on by default, overdue only (never on the due date). Needs tauri_plugin_notification, which PRD section 18.3 currently lists as deliberately unused and must be reconciled first."
+      "notes": "Shipped with TRAY. src-tauri/src/reminders.rs counts issued, unpaid, past-due invoices (drafts, void and not-yet-due are excluded), gates on one local date via notify.lastRun, and sends a single notification carrying only a count -- never a name, amount or invoice number. Checks run after launch (deferred while locked), on unlock, at the next local midnight (one rescheduled sleep, not a poll) and when the window is shown. Uses tauri-plugin-notification from Rust only, so the webview is granted no notification permission; the permission state is surfaced in Settings > Appearance. Tests cover the query, the date gate, the copy and the defaults."
     },
     {
       "id": "TRAY",
       "title": "Tray & background running",
-      "status": "deferred",
+      "status": "done",
       "priority": "P2",
       "area": "platform",
-      "notes": "Opt-in and off by default (decided 2026-10-14): until the user asks to keep running in the tray, the app behaves exactly as today, closing quits, and there is no start-on-login by default. Coupled with NOTIFY -- a resident process is what lets a due-date reminder fire without a launch, and the routine stays on the same once-a-day hook (no polling, no network). Reconciles PRD FR-SEC-4, which already references minimize-to-tray, and needs Tauri's tray feature plus a tray icon. Implementation plan written 2026-10-20: docs/TRAY.md."
+      "notes": "Shipped. Opt-in and off by default, so closing still quits for anyone who never turns it on. Settings > Appearance gains a Window section. src-tauri/src/tray.rs builds the icon and menu (Open, Lock now, Quit), turns close into hide with a quitting flag, hands a second launch to the resident window via tauri-plugin-single-instance, and locks on hide by default when the app lock is on -- security:changed makes the shell repaint the gate. A desktop that refuses a tray icon flips the setting back off and says why, rather than leaving an unreachable process. Adds Tauri's tray-icon feature; check:offline and check:licenses stay green. Implementation plan in docs/TRAY.md."
     },
     {
       "id": "EINVOICE",

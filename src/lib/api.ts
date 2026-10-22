@@ -9,6 +9,7 @@ import type {
   Business,
   BusinessInput,
   SecurityStatus,
+  TrayStatus,
   ClientRevenueRow,
   MethodRow,
   PeriodRow,
@@ -138,6 +139,21 @@ export const api = {
 
   mcp: {
     info: () => call<McpInfo>("mcp_info"),
+  },
+
+  tray: {
+    status: () => call<TrayStatus>("tray_status"),
+    setEnabled: (enabled: boolean, lockOnHide?: boolean) =>
+      call<TrayStatus>("tray_set_enabled", {
+        enabled,
+        lockOnHide: lockOnHide ?? null,
+      }),
+  },
+
+  reminders: {
+    setEnabled: (enabled: boolean) =>
+      call<TrayStatus>("reminders_set_enabled", { enabled }),
+    test: () => call<void>("reminders_test"),
   },
 
   security: {

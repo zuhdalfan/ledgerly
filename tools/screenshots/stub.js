@@ -345,6 +345,15 @@
     minPassphraseLength: 8,
   };
 
+  const TRAY = {
+    enabled: false,
+    supported: true,
+    lockOnHide: true,
+    lockEnabled: false,
+    remindersEnabled: true,
+    notificationPermission: null,
+  };
+
   const MCP = {
     enabled: true,
     allowWrite: false,
@@ -495,6 +504,11 @@
     security_status: () => SECURITY,
     security_unlock: () => ({ ...SECURITY, locked: false }),
     security_lock: () => ({ ...SECURITY, locked: true }),
+
+    tray_status: () => TRAY,
+    tray_set_enabled: (a) => ({ ...TRAY, enabled: !!a.enabled }),
+    reminders_set_enabled: (a) => ({ ...TRAY, remindersEnabled: !!a.enabled }),
+    reminders_test: () => undefined,
 
     open_in_viewer: () => undefined,
     export_csv: () => "",

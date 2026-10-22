@@ -5,6 +5,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import Mascot from "$lib/components/Mascot.svelte";
   import { t, setLocale, getLocale, localeFromSetting, LOCALES, type Locale } from "$lib/i18n.svelte";
+  import type { TrayStatus } from "$lib/types";
 
   const levels = [
     { value: "none", key: "appearance.none", hint: "appearance.noneHint" },
@@ -15,16 +16,21 @@
 
   let level = $state("standard");
   let language = $state<Locale>(getLocale());
+  let tray = $state<TrayStatus | null>(null);
   let loading = $state(true);
   let error = $state("");
   let notice = $state("");
   let languageNotice = $state("");
+  let windowNotice = $state("");
+  let testNotice = $state("");
+  let windowBusy = $state(false);
 
   async function load() {
     loading = true;
     try {
       level = (await api.settings.get("ui.motion")) ?? "standard";
       language = localeFromSetting(await api.settings.get("ui.locale"));
+      tray = await api.tray.status();
       error = "";
     } catch (e) {
       error = String(e);
@@ -65,6 +71,62 @@
       error = String(e);
     }
   }
+
+  async function setTray(enabled: boolean) {
+    windowNotice = "";
+    error = "";
+    windowBusy = true;
+    try {
+      tray = await api.tray.setEnabled(enabled, tray?.lockOnHide ?? true);
+      windowNotice = t(enabled ? "appearance.trayOn" : "appearance.trayOff");
+    } catch (e) {
+      error = String(e);
+      // The backend refused (no tray host) and left the setting off.
+      tray = await api.tray.status().catch(() => tray);
+    } finally {
+      windowBusy = false;
+    }
+  }
+
+  async function setLockOnHide(value: boolean) {
+    windowNotice = "";
+    error = "";
+    windowBusy = true;
+    try {
+      tray = await api.tray.setEnabled(tray?.enabled ?? false, value);
+    } catch (e) {
+      error = String(e);
+    } finally {
+      windowBusy = false;
+    }
+  }
+
+  async function setReminders(value: boolean) {
+    windowNotice = "";
+    error = "";
+    windowBusy = true;
+    try {
+      tray = await api.reminders.setEnabled(value);
+    } catch (e) {
+      error = String(e);
+    } finally {
+      windowBusy = false;
+    }
+  }
+
+  async function sendTest() {
+    testNotice = "";
+    error = "";
+    windowBusy = true;
+    try {
+      await api.reminders.test();
+      testNotice = t("appearance.testSent");
+    } catch (e) {
+      error = String(e);
+    } finally {
+      windowBusy = false;
+    }
+  }
 </script>
 
 <PageHeader title={t("appearance.title")} subtitle={t("appearance.subtitle")} />
@@ -93,6 +155,73 @@
     </fieldset>
 
     {#if notice}<p class="ok">{notice}</p>{/if}
+  </div>
+
+  <div class="card">
+    <h2>{t("appearance.window")}</h2>
+
+    {#if tray}
+      {#if !tray.supported}
+        <p class="muted">{t("appearance.trayUnsupported")}</p>
+      {:else}
+        <label class="toggle">
+          <input
+            type="checkbox"
+            checked={tray.enabled}
+            disabled={windowBusy}
+            onchange={(e) => setTray(e.currentTarget.checked)}
+          />
+          <span>
+            <strong>{t("appearance.tray")}</strong>
+            <span class="muted">{t("appearance.trayHint")}</span>
+          </span>
+        </label>
+
+        {#if tray.enabled && tray.lockEnabled}
+          <label class="toggle">
+            <input
+              type="checkbox"
+              checked={tray.lockOnHide}
+              disabled={windowBusy}
+              onchange={(e) => setLockOnHide(e.currentTarget.checked)}
+            />
+            <span>
+              <strong>{t("appearance.lockOnHide")}</strong>
+              <span class="muted">{t("appearance.lockOnHideHint")}</span>
+            </span>
+          </label>
+        {/if}
+
+        {#if tray.enabled}
+          <label class="toggle">
+            <input
+              type="checkbox"
+              checked={tray.remindersEnabled}
+              disabled={windowBusy}
+              onchange={(e) => setReminders(e.currentTarget.checked)}
+            />
+            <span>
+              <strong>{t("appearance.reminders")}</strong>
+              <span class="muted">{t("appearance.remindersHint")}</span>
+            </span>
+          </label>
+
+          {#if tray.notificationPermission === "denied"}
+            <p class="muted">{t("appearance.remindersBlocked")}</p>
+          {/if}
+        {/if}
+      {/if}
+
+      <div class="test">
+        <button class="btn secondary" type="button" onclick={sendTest} disabled={windowBusy}>
+          {t("appearance.testNotification")}
+        </button>
+        <p class="muted">{t("appearance.testNotificationHint")}</p>
+        {#if testNotice}<p class="ok">{testNotice}</p>{/if}
+      </div>
+    {/if}
+
+    {#if windowNotice}<p class="ok">{windowNotice}</p>{/if}
   </div>
 
   <div class="card">
@@ -156,6 +285,41 @@
   .level.chosen {
     border-color: var(--accent-text);
     background: var(--accent-soft);
+  }
+
+  .toggle {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding: var(--space-2) 0;
+    cursor: pointer;
+  }
+
+  .toggle input {
+    margin-top: 3px;
+  }
+
+  .toggle span {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .toggle .muted {
+    font-size: var(--text-sm);
+  }
+
+  .test {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: flex-start;
+    margin-top: var(--space-3);
+  }
+
+  .test p {
+    margin: 0;
+    font-size: var(--text-sm);
   }
 
   .text {

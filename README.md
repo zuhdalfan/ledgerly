@@ -166,9 +166,8 @@ npm run check:offline  # no network access
 ## Status
 
 Feature-complete against the PRD milestones M0–M10. Known gaps: the database is
-**not encrypted at rest** (SQLCipher needs a vendored OpenSSL build), recurring
-invoices are not implemented, and Ledgerly does not yet run in the tray or send
-due-date reminders (planned together as `TRAY`/`NOTIFY` in `TASKS.json`).
+**not encrypted at rest** (SQLCipher needs a vendored OpenSSL build), and
+recurring invoices are not implemented.
 
 The interface and client-facing documents ship in **English and Bahasa
 Indonesia**. The app language is chosen under Settings > Appearance; PDFs and

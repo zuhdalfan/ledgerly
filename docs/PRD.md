@@ -232,7 +232,7 @@ Requirements are prioritized **P0 (must-have for v1)**, **P1 (should-have)**, **
 |---|---|
 | FR-REC-1 | Define a recurring template with interval (weekly/biweekly/monthly/quarterly/yearly or custom N days), start date, end date/occurrence count, and auto-issue (draft vs sent). |
 | FR-REC-2 | On app launch, generate any invoices whose scheduled date has passed; never generate duplicates; record the run in a log. |
-| FR-REC-3 | Surface a **local notification** for due/overdue invoices (OS notification, no network). Now its own deliverable, `NOTIFY` (which needs the tray, `TRAY`); see `ROADMAP.md`. |
+| FR-REC-3 | Surface a **local notification** for overdue invoices (OS notification, no network). Delivered by `NOTIFY`, which rides the resident process from `TRAY`; at most one per day, and never while the app is locked. |
 
 ### 6.8 PDF Generation & Templates — P0
 
@@ -275,7 +275,7 @@ Requirements are prioritized **P0 (must-have for v1)**, **P1 (should-have)**, **
 | FR-SEC-1 | **No network access** in normal operation. Ship with a strict Content-Security-Policy and no external resource loading in the webview. |
 | FR-SEC-2 | Optional **app lock**: passphrase (Argon2id-derived key) unlocking at launch and after idle timeout. |
 | FR-SEC-3 | Optional **at-rest encryption** of the database (SQLCipher) and of the key stored in the OS keychain (Windows Credential Manager / macOS Keychain / libsecret). |
-| FR-SEC-4 | Auto-lock on idle and on minimize-to-tray, configurable. The tray is `TRAY`; until it exists, only the idle lock applies. |
+| FR-SEC-4 | Auto-lock on idle and on minimize-to-tray, configurable. Both are shipped; hiding to the tray locks by default when the app lock is on. |
 | FR-SEC-5 | Explicit "no telemetry" statement; document exactly what is stored and where. |
 
 ### 6.12 Localization & Accessibility — P1
@@ -563,7 +563,7 @@ Primary concern is **unintended data exposure and loss**, not a remote attacker.
 
 ### 12.2 Network
 - **No HTTP/TLS client crate is a dependency.** This is enforced in review and by a CI check.
-- Webview CSP: `default-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'`. Tauri capabilities grant only the minimum plugins needed (dialog, fs-scoped, notification, os); `notification` is planned with `NOTIFY`, not yet shipped.
+- Webview CSP: `default-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'`. Tauri capabilities grant only the minimum plugins needed (dialog, opener). Notifications are sent from Rust through the notification plugin, so the webview is granted no notification permission.
 - No external fonts, no CDN, no remote images.
 
 ### 12.3 At rest
@@ -754,7 +754,7 @@ verification problem the app **degrades to Free and never hides or deletes user 
 | **M6 — Reports & Export** | Revenue/aged/tax reports, CSV/JSON export, batch PDF. | Reports reconcile with raw data; exports open in Excel. |
 | **M7 — Data Safety** | Backup/restore, scheduled backups, data-location screen. | Restore on a clean machine reproduces all data. |
 | **M8 — Licensing & Freemium** | Installation serial + at-rest sealing, machine fingerprint, request code (text/file/QR), Ed25519 key verification, entitlements gating, Free/Pro split, optional trial, re-activation, and the vendor-side `ledgerly-licensectl`. *(Dropped — the app is free/MIT; see `TASKS.json` M8.)* | Free tier fully usable; a vendor-issued key unlocks Pro **with the network disabled**; forged/tampered/mismatched/expired keys are rejected (unit tests). |
-| **M9 — Security & i18n** | App lock, optional SQLCipher, notifications, UI/PDF localization. *(SQLCipher and notifications split out — `SEC-ENCRYPT` deferred, `NOTIFY` its own item.)* | Lock/unlock verified; EN and ID complete; PDF and reminder language independent of the app language. |
+| **M9 — Security & i18n** | App lock, optional SQLCipher, notifications, UI/PDF localization. *(SQLCipher split out as `SEC-ENCRYPT` and deferred; notifications shipped as `NOTIFY` with `TRAY`.)* | Lock/unlock verified; EN and ID complete; PDF and reminder language independent of the app language. |
 | **M10 — Polish & Release** | Recurring invoices, a11y pass, perf pass, packaging/signing/notarization, docs. *(Purchase/issuance runbook dropped with licensing.)* | Signed installers for Win/macOS/Linux; no-network CI check green. |
 
 *(Ordering is intentional: data safety and shipping a usable invoice→PDF path early; security and i18n after the core is stable.)*
@@ -867,9 +867,10 @@ Deliberately **not** used, against the earlier indicative list:
 - **A chart library** — the two dashboard charts are hand-rolled CSS.
 
 Reversed since this list was written: **`plugin-notification`** was declined on
-the grounds that "the app never pushes anything at the user". Decided 2026-10-14:
-that holds for everything except overdue invoices, notified locally, on by default
-(`NOTIFY`). The plugin is added when `NOTIFY` ships — and only then.
+the grounds that "the app never pushes anything at the user". Decided 2026-10-14
+and shipped with `NOTIFY`: overdue invoices get one local notification a day, on
+by default, with no client names or amounts. The plugin is used from Rust only;
+the webview is not granted it.
 
 ### 18.4 Reference formats
 - Currency formatting: use CLDR-style rules (symbol placement, grouping) implemented locally, not fetched.

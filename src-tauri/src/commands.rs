@@ -21,7 +21,7 @@ use crate::AppState;
 use rusqlite::Connection;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
-use tauri::State;
+use tauri::{AppHandle, State};
 
 /// Everything that touches user data passes through this while the lock is on,
 /// so the check cannot be bypassed by talking to the IPC layer directly.
@@ -930,6 +930,109 @@ pub fn backup_settings_set(
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TrayStatus {
+    pub enabled: bool,
+    pub supported: bool,
+    pub lock_on_hide: bool,
+    pub lock_enabled: bool,
+    pub reminders_enabled: bool,
+    pub notification_permission: Option<String>,
+}
+
+fn tray_status_for(state: &AppState, conn: &Connection) -> AppResult<TrayStatus> {
+    Ok(TrayStatus {
+        enabled: state.tray_enabled(),
+        supported: state.tray_supported(),
+        lock_on_hide: crate::tray::lock_on_hide(conn)?,
+        lock_enabled: security::is_enabled(conn)?,
+        reminders_enabled: crate::reminders::enabled(conn)?,
+        notification_permission: crate::reminders::permission(conn)?,
+    })
+}
+
+#[tauri::command]
+pub fn tray_status(state: State<'_, AppState>) -> AppResult<TrayStatus> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+    tray_status_for(&state, &conn)
+}
+
+/// Turn close-to-tray on or off. Enabling is the one path that can fail for a
+/// platform reason, so the failure is reported rather than silently persisted.
+#[tauri::command]
+pub fn tray_set_enabled(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    enabled: bool,
+    lock_on_hide: Option<bool>,
+) -> AppResult<TrayStatus> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+
+    settings::set(
+        &conn,
+        crate::tray::KEY_TRAY,
+        if enabled { "1" } else { "0" },
+    )?;
+    if let Some(value) = lock_on_hide {
+        settings::set(
+            &conn,
+            crate::tray::KEY_LOCK_ON_HIDE,
+            if value { "1" } else { "0" },
+        )?;
+    }
+    drop(conn);
+
+    if enabled {
+        if let Err(error) = crate::tray::apply(&app, true) {
+            state.set_tray_enabled(false);
+            state.set_tray_supported(false);
+
+            let conn = state.db.lock().unwrap();
+            let _ = settings::set(&conn, crate::tray::KEY_TRAY, "0");
+
+            return Err(AppError::Validation(format!(
+                "This desktop cannot show a tray icon, so Ledgerly will keep quitting on close. {error}"
+            )));
+        }
+    } else {
+        crate::tray::apply(&app, false)?;
+    }
+
+    crate::tray::refresh_lock_item(&app);
+
+    let conn = state.db.lock().unwrap();
+    tray_status_for(&state, &conn)
+}
+
+#[tauri::command]
+pub fn reminders_set_enabled(state: State<'_, AppState>, enabled: bool) -> AppResult<TrayStatus> {
+    let conn = state.db.lock().unwrap();
+    require_unlocked(&state)?;
+
+    settings::set(
+        &conn,
+        crate::reminders::KEY_OVERDUE,
+        if enabled { "1" } else { "0" },
+    )?;
+
+    tray_status_for(&state, &conn)
+}
+
+/// Send one notification immediately. It ignores the daily gate and the overdue
+/// query on purpose: this is the "does my OS show Ledgerly notifications at
+/// all?" check, reachable from Settings before any invoice is due.
+#[tauri::command]
+pub fn reminders_test(app: AppHandle, state: State<'_, AppState>) -> AppResult<()> {
+    require_unlocked(&state)?;
+
+    crate::reminders::send_test(&app).map_err(|error| {
+        AppError::Validation(format!("The test notification could not be sent. {error}"))
+    })
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SecurityStatus {
     pub locked: bool,
     pub settings: LockSettings,
@@ -953,6 +1056,7 @@ pub fn security_status(state: State<'_, AppState>) -> AppResult<SecurityStatus> 
 
 #[tauri::command]
 pub fn security_unlock(
+    app: AppHandle,
     state: State<'_, AppState>,
     passphrase: String,
 ) -> AppResult<SecurityStatus> {
@@ -965,18 +1069,30 @@ pub fn security_unlock(
     }
 
     state.set_unlocked(true);
-    security_status_for(&state, &conn)
+    let status = security_status_for(&state, &conn)?;
+    drop(conn);
+
+    crate::tray::refresh_lock_item(&app);
+    // The launch check is deferred while locked; unlocking is where it lands.
+    crate::reminders::check_due(&app);
+
+    Ok(status)
 }
 
 #[tauri::command]
-pub fn security_lock(state: State<'_, AppState>) -> AppResult<SecurityStatus> {
+pub fn security_lock(app: AppHandle, state: State<'_, AppState>) -> AppResult<SecurityStatus> {
     let conn = state.db.lock().unwrap();
     state.set_unlocked(false);
-    security_status_for(&state, &conn)
+    let status = security_status_for(&state, &conn)?;
+    drop(conn);
+
+    crate::tray::refresh_lock_item(&app);
+    Ok(status)
 }
 
 #[tauri::command]
 pub fn security_enable(
+    app: AppHandle,
     state: State<'_, AppState>,
     input: LockSettingsInput,
 ) -> AppResult<SecurityStatus> {
@@ -985,18 +1101,27 @@ pub fn security_enable(
 
     security::enable(&conn, &input.passphrase, input.auto_lock_minutes)?;
     state.set_unlocked(true);
-    security_status_for(&state, &conn)
+    let status = security_status_for(&state, &conn)?;
+    drop(conn);
+
+    crate::tray::refresh_lock_item(&app);
+    Ok(status)
 }
 
 #[tauri::command]
 pub fn security_disable(
+    app: AppHandle,
     state: State<'_, AppState>,
     passphrase: String,
 ) -> AppResult<SecurityStatus> {
     let conn = state.db.lock().unwrap();
     // Verifying the current passphrase is itself the permission check.
     security::disable(&conn, &passphrase)?;
-    security_status_for(&state, &conn)
+    let status = security_status_for(&state, &conn)?;
+    drop(conn);
+
+    crate::tray::refresh_lock_item(&app);
+    Ok(status)
 }
 
 #[tauri::command]
