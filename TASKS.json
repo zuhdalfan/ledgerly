@@ -224,7 +224,7 @@
       "status": "done",
       "priority": "P1",
       "area": "release",
-      "notes": "ledgerly-mcp ships as a Tauri sidecar (bundle.externalBin). scripts/build-mcp-sidecar.mjs builds it and names it with the target triple; wired into beforeBuildCommand/beforeDevCommand and CI. The bundled-installer path is covered by the manual release checks."
+      "notes": "ledgerly-mcp is a second crate bin and ships next to the app: tauri-cli 2.12+ bundles every bin, so no externalBin entry is used (listing it there shipped it twice and broke the Windows MSI with WiX ICE30). scripts/build-mcp-sidecar.mjs builds it for tauri dev, and CI builds the bin so it cannot rot. The bundled-installer path is covered by the manual release checks."
     },
     {
       "id": "MCP-DOCS",

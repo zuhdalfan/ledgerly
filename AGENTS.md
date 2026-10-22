@@ -5,7 +5,7 @@ How to pick up work on Ledgerly in a fresh session — human or agent.
 ## What this is
 
 Ledgerly is a **fully local, fully offline** desktop invoicing app (MIT, free,
-`v0.1.0`). A **Rust + Tauri 2** core owns all data and logic; a **Svelte 5 +
+`v0.2.0`). A **Rust + Tauri 2** core owns all data and logic; a **Svelte 5 +
 TypeScript** frontend talks to it over Tauri IPC; state lives in a single local
 **SQLite** file. It makes no network requests, ever.
 
@@ -125,10 +125,11 @@ static/             Fonts, favicon, logo.svg
   holds it first.
 - **Stale cargo cache** after moving the checkout causes a `tauri_build` failure
   looking for files under the old path — fix with `cargo clean` in `src-tauri`.
-- **The sidecar** in `src-tauri/binaries/` is gitignored and produced by
-  `scripts/build-mcp-sidecar.mjs`, which is wired into `beforeDevCommand` /
-  `beforeBuildCommand`. It builds the `ledgerly-mcp` bin and names it with the
-  target triple Tauri expects.
+- **The sidecar** is a second crate bin (`src/bin/ledgerly-mcp.rs`).
+  `scripts/build-mcp-sidecar.mjs` builds it for `tauri dev`; `tauri build`
+  compiles and bundles it next to the app with the rest of the crate. Do not
+  also list it in `bundle.externalBin` — since tauri-cli 2.12 that ships it
+  twice, and WiX refuses the MSI (ICE30).
 
 ## Releasing
 

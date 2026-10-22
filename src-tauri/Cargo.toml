@@ -1,6 +1,6 @@
 [package]
 name = "ledgerly"
-version = "0.1.0"
+version = "0.2.0"
 description = "Offline invoicing for freelancers and small businesses"
 authors = ["Muhammad Zuhdi"]
 license = "MIT"

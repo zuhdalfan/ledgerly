@@ -15,8 +15,6 @@ target/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/.cargo/
-# Sidecar binaries are built by scripts/build-mcp-sidecar.mjs, not committed.
-src-tauri/binaries/
 
 # Vendor signing key — must never be committed
 .vendor/

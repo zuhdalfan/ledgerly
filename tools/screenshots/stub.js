@@ -3,7 +3,7 @@
 (() => {
   const APP_INFO = {
     name: "ledgerly",
-    version: "0.1.0",
+    version: "0.2.0",
     dataDir: "C:\\Users\\you\\AppData\\Roaming\\com.ledgerly.desktop",
     databasePath: "C:\\Users\\you\\AppData\\Roaming\\com.ledgerly.desktop\\ledgerly.db",
   };

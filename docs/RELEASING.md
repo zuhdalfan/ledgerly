@@ -91,8 +91,9 @@ CI runs on all three platforms, but it does not drive the GUI. Before publishing
 5. Shrink the window below ~820px (or open the app on a tablet) and confirm the
    sidebar collapses into a drawer: the menu button opens it, and Escape, the
    backdrop or a nav link closes it.
-6. Run `npm run build:mcp:release` and confirm `npm run tauri build` bundles the
-   `ledgerly-mcp` sidecar next to the app.
+6. Confirm `npm run tauri build` bundles the `ledgerly-mcp` sidecar next to the
+   app. It is a second crate bin, so the bundler installs it once; do not add it
+   to `bundle.externalBin` as well or the Windows MSI fails with ICE30.
 7. In **Settings → AI**, switch access on, add the shown program to an MCP client,
    and confirm a read ("list unpaid invoices") and a write ("create a client")
    both land in the app. Confirm writes are refused with **Allow changes** off,
