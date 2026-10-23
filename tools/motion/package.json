@@ -1,0 +1,31 @@
+{
+  "name": "ledgerly-motion",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Remotion motion-graphics demo for Ledgerly. Development-only tooling: never a dependency of the app.",
+  "scripts": {
+    "sync": "node scripts/sync-theme.mjs && node scripts/sync-assets.mjs",
+    "studio": "npm run sync && remotion studio",
+    "typecheck": "npm run sync && tsc --noEmit",
+    "vo:scratch": "powershell -ExecutionPolicy Bypass -File scripts/make-scratch-vo.ps1",
+    "render": "npm run sync && remotion render Master out/ledgerly-master.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p",
+    "render:silent": "npm run sync && remotion render MasterSilent out/ledgerly-master-silent.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p",
+    "render:vertical": "npm run sync && remotion render Vertical out/ledgerly-vertical.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p",
+    "render:square": "npm run sync && remotion render Square out/ledgerly-square.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p",
+    "render:cutdown": "npm run sync && remotion render Cutdown out/ledgerly-17s.mp4 --codec=h264 --crf=17 --pixel-format=yuv420p"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/fonts": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "~5.9.0"
+  }
+}

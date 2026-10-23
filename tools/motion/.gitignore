@@ -1,0 +1,11 @@
+node_modules/
+out/
+public/fonts/
+public/logo.svg
+
+# Generated scratch voiceover (Windows SAPI). A real read lives in public/audio/vo
+# and is tracked; this folder is disposable.
+public/audio/vo-scratch/
+
+# Generated from whatever audio is on disk. Machine-specific, so it is not committed.
+src/audio-manifest.ts
