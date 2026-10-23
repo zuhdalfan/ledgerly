@@ -35,3 +35,17 @@ desktop.ini
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Agent instructions are local to a checkout, not part of the repository
+/AGENTS.md
+
+# Marketing media that is generated rather than authored. The tracked
+# deliverables live in docs/marketing/*.mp4 and are linked from its README.
+docs/marketing/*.gif
+docs/marketing/promo/out/
+docs/marketing/promo/public/textures/
+docs/marketing/promo/public/fonts/
+
+# A leftover task prompt, not documentation
+docs/screenshots/preview_gif_review.md
+
