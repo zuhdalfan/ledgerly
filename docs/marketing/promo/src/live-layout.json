@@ -1,0 +1,2611 @@
+{
+ "pageW": 1920,
+ "dashboard": {
+  "pageH": 1567,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 36,
+     "width": 115.125,
+     "height": 33
+    },
+    {
+     "x": 281,
+     "y": 143,
+     "width": 1036,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 352.5,
+     "width": 108.875,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 560.5,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 966,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1291.5,
+     "width": 1578,
+     "height": 22.5
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 118,
+     "width": 1628,
+     "height": 193.5
+    },
+    {
+     "x": 256,
+     "y": 327.5,
+     "width": 1628,
+     "height": 192
+    },
+    {
+     "x": 256,
+     "y": 535.5,
+     "width": 1628,
+     "height": 389.5
+    },
+    {
+     "x": 256,
+     "y": 941,
+     "width": 1628,
+     "height": 309.5
+    },
+    {
+     "x": 256,
+     "y": 1266.5,
+     "width": 1628,
+     "height": 179
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 431,
+     "width": 1578,
+     "height": 63.5
+    },
+    {
+     "x": 281,
+     "y": 639,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 685,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 731,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 777,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 823,
+     "width": 1578,
+     "height": 45.5
+    },
+    {
+     "x": 280,
+     "y": 1291,
+     "width": 310.546875,
+     "height": 46
+    },
+    {
+     "x": 280,
+     "y": 1337,
+     "width": 310.546875,
+     "height": 46
+    },
+    {
+     "x": 280,
+     "y": 1383,
+     "width": 310.546875,
+     "height": 46
+    },
+    {
+     "x": 280,
+     "y": 1429,
+     "width": 310.546875,
+     "height": 46
+    },
+    {
+     "x": 280,
+     "y": 1475,
+     "width": 310.546875,
+     "height": 46
+    },
+    {
+     "x": 280,
+     "y": 1521,
+     "width": 310.546875,
+     "height": 45.5
+    }
+   ],
+   "badges": [],
+   "toolbar": [],
+   "search": [],
+   "selects": [],
+   "buttons": [
+    {
+     "x": 1760.625,
+     "y": 44.75,
+     "width": 123.375,
+     "height": 40.5
+    },
+    {
+     "x": 1650.421875,
+     "y": 443.5,
+     "width": 69.953125,
+     "height": 39
+    },
+    {
+     "x": 1728.375,
+     "y": 443.5,
+     "width": 122.625,
+     "height": 39
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "dashboard-card1.png",
+    "x": 256,
+    "y": 118,
+    "width": 1628,
+    "height": 193.5
+   },
+   {
+    "file": "dashboard-card2.png",
+    "x": 256,
+    "y": 327.5,
+    "width": 1628,
+    "height": 192
+   },
+   {
+    "file": "dashboard-card3.png",
+    "x": 256,
+    "y": 535.5,
+    "width": 1628,
+    "height": 389.5
+   },
+   {
+    "file": "dashboard-card4.png",
+    "x": 256,
+    "y": 941,
+    "width": 1628,
+    "height": 309.5
+   },
+   {
+    "file": "dashboard-card5.png",
+    "x": 256,
+    "y": 1266.5,
+    "width": 1628,
+    "height": 179
+   },
+   {
+    "file": "dashboard-row1.png",
+    "x": 281,
+    "y": 431,
+    "width": 1578,
+    "height": 63.5
+   },
+   {
+    "file": "dashboard-row2.png",
+    "x": 281,
+    "y": 639,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "dashboard-row3.png",
+    "x": 281,
+    "y": 685,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "dashboard-row4.png",
+    "x": 281,
+    "y": 731,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "dashboard-row5.png",
+    "x": 281,
+    "y": 777,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "dashboard-row6.png",
+    "x": 281,
+    "y": 823,
+    "width": 1578,
+    "height": 45.5
+   },
+   {
+    "file": "dashboard-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1481.5
+   },
+   {
+    "file": "dashboard-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 58
+   }
+  ]
+ },
+ "invoices": {
+  "pageH": 1080,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 39.75,
+     "width": 86.609375,
+     "height": 33
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 157,
+     "width": 1628,
+     "height": 411.5
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 226,
+     "width": 1578,
+     "height": 53
+    },
+    {
+     "x": 281,
+     "y": 279,
+     "width": 1578,
+     "height": 53
+    },
+    {
+     "x": 281,
+     "y": 332,
+     "width": 1578,
+     "height": 53
+    },
+    {
+     "x": 281,
+     "y": 385,
+     "width": 1578,
+     "height": 53
+    },
+    {
+     "x": 281,
+     "y": 438,
+     "width": 1578,
+     "height": 53
+    },
+    {
+     "x": 281,
+     "y": 491,
+     "width": 1578,
+     "height": 52.5
+    }
+   ],
+   "badges": [
+    {
+     "x": 1628.3125,
+     "y": 238.5,
+     "width": 68.15625,
+     "height": 28
+    },
+    {
+     "x": 1628.3125,
+     "y": 291.5,
+     "width": 94.484375,
+     "height": 28
+    },
+    {
+     "x": 1628.3125,
+     "y": 344.5,
+     "width": 43.40625,
+     "height": 28
+    },
+    {
+     "x": 1628.3125,
+     "y": 397.5,
+     "width": 44.875,
+     "height": 28
+    },
+    {
+     "x": 1628.3125,
+     "y": 450.5,
+     "width": 47.0625,
+     "height": 28
+    },
+    {
+     "x": 1628.3125,
+     "y": 503.5,
+     "width": 44.40625,
+     "height": 28
+    }
+   ],
+   "toolbar": [
+    {
+     "x": 256,
+     "y": 100.5,
+     "width": 1628,
+     "height": 40.5
+    }
+   ],
+   "search": [
+    {
+     "x": 256,
+     "y": 100.5,
+     "width": 1488,
+     "height": 40.5
+    }
+   ],
+   "selects": [
+    {
+     "x": 1756,
+     "y": 101.25,
+     "width": 128,
+     "height": 39
+    }
+   ],
+   "buttons": [
+    {
+     "x": 1760.625,
+     "y": 36,
+     "width": 123.375,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "invoices-card1.png",
+    "x": 256,
+    "y": 157,
+    "width": 1628,
+    "height": 411.5
+   },
+   {
+    "file": "invoices-row1.png",
+    "x": 281,
+    "y": 226,
+    "width": 1578,
+    "height": 53
+   },
+   {
+    "file": "invoices-row2.png",
+    "x": 281,
+    "y": 279,
+    "width": 1578,
+    "height": 53
+   },
+   {
+    "file": "invoices-row3.png",
+    "x": 281,
+    "y": 332,
+    "width": 1578,
+    "height": 53
+   },
+   {
+    "file": "invoices-row4.png",
+    "x": 281,
+    "y": 385,
+    "width": 1578,
+    "height": 53
+   },
+   {
+    "file": "invoices-row5.png",
+    "x": 281,
+    "y": 438,
+    "width": 1578,
+    "height": 53
+   },
+   {
+    "file": "invoices-row6.png",
+    "x": 281,
+    "y": 491,
+    "width": 1578,
+    "height": 52.5
+   },
+   {
+    "file": "invoices-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1080
+   },
+   {
+    "file": "invoices-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 40.5
+   },
+   {
+    "file": "invoices-toolbar.png",
+    "x": 256,
+    "y": 100.5,
+    "width": 1628,
+    "height": 40.5
+   }
+  ]
+ },
+ "editor": {
+  "pageH": 1330,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 36,
+     "width": 126.234375,
+     "height": 33
+    },
+    {
+     "x": 281,
+     "y": 118,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 317,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 577.5,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 861,
+     "width": 1578,
+     "height": 22.5
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 93,
+     "width": 1628,
+     "height": 183
+    },
+    {
+     "x": 256,
+     "y": 292,
+     "width": 1628,
+     "height": 244.5
+    },
+    {
+     "x": 256,
+     "y": 552.5,
+     "width": 1628,
+     "height": 267.5
+    },
+    {
+     "x": 256,
+     "y": 836,
+     "width": 1628,
+     "height": 401
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 395.5,
+     "width": 1578,
+     "height": 63.5
+    },
+    {
+     "x": 1078,
+     "y": 612,
+     "width": 781,
+     "height": 45.5
+    },
+    {
+     "x": 1078,
+     "y": 657.5,
+     "width": 781,
+     "height": 46
+    },
+    {
+     "x": 1078,
+     "y": 703.5,
+     "width": 781,
+     "height": 46
+    },
+    {
+     "x": 1078,
+     "y": 749.5,
+     "width": 781,
+     "height": 45.5
+    }
+   ],
+   "badges": [],
+   "toolbar": [],
+   "search": [
+    {
+     "x": 289,
+     "y": 408,
+     "width": 680.09375,
+     "height": 39
+    },
+    {
+     "x": 1055.09375,
+     "y": 408,
+     "width": 54,
+     "height": 39
+    },
+    {
+     "x": 1125.09375,
+     "y": 408,
+     "width": 84,
+     "height": 39
+    }
+   ],
+   "selects": [
+    {
+     "x": 281,
+     "y": 188,
+     "width": 161.046875,
+     "height": 39
+    },
+    {
+     "x": 1225.09375,
+     "y": 409,
+     "width": 84,
+     "height": 37
+    },
+    {
+     "x": 1415.09375,
+     "y": 409,
+     "width": 104,
+     "height": 37
+    },
+    {
+     "x": 281,
+     "y": 635.5,
+     "width": 101,
+     "height": 39
+    }
+   ],
+   "buttons": [
+    {
+     "x": 450.046875,
+     "y": 176,
+     "width": 80.609375,
+     "height": 63
+    },
+    {
+     "x": 1695.09375,
+     "y": 408,
+     "width": 43.515625,
+     "height": 39
+    },
+    {
+     "x": 281,
+     "y": 471,
+     "width": 93.734375,
+     "height": 40.5
+    },
+    {
+     "x": 382.734375,
+     "y": 471,
+     "width": 160.171875,
+     "height": 40.5
+    },
+    {
+     "x": 256,
+     "y": 1253,
+     "width": 69.9375,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "editor-card1.png",
+    "x": 256,
+    "y": 93,
+    "width": 1628,
+    "height": 183
+   },
+   {
+    "file": "editor-card2.png",
+    "x": 256,
+    "y": 292,
+    "width": 1628,
+    "height": 244.5
+   },
+   {
+    "file": "editor-card3.png",
+    "x": 256,
+    "y": 552.5,
+    "width": 1628,
+    "height": 267.5
+   },
+   {
+    "file": "editor-card4.png",
+    "x": 256,
+    "y": 836,
+    "width": 1628,
+    "height": 401
+   },
+   {
+    "file": "editor-row1.png",
+    "x": 281,
+    "y": 395.5,
+    "width": 1578,
+    "height": 63.5
+   },
+   {
+    "file": "editor-row2.png",
+    "x": 1078,
+    "y": 612,
+    "width": 781,
+    "height": 45.5
+   },
+   {
+    "file": "editor-row3.png",
+    "x": 1078,
+    "y": 657.5,
+    "width": 781,
+    "height": 46
+   },
+   {
+    "file": "editor-row4.png",
+    "x": 1078,
+    "y": 703.5,
+    "width": 781,
+    "height": 46
+   },
+   {
+    "file": "editor-row5.png",
+    "x": 1078,
+    "y": 749.5,
+    "width": 781,
+    "height": 45.5
+   },
+   {
+    "file": "editor-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1329.5
+   },
+   {
+    "file": "editor-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 33
+   }
+  ]
+ },
+ "invoice": {
+  "pageH": 2520,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 36,
+     "width": 98.09375,
+     "height": 33
+    },
+    {
+     "x": 281,
+     "y": 118,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 317,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 641.5,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1017,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1098.5,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1393.5,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1926,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 2383.5,
+     "width": 1578,
+     "height": 22.5
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 93,
+     "width": 1628,
+     "height": 183
+    },
+    {
+     "x": 256,
+     "y": 292,
+     "width": 1628,
+     "height": 308.5
+    },
+    {
+     "x": 256,
+     "y": 616.5,
+     "width": 1628,
+     "height": 359.5
+    },
+    {
+     "x": 256,
+     "y": 992,
+     "width": 1628,
+     "height": 360.5
+    },
+    {
+     "x": 256,
+     "y": 1368.5,
+     "width": 1628,
+     "height": 516.5
+    },
+    {
+     "x": 256,
+     "y": 1901,
+     "width": 1628,
+     "height": 401
+    },
+    {
+     "x": 256,
+     "y": 2358.5,
+     "width": 1628,
+     "height": 125
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 395.5,
+     "width": 1578,
+     "height": 64
+    },
+    {
+     "x": 281,
+     "y": 459.5,
+     "width": 1578,
+     "height": 63.5
+    },
+    {
+     "x": 1078,
+     "y": 676,
+     "width": 781,
+     "height": 45.5
+    },
+    {
+     "x": 1078,
+     "y": 721.5,
+     "width": 781,
+     "height": 46
+    },
+    {
+     "x": 1078,
+     "y": 767.5,
+     "width": 781,
+     "height": 46
+    },
+    {
+     "x": 1078,
+     "y": 813.5,
+     "width": 781,
+     "height": 46
+    },
+    {
+     "x": 1078,
+     "y": 859.5,
+     "width": 781,
+     "height": 46
+    },
+    {
+     "x": 1078,
+     "y": 905.5,
+     "width": 781,
+     "height": 45.5
+    }
+   ],
+   "badges": [
+    {
+     "x": 362.09375,
+     "y": 38.5,
+     "width": 68.15625,
+     "height": 28
+    }
+   ],
+   "toolbar": [],
+   "search": [
+    {
+     "x": 289,
+     "y": 408,
+     "width": 671.046875,
+     "height": 39
+    },
+    {
+     "x": 1046.046875,
+     "y": 408,
+     "width": 54,
+     "height": 39
+    },
+    {
+     "x": 1116.046875,
+     "y": 408,
+     "width": 84,
+     "height": 39
+    },
+    {
+     "x": 289,
+     "y": 472,
+     "width": 671.046875,
+     "height": 39
+    }
+   ],
+   "selects": [
+    {
+     "x": 281,
+     "y": 188,
+     "width": 161.046875,
+     "height": 39
+    },
+    {
+     "x": 1216.046875,
+     "y": 409,
+     "width": 84,
+     "height": 37
+    },
+    {
+     "x": 1406.046875,
+     "y": 409,
+     "width": 104,
+     "height": 37
+    },
+    {
+     "x": 1216.046875,
+     "y": 473,
+     "width": 84,
+     "height": 37
+    }
+   ],
+   "buttons": [
+    {
+     "x": 450.046875,
+     "y": 176,
+     "width": 80.609375,
+     "height": 63
+    },
+    {
+     "x": 1697.328125,
+     "y": 408,
+     "width": 43.515625,
+     "height": 39
+    },
+    {
+     "x": 1697.328125,
+     "y": 472,
+     "width": 43.515625,
+     "height": 39
+    },
+    {
+     "x": 281,
+     "y": 535,
+     "width": 93.734375,
+     "height": 40.5
+    },
+    {
+     "x": 382.734375,
+     "y": 535,
+     "width": 160.171875,
+     "height": 40.5
+    },
+    {
+     "x": 281,
+     "y": 1287,
+     "width": 153.921875,
+     "height": 40.5
+    },
+    {
+     "x": 281,
+     "y": 1819.5,
+     "width": 142.34375,
+     "height": 40.5
+    },
+    {
+     "x": 431.34375,
+     "y": 1819.5,
+     "width": 149.609375,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "invoice-card1.png",
+    "x": 256,
+    "y": 93,
+    "width": 1628,
+    "height": 183
+   },
+   {
+    "file": "invoice-card2.png",
+    "x": 256,
+    "y": 292,
+    "width": 1628,
+    "height": 308.5
+   },
+   {
+    "file": "invoice-card3.png",
+    "x": 256,
+    "y": 616.5,
+    "width": 1628,
+    "height": 359.5
+   },
+   {
+    "file": "invoice-card4.png",
+    "x": 256,
+    "y": 992,
+    "width": 1628,
+    "height": 360.5
+   },
+   {
+    "file": "invoice-card5.png",
+    "x": 256,
+    "y": 1368.5,
+    "width": 1628,
+    "height": 516.5
+   },
+   {
+    "file": "invoice-card6.png",
+    "x": 256,
+    "y": 1901,
+    "width": 1628,
+    "height": 401
+   },
+   {
+    "file": "invoice-row1.png",
+    "x": 281,
+    "y": 395.5,
+    "width": 1578,
+    "height": 64
+   },
+   {
+    "file": "invoice-row2.png",
+    "x": 281,
+    "y": 459.5,
+    "width": 1578,
+    "height": 63.5
+   },
+   {
+    "file": "invoice-row3.png",
+    "x": 1078,
+    "y": 676,
+    "width": 781,
+    "height": 45.5
+   },
+   {
+    "file": "invoice-row4.png",
+    "x": 1078,
+    "y": 721.5,
+    "width": 781,
+    "height": 46
+   },
+   {
+    "file": "invoice-row5.png",
+    "x": 1078,
+    "y": 767.5,
+    "width": 781,
+    "height": 46
+   },
+   {
+    "file": "invoice-row6.png",
+    "x": 1078,
+    "y": 813.5,
+    "width": 781,
+    "height": 46
+   },
+   {
+    "file": "invoice-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 2519.5
+   },
+   {
+    "file": "invoice-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 33
+   }
+  ]
+ },
+ "clients": {
+  "pageH": 1080,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 39.75,
+     "width": 72.140625,
+     "height": 33
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 157,
+     "width": 1628,
+     "height": 277.5
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 226,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 272,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 318,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 364,
+     "width": 1578,
+     "height": 45.5
+    }
+   ],
+   "badges": [],
+   "toolbar": [
+    {
+     "x": 256,
+     "y": 100.5,
+     "width": 1628,
+     "height": 40.5
+    }
+   ],
+   "search": [
+    {
+     "x": 256,
+     "y": 100.5,
+     "width": 1490.296875,
+     "height": 40.5
+    },
+    {
+     "x": 1762.296875,
+     "y": 114.25,
+     "width": 13,
+     "height": 13
+    }
+   ],
+   "selects": [],
+   "buttons": [
+    {
+     "x": 1772.796875,
+     "y": 36,
+     "width": 111.203125,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "clients-card1.png",
+    "x": 256,
+    "y": 157,
+    "width": 1628,
+    "height": 277.5
+   },
+   {
+    "file": "clients-row1.png",
+    "x": 281,
+    "y": 226,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "clients-row2.png",
+    "x": 281,
+    "y": 272,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "clients-row3.png",
+    "x": 281,
+    "y": 318,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "clients-row4.png",
+    "x": 281,
+    "y": 364,
+    "width": 1578,
+    "height": 45.5
+   },
+   {
+    "file": "clients-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1080
+   },
+   {
+    "file": "clients-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 40.5
+   },
+   {
+    "file": "clients-toolbar.png",
+    "x": 256,
+    "y": 100.5,
+    "width": 1628,
+    "height": 40.5
+   }
+  ]
+ },
+ "client": {
+  "pageH": 1479,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 39.75,
+     "width": 189.109375,
+     "height": 33
+    },
+    {
+     "x": 281,
+     "y": 125.5,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 369,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 619,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 816,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1026.5,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1161,
+     "width": 1578,
+     "height": 22.5
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 100.5,
+     "width": 1628,
+     "height": 227.5
+    },
+    {
+     "x": 256,
+     "y": 344,
+     "width": 1628,
+     "height": 234
+    },
+    {
+     "x": 256,
+     "y": 594,
+     "width": 1628,
+     "height": 181
+    },
+    {
+     "x": 256,
+     "y": 791,
+     "width": 1628,
+     "height": 651.5
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 447.5,
+     "width": 1578,
+     "height": 53
+    },
+    {
+     "x": 281,
+     "y": 500.5,
+     "width": 1578,
+     "height": 52.5
+    },
+    {
+     "x": 281,
+     "y": 697.5,
+     "width": 1578,
+     "height": 52.5
+    }
+   ],
+   "badges": [
+    {
+     "x": 1567.4375,
+     "y": 460,
+     "width": 68.15625,
+     "height": 28
+    },
+    {
+     "x": 1567.4375,
+     "y": 513,
+     "width": 47.0625,
+     "height": 28
+    },
+    {
+     "x": 1643.96875,
+     "y": 710,
+     "width": 44.875,
+     "height": 28
+    }
+   ],
+   "toolbar": [],
+   "search": [
+    {
+     "x": 281,
+     "y": 874,
+     "width": 1578,
+     "height": 40.5
+    },
+    {
+     "x": 1078,
+     "y": 1219,
+     "width": 781,
+     "height": 40.5
+    }
+   ],
+   "selects": [],
+   "buttons": [
+    {
+     "x": 1500.734375,
+     "y": 36,
+     "width": 123.375,
+     "height": 40.5
+    },
+    {
+     "x": 1632.109375,
+     "y": 36,
+     "width": 134.046875,
+     "height": 40.5
+    },
+    {
+     "x": 1774.15625,
+     "y": 36,
+     "width": 109.84375,
+     "height": 40.5
+    },
+    {
+     "x": 281,
+     "y": 1377,
+     "width": 114.21875,
+     "height": 40.5
+    },
+    {
+     "x": 403.21875,
+     "y": 1377,
+     "width": 90.84375,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "client-card1.png",
+    "x": 256,
+    "y": 100.5,
+    "width": 1628,
+    "height": 227.5
+   },
+   {
+    "file": "client-card2.png",
+    "x": 256,
+    "y": 344,
+    "width": 1628,
+    "height": 234
+   },
+   {
+    "file": "client-card3.png",
+    "x": 256,
+    "y": 594,
+    "width": 1628,
+    "height": 181
+   },
+   {
+    "file": "client-card4.png",
+    "x": 256,
+    "y": 791,
+    "width": 1628,
+    "height": 651.5
+   },
+   {
+    "file": "client-row1.png",
+    "x": 281,
+    "y": 447.5,
+    "width": 1578,
+    "height": 53
+   },
+   {
+    "file": "client-row2.png",
+    "x": 281,
+    "y": 500.5,
+    "width": 1578,
+    "height": 52.5
+   },
+   {
+    "file": "client-row3.png",
+    "x": 281,
+    "y": 697.5,
+    "width": 1578,
+    "height": 52.5
+   },
+   {
+    "file": "client-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1478.5
+   },
+   {
+    "file": "client-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 40.5
+   }
+  ]
+ },
+ "catalog": {
+  "pageH": 1080,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 36,
+     "width": 490.734375,
+     "height": 33
+    },
+    {
+     "x": 281,
+     "y": 143,
+     "width": 1578,
+     "height": 22.5
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 118,
+     "width": 1628,
+     "height": 201
+    },
+    {
+     "x": 256,
+     "y": 391.5,
+     "width": 1628,
+     "height": 285.5
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 460.5,
+     "width": 1578,
+     "height": 64
+    },
+    {
+     "x": 281,
+     "y": 524.5,
+     "width": 1578,
+     "height": 64
+    },
+    {
+     "x": 281,
+     "y": 588.5,
+     "width": 1578,
+     "height": 63.5
+    }
+   ],
+   "badges": [],
+   "toolbar": [
+    {
+     "x": 256,
+     "y": 335,
+     "width": 1628,
+     "height": 40.5
+    }
+   ],
+   "search": [
+    {
+     "x": 281,
+     "y": 201,
+     "width": 382.5,
+     "height": 40.5
+    },
+    {
+     "x": 679.5,
+     "y": 201,
+     "width": 382.5,
+     "height": 40.5
+    },
+    {
+     "x": 1078,
+     "y": 201,
+     "width": 382.5,
+     "height": 40.5
+    },
+    {
+     "x": 256,
+     "y": 335,
+     "width": 1490.296875,
+     "height": 40.5
+    }
+   ],
+   "selects": [],
+   "buttons": [
+    {
+     "x": 281,
+     "y": 253.5,
+     "width": 99.359375,
+     "height": 40.5
+    },
+    {
+     "x": 1695.703125,
+     "y": 473,
+     "width": 60.25,
+     "height": 39
+    },
+    {
+     "x": 1763.953125,
+     "y": 473,
+     "width": 87.046875,
+     "height": 39
+    },
+    {
+     "x": 1695.703125,
+     "y": 537,
+     "width": 60.25,
+     "height": 39
+    },
+    {
+     "x": 1763.953125,
+     "y": 537,
+     "width": 87.046875,
+     "height": 39
+    },
+    {
+     "x": 1695.703125,
+     "y": 601,
+     "width": 60.25,
+     "height": 39
+    },
+    {
+     "x": 1763.953125,
+     "y": 601,
+     "width": 87.046875,
+     "height": 39
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "catalog-card1.png",
+    "x": 256,
+    "y": 118,
+    "width": 1628,
+    "height": 201
+   },
+   {
+    "file": "catalog-card2.png",
+    "x": 256,
+    "y": 391.5,
+    "width": 1628,
+    "height": 285.5
+   },
+   {
+    "file": "catalog-row1.png",
+    "x": 281,
+    "y": 460.5,
+    "width": 1578,
+    "height": 64
+   },
+   {
+    "file": "catalog-row2.png",
+    "x": 281,
+    "y": 524.5,
+    "width": 1578,
+    "height": 64
+   },
+   {
+    "file": "catalog-row3.png",
+    "x": 281,
+    "y": 588.5,
+    "width": 1578,
+    "height": 63.5
+   },
+   {
+    "file": "catalog-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1080
+   },
+   {
+    "file": "catalog-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 58
+   },
+   {
+    "file": "catalog-toolbar.png",
+    "x": 256,
+    "y": 335,
+    "width": 1628,
+    "height": 40.5
+   }
+  ]
+ },
+ "estimates": {
+  "pageH": 1080,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 39.75,
+     "width": 101.875,
+     "height": 33
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 157,
+     "width": 1628,
+     "height": 252.5
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 226,
+     "width": 1578,
+     "height": 53
+    },
+    {
+     "x": 281,
+     "y": 279,
+     "width": 1578,
+     "height": 53
+    },
+    {
+     "x": 281,
+     "y": 332,
+     "width": 1578,
+     "height": 52.5
+    }
+   ],
+   "badges": [
+    {
+     "x": 1627.953125,
+     "y": 238.5,
+     "width": 44.875,
+     "height": 28
+    },
+    {
+     "x": 1627.953125,
+     "y": 291.5,
+     "width": 74.515625,
+     "height": 28
+    },
+    {
+     "x": 1627.953125,
+     "y": 344.5,
+     "width": 47.0625,
+     "height": 28
+    }
+   ],
+   "toolbar": [
+    {
+     "x": 256,
+     "y": 100.5,
+     "width": 1628,
+     "height": 40.5
+    }
+   ],
+   "search": [
+    {
+     "x": 256,
+     "y": 100.5,
+     "width": 1488,
+     "height": 40.5
+    }
+   ],
+   "selects": [
+    {
+     "x": 1756,
+     "y": 101.25,
+     "width": 128,
+     "height": 39
+    }
+   ],
+   "buttons": [
+    {
+     "x": 1749.953125,
+     "y": 36,
+     "width": 134.046875,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "estimates-card1.png",
+    "x": 256,
+    "y": 157,
+    "width": 1628,
+    "height": 252.5
+   },
+   {
+    "file": "estimates-row1.png",
+    "x": 281,
+    "y": 226,
+    "width": 1578,
+    "height": 53
+   },
+   {
+    "file": "estimates-row2.png",
+    "x": 281,
+    "y": 279,
+    "width": 1578,
+    "height": 53
+   },
+   {
+    "file": "estimates-row3.png",
+    "x": 281,
+    "y": 332,
+    "width": 1578,
+    "height": 52.5
+   },
+   {
+    "file": "estimates-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1080
+   },
+   {
+    "file": "estimates-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 40.5
+   },
+   {
+    "file": "estimates-toolbar.png",
+    "x": 256,
+    "y": 100.5,
+    "width": 1628,
+    "height": 40.5
+   }
+  ]
+ },
+ "estimate": {
+  "pageH": 1455,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 36,
+     "width": 100.9375,
+     "height": 33
+    },
+    {
+     "x": 281,
+     "y": 118,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 317,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 577.5,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 861,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1318.5,
+     "width": 1578,
+     "height": 22.5
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 93,
+     "width": 1628,
+     "height": 183
+    },
+    {
+     "x": 256,
+     "y": 292,
+     "width": 1628,
+     "height": 244.5
+    },
+    {
+     "x": 256,
+     "y": 552.5,
+     "width": 1628,
+     "height": 267.5
+    },
+    {
+     "x": 256,
+     "y": 836,
+     "width": 1628,
+     "height": 401
+    },
+    {
+     "x": 256,
+     "y": 1293.5,
+     "width": 1628,
+     "height": 125
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 395.5,
+     "width": 1578,
+     "height": 63.5
+    },
+    {
+     "x": 1078,
+     "y": 612,
+     "width": 781,
+     "height": 45.5
+    },
+    {
+     "x": 1078,
+     "y": 657.5,
+     "width": 781,
+     "height": 46
+    },
+    {
+     "x": 1078,
+     "y": 703.5,
+     "width": 781,
+     "height": 46
+    },
+    {
+     "x": 1078,
+     "y": 749.5,
+     "width": 781,
+     "height": 45.5
+    }
+   ],
+   "badges": [
+    {
+     "x": 364.9375,
+     "y": 38.5,
+     "width": 44.875,
+     "height": 28
+    }
+   ],
+   "toolbar": [],
+   "search": [
+    {
+     "x": 289,
+     "y": 408,
+     "width": 671.046875,
+     "height": 39
+    },
+    {
+     "x": 1046.046875,
+     "y": 408,
+     "width": 54,
+     "height": 39
+    },
+    {
+     "x": 1116.046875,
+     "y": 408,
+     "width": 84,
+     "height": 39
+    }
+   ],
+   "selects": [
+    {
+     "x": 281,
+     "y": 188,
+     "width": 161.046875,
+     "height": 39
+    },
+    {
+     "x": 1609.328125,
+     "y": 176,
+     "width": 249.671875,
+     "height": 39
+    },
+    {
+     "x": 1216.046875,
+     "y": 409,
+     "width": 84,
+     "height": 37
+    },
+    {
+     "x": 1406.046875,
+     "y": 409,
+     "width": 104,
+     "height": 37
+    }
+   ],
+   "buttons": [
+    {
+     "x": 450.046875,
+     "y": 176,
+     "width": 80.609375,
+     "height": 63
+    },
+    {
+     "x": 1697.328125,
+     "y": 408,
+     "width": 43.515625,
+     "height": 39
+    },
+    {
+     "x": 281,
+     "y": 471,
+     "width": 93.734375,
+     "height": 40.5
+    },
+    {
+     "x": 382.734375,
+     "y": 471,
+     "width": 160.171875,
+     "height": 40.5
+    },
+    {
+     "x": 256,
+     "y": 1253,
+     "width": 69.9375,
+     "height": 40.5
+    },
+    {
+     "x": 333.9375,
+     "y": 1253,
+     "width": 103.734375,
+     "height": 40.5
+    },
+    {
+     "x": 445.671875,
+     "y": 1253,
+     "width": 167.484375,
+     "height": 40.5
+    },
+    {
+     "x": 391,
+     "y": 1353,
+     "width": 115.28125,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "estimate-card1.png",
+    "x": 256,
+    "y": 93,
+    "width": 1628,
+    "height": 183
+   },
+   {
+    "file": "estimate-card2.png",
+    "x": 256,
+    "y": 292,
+    "width": 1628,
+    "height": 244.5
+   },
+   {
+    "file": "estimate-card3.png",
+    "x": 256,
+    "y": 552.5,
+    "width": 1628,
+    "height": 267.5
+   },
+   {
+    "file": "estimate-card4.png",
+    "x": 256,
+    "y": 836,
+    "width": 1628,
+    "height": 401
+   },
+   {
+    "file": "estimate-card5.png",
+    "x": 256,
+    "y": 1293.5,
+    "width": 1628,
+    "height": 125
+   },
+   {
+    "file": "estimate-row1.png",
+    "x": 281,
+    "y": 395.5,
+    "width": 1578,
+    "height": 63.5
+   },
+   {
+    "file": "estimate-row2.png",
+    "x": 1078,
+    "y": 612,
+    "width": 781,
+    "height": 45.5
+   },
+   {
+    "file": "estimate-row3.png",
+    "x": 1078,
+    "y": 657.5,
+    "width": 781,
+    "height": 46
+   },
+   {
+    "file": "estimate-row4.png",
+    "x": 1078,
+    "y": 703.5,
+    "width": 781,
+    "height": 46
+   },
+   {
+    "file": "estimate-row5.png",
+    "x": 1078,
+    "y": 749.5,
+    "width": 781,
+    "height": 45.5
+   },
+   {
+    "file": "estimate-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1454.5
+   },
+   {
+    "file": "estimate-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 33
+   }
+  ]
+ },
+ "reports": {
+  "pageH": 2275,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 40.75,
+     "width": 81.171875,
+     "height": 33
+    },
+    {
+     "x": 281,
+     "y": 130.5,
+     "width": 63.609375,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 626.5,
+     "width": 129.65625,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1030.5,
+     "width": 127.203125,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1480.5,
+     "width": 97.53125,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1792.5,
+     "width": 221.40625,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 2101.5,
+     "width": 1578,
+     "height": 22.5
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 102.5,
+     "width": 1628,
+     "height": 480
+    },
+    {
+     "x": 256,
+     "y": 598.5,
+     "width": 1628,
+     "height": 388
+    },
+    {
+     "x": 256,
+     "y": 1002.5,
+     "width": 1628,
+     "height": 434
+    },
+    {
+     "x": 256,
+     "y": 1452.5,
+     "width": 1628,
+     "height": 296
+    },
+    {
+     "x": 256,
+     "y": 1764.5,
+     "width": 1628,
+     "height": 296
+    },
+    {
+     "x": 256,
+     "y": 2076.5,
+     "width": 1628,
+     "height": 162
+    }
+   ],
+   "stats": [],
+   "rows": [
+    {
+     "x": 281,
+     "y": 236,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 282,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 328,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 374,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 420,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 466,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 512,
+     "width": 1578,
+     "height": 45.5
+    },
+    {
+     "x": 281,
+     "y": 732,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 778,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 824,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 870,
+     "width": 1578,
+     "height": 46
+    },
+    {
+     "x": 281,
+     "y": 916,
+     "width": 1578,
+     "height": 45.5
+    }
+   ],
+   "badges": [],
+   "toolbar": [],
+   "search": [],
+   "selects": [
+    {
+     "x": 1709.46875,
+     "y": 37.75,
+     "width": 104,
+     "height": 39
+    }
+   ],
+   "buttons": [
+    {
+     "x": 1821.46875,
+     "y": 37,
+     "width": 62.53125,
+     "height": 40.5
+    },
+    {
+     "x": 1740.96875,
+     "y": 127.5,
+     "width": 118.03125,
+     "height": 40.5
+    },
+    {
+     "x": 1740.96875,
+     "y": 623.5,
+     "width": 118.03125,
+     "height": 40.5
+    },
+    {
+     "x": 1740.96875,
+     "y": 1027.5,
+     "width": 118.03125,
+     "height": 40.5
+    },
+    {
+     "x": 1740.96875,
+     "y": 1477.5,
+     "width": 118.03125,
+     "height": 40.5
+    },
+    {
+     "x": 1740.96875,
+     "y": 1789.5,
+     "width": 118.03125,
+     "height": 40.5
+    },
+    {
+     "x": 281,
+     "y": 2173,
+     "width": 195.1875,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "reports-card1.png",
+    "x": 256,
+    "y": 102.5,
+    "width": 1628,
+    "height": 480
+   },
+   {
+    "file": "reports-card2.png",
+    "x": 256,
+    "y": 598.5,
+    "width": 1628,
+    "height": 388
+   },
+   {
+    "file": "reports-card3.png",
+    "x": 256,
+    "y": 1002.5,
+    "width": 1628,
+    "height": 434
+   },
+   {
+    "file": "reports-card4.png",
+    "x": 256,
+    "y": 1452.5,
+    "width": 1628,
+    "height": 296
+   },
+   {
+    "file": "reports-card5.png",
+    "x": 256,
+    "y": 1764.5,
+    "width": 1628,
+    "height": 296
+   },
+   {
+    "file": "reports-card6.png",
+    "x": 256,
+    "y": 2076.5,
+    "width": 1628,
+    "height": 162
+   },
+   {
+    "file": "reports-row1.png",
+    "x": 281,
+    "y": 236,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "reports-row2.png",
+    "x": 281,
+    "y": 282,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "reports-row3.png",
+    "x": 281,
+    "y": 328,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "reports-row4.png",
+    "x": 281,
+    "y": 374,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "reports-row5.png",
+    "x": 281,
+    "y": 420,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "reports-row6.png",
+    "x": 281,
+    "y": 466,
+    "width": 1578,
+    "height": 46
+   },
+   {
+    "file": "reports-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 2274.5
+   },
+   {
+    "file": "reports-head.png",
+    "x": 256,
+    "y": 36,
+    "width": 1628,
+    "height": 42.5
+   }
+  ]
+ },
+ "ai": {
+  "pageH": 1479,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 397,
+     "width": 726.015625,
+     "height": 33
+    },
+    {
+     "x": 281,
+     "y": 504,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 766,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 1276,
+     "width": 1578,
+     "height": 22.5
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 479,
+     "width": 1628,
+     "height": 246
+    },
+    {
+     "x": 256,
+     "y": 741,
+     "width": 1628,
+     "height": 494
+    },
+    {
+     "x": 256,
+     "y": 1251,
+     "width": 1628,
+     "height": 191.5
+    }
+   ],
+   "stats": [],
+   "rows": [],
+   "badges": [],
+   "toolbar": [],
+   "search": [],
+   "selects": [],
+   "buttons": [
+    {
+     "x": 1786.484375,
+     "y": 837.5,
+     "width": 72.515625,
+     "height": 40.5
+    },
+    {
+     "x": 1786.484375,
+     "y": 977.5,
+     "width": 72.515625,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "ai-card1.png",
+    "x": 256,
+    "y": 479,
+    "width": 1628,
+    "height": 246
+   },
+   {
+    "file": "ai-card2.png",
+    "x": 256,
+    "y": 741,
+    "width": 1628,
+    "height": 494
+   },
+   {
+    "file": "ai-card3.png",
+    "x": 256,
+    "y": 1251,
+    "width": 1628,
+    "height": 191.5
+   },
+   {
+    "file": "ai-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1478.5
+   },
+   {
+    "file": "ai-head.png",
+    "x": 256,
+    "y": 397,
+    "width": 1628,
+    "height": 58
+   }
+  ]
+ },
+ "settings": {
+  "pageH": 1272,
+  "boxes": {
+   "headings": [
+    {
+     "x": 256,
+     "y": 397,
+     "width": 404.59375,
+     "height": 33
+    },
+    {
+     "x": 281,
+     "y": 504,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 714.5,
+     "width": 1578,
+     "height": 22.5
+    },
+    {
+     "x": 281,
+     "y": 849,
+     "width": 1578,
+     "height": 22.5
+    }
+   ],
+   "cards": [
+    {
+     "x": 256,
+     "y": 479,
+     "width": 1628,
+     "height": 757
+    }
+   ],
+   "stats": [],
+   "rows": [],
+   "badges": [],
+   "toolbar": [],
+   "search": [
+    {
+     "x": 281,
+     "y": 562,
+     "width": 1578,
+     "height": 40.5
+    },
+    {
+     "x": 281,
+     "y": 907,
+     "width": 1578,
+     "height": 40.5
+    }
+   ],
+   "selects": [],
+   "buttons": [
+    {
+     "x": 281,
+     "y": 1170.5,
+     "width": 192.578125,
+     "height": 40.5
+    }
+   ]
+  },
+  "cutouts": [
+   {
+    "file": "settings-card1.png",
+    "x": 256,
+    "y": 479,
+    "width": 1628,
+    "height": 757
+   },
+   {
+    "file": "settings-aside.png",
+    "x": 0,
+    "y": 0,
+    "width": 220,
+    "height": 1272
+   },
+   {
+    "file": "settings-head.png",
+    "x": 256,
+    "y": 397,
+    "width": 1628,
+    "height": 58
+   }
+  ]
+ }
+}
